@@ -1,0 +1,13 @@
+* [33m976bd48[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m feat: add data fetching with mock API
+[31m|[m *   [33m80bab81[m[33m ([m[1;35mrefs/stash[m[33m)[m WIP on frontend-ui: 569f084 Initial commit
+[31m|[m [32m|[m[33m\[m  
+[31m|[m [32m|[m * [33m2839a01[m index on frontend-ui: 569f084 Initial commit
+[31m|[m [32m|[m[32m/[m  
+[31m|[m * [33m569f084[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/frontend-ui[m[33m, [m[1;31morigin/frontend-api[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mfrontend-ui[m[33m, [m[1;32mfrontend-api[m[33m)[m Initial commit
+[31m|[m[31m/[m[35m|[m 
+* [35m|[m [33m02a4682[m first commit
+ [35m/[m  
+[35m|[m * [33m6f36075[m[33m ([m[1;31morigin/backend-A[m[33m)[m backend-A
+[35m|[m * [33m729b6f2[m[33m ([m[1;31morigin/backend-B[m[33m)[m Add Backend B endpoints: auth, user profile, scholarships
+[35m|[m[35m/[m  
+* [33m319a80b[m[33m ([m[1;31morigin/frontend-auth[m[33m)[m backend base
