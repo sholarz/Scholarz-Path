@@ -27,14 +27,14 @@ export function TestExecutionPage() {
   const [result, setResult] = useState<any>(null);
 
   useEffect(() => {
-    if (test && testState === 'in-progress') {
+    if (test && testState === 'inprogress') {
       setTimeRemaining(test.duration * 60); // Convert minutes to seconds
     }
   }, [test, testState]);
 
   useEffect(() => {
     let timer: any;
-    if (testState === 'in-progress' && timeRemaining > 0) {
+    if (testState === 'inprogress' && timeRemaining > 0) {
       timer = setInterval(() => {
         setTimeRemaining(prev => {
           if (prev <= 1) {
@@ -83,7 +83,7 @@ export function TestExecutionPage() {
   };
 
   const handleStartTest = () => {
-    setTestState('in-progress');
+    setTestState('inprogress');
     setAnswers({});
     setCurrentQuestionIndex(0);
   };
@@ -334,7 +334,7 @@ export function TestExecutionPage() {
                 {currentQuestion.type === 'multiple-choice' && currentQuestion.options && (
                   <RadioGroup
                     value={answers[currentQuestion.id]?.toString()}
-                    onValueChange={(value) => handleAnswer(parseInt(value))}
+                    onValueChange={(value: string) => handleAnswer(parseInt(value))}
                   >
                     <div className="space-y-3">
                       {currentQuestion.options.map((option, index) => (

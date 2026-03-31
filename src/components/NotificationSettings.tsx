@@ -22,7 +22,7 @@ import {
   isDeadlineApproaching 
 } from '../lib/notification-context';
 import { Scholarship } from '../lib/scholarship-data';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface NotificationSettingsProps {
   scholarship: Scholarship;
