@@ -35,7 +35,12 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       const response = await getBookmarks();
-      const scholarshipIds = response.data.data.scholarships.map((s: any) => String(s.id));
+      const scholarshipIds = response.data.data.scholarships
+        .map((item: any) => {
+          const scholarshipId = item?.scholarship_id ?? item?.scholarship?.id ?? item?.id;
+          return scholarshipId ? String(scholarshipId) : null;
+        })
+        .filter((id: string | null): id is string => id !== null);
       setBookmarks(scholarshipIds);
     } catch (error) {
       console.error('Failed to fetch bookmarks:', error);

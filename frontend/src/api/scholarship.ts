@@ -7,13 +7,46 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // ============ PAKAI MOCK API (untuk development) ============
 // Set ke false jika backend sudah siap
-const USE_MOCK_API = true;
+const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_SCHOLARSHIP_API !== 'false';
+
+const MOCK_BOOKMARKS_STORAGE_KEY = 'mock_bookmarks';
+
+const loadMockBookmarks = (): Set<string> => {
+  if (typeof window === 'undefined') {
+    return new Set<string>();
+  }
+
+  try {
+    const raw = localStorage.getItem(MOCK_BOOKMARKS_STORAGE_KEY);
+    if (!raw) {
+      return new Set<string>();
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return new Set<string>();
+    }
+
+    return new Set(parsed.map(String));
+  } catch {
+    return new Set<string>();
+  }
+};
+
+const persistMockBookmarks = (bookmarks: Set<string>) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  localStorage.setItem(MOCK_BOOKMARKS_STORAGE_KEY, JSON.stringify(Array.from(bookmarks)));
+};
 
 // Konfigurasi axios untuk real API
 const API = axios.create({
   baseURL: "http://localhost:8000/api",
   timeout: 10000,
   headers: {
+    "Accept": "application/json",
     "Content-Type": "application/json",
   },
 });
@@ -37,7 +70,7 @@ const mockGetScholarships = async () => {
 // GET /api/scholarships/{id}
 const mockGetScholarshipDetail = async (id: string) => {
   await delay(500);
-  const scholarship = mockScholarships.find((s: any) => s.id === parseInt(id));
+  const scholarship = mockScholarships.find((s: any) => String(s.id) === String(id));
   if (!scholarship) {
     throw new Error('Scholarship not found');
   }
@@ -243,11 +276,12 @@ export const submitTest = async (id: string, answers: any) => {
 };
 
 // Bookmark endpoints
-const mockBookmarks: Set<string> = new Set();
+const mockBookmarks: Set<string> = loadMockBookmarks();
 
 const mockAddBookmark = async (scholarshipId: string) => {
   await delay(300);
   mockBookmarks.add(scholarshipId);
+  persistMockBookmarks(mockBookmarks);
   return {
     data: {
       success: true,
@@ -259,6 +293,7 @@ const mockAddBookmark = async (scholarshipId: string) => {
 const mockRemoveBookmark = async (scholarshipId: string) => {
   await delay(300);
   mockBookmarks.delete(scholarshipId);
+  persistMockBookmarks(mockBookmarks);
   return {
     data: {
       success: true,

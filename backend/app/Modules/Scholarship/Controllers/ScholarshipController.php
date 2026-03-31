@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Scholarship;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ScholarshipController extends Controller
 {
@@ -135,6 +136,13 @@ class ScholarshipController extends Controller
      */
     public function bookmark(Request $request, string $scholarshipId): JsonResponse
     {
+        if (!Str::isUuid($scholarshipId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid scholarship ID format'
+            ], 422);
+        }
+
         $user = $request->user();
         
         $user->scholarshipMatches()->updateOrCreate(
@@ -153,6 +161,13 @@ class ScholarshipController extends Controller
      */
     public function removeBookmark(Request $request, string $scholarshipId): JsonResponse
     {
+        if (!Str::isUuid($scholarshipId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid scholarship ID format'
+            ], 422);
+        }
+
         $user = $request->user();
         
         $match = $user->scholarshipMatches()
