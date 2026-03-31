@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +17,7 @@ class Roadmap extends Model
         'scholarship_id',
         'title',
         'description',
+        'deadline',   // ← tambahkan ini kalau belum ada
         'milestones',
         'progress_percentage',
         'status',
@@ -24,6 +26,7 @@ class Roadmap extends Model
     protected $casts = [
         'milestones' => 'array',
         'progress_percentage' => 'integer',
+        'deadline' => 'date',         // ← tambahkan ini
     ];
 
     /**
@@ -41,4 +44,12 @@ class Roadmap extends Model
     {
         return $this->belongsTo(Scholarship::class);
     }
+    
+    /**
+     * Get the daily tasks
+     */
+    public function dailyTasks(): HasMany
+{
+    return $this->hasMany(DailyTask::class);
+}
 }
