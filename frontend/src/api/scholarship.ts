@@ -1,6 +1,9 @@
 // src/api/scholarship.ts
 import axios, { AxiosRequestConfig, InternalAxiosRequestConfig } from "axios";
-import { mockScholarships, delay } from "./mockData";
+import { scholarships as mockScholarships } from "../lib/scholarship-data";
+
+// Utility function for simulating network delay in mock API
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // ============ PAKAI MOCK API (untuk development) ============
 // Set ke false jika backend sudah siap
@@ -237,4 +240,68 @@ export const submitTest = async (id: string, answers: any) => {
     };
   }
   return API.post(`/tests/${id}/submit`, { answers });
+};
+
+// Bookmark endpoints
+const mockBookmarks: Set<string> = new Set();
+
+const mockAddBookmark = async (scholarshipId: string) => {
+  await delay(300);
+  mockBookmarks.add(scholarshipId);
+  return {
+    data: {
+      success: true,
+      message: "Scholarship bookmarked successfully"
+    }
+  };
+};
+
+const mockRemoveBookmark = async (scholarshipId: string) => {
+  await delay(300);
+  mockBookmarks.delete(scholarshipId);
+  return {
+    data: {
+      success: true,
+      message: "Bookmark removed successfully"
+    }
+  };
+};
+
+const mockGetBookmarks = async () => {
+  await delay(500);
+  const bookmarkedScholarships = mockScholarships.filter(s => mockBookmarks.has(String(s.id)));
+  return {
+    data: {
+      success: true,
+      data: {
+        scholarships: bookmarkedScholarships,
+        pagination: {
+          total: bookmarkedScholarships.length,
+          per_page: 15,
+          current_page: 1
+        }
+      }
+    }
+  };
+};
+
+export const addBookmark = async (scholarshipId: string) => {
+  if (USE_MOCK_API) {
+    return mockAddBookmark(scholarshipId);
+  }
+  return API.post(`/scholarships/${scholarshipId}/bookmark`);
+};
+
+export const removeBookmark = async (scholarshipId: string) => {
+  if (USE_MOCK_API) {
+    return mockRemoveBookmark(scholarshipId);
+  }
+  return API.delete(`/scholarships/${scholarshipId}/bookmark`);
+};
+
+export const getBookmarks = async () => {
+  if (USE_MOCK_API) {
+    return mockGetBookmarks();
+  }
+  return API.get("/scholarships/bookmarks");
 };

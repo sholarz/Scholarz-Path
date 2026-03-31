@@ -1,6 +1,5 @@
 import { Link } from 'react-router';
 import { Header } from '../Header';
-import { scholarships } from '../../lib/scholarship-data';
 import { useBookmarks } from '../../lib/bookmark-context';
 import { NotificationSettings, DeadlineBadge } from '../NotificationSettings';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
@@ -8,18 +7,72 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Bookmark, Calendar, MapPin, GraduationCap, BookmarkX, Bell } from 'lucide-react';
 import { toast } from 'sonner';
+import { useState, useEffect } from 'react';
+import { getBookmarks } from '../../api/scholarship';
+
+interface BookmarkedScholarship {
+  id: string | number;
+  title: string;
+  provider: string;
+  location: string;
+  amount: string;
+  application_deadline: string;
+  level: string;
+  type: string;
+  description: string;
+}
 
 export function BookmarksPage() {
-  const { bookmarks, removeBookmark } = useBookmarks();
-  
-  const bookmarkedScholarships = scholarships
-    .filter(s => bookmarks.includes(s.id))
-    .sort((a, b) => a.deadline.getTime() - b.deadline.getTime());
+  const { removeBookmark, isLoading } = useBookmarks();
+  const [bookmarkedScholarships, setBookmarkedScholarships] = useState<BookmarkedScholarship[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleRemoveBookmark = (scholarshipId: string, scholarshipTitle: string) => {
-    removeBookmark(scholarshipId);
-    toast.success(`Removed "${scholarshipTitle}" from bookmarks`);
+  // Fetch bookmarks from API
+  useEffect(() => {
+    const fetchBookmarks = async () => {
+      try {
+        setLoading(true);
+        const response = await getBookmarks();
+        setBookmarkedScholarships(response.data.data.scholarships);
+      } catch (error) {
+        console.error('Failed to fetch bookmarks:', error);
+        toast.error('Failed to load bookmarks');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookmarks();
+  }, []);
+
+  const handleRemoveBookmark = async (scholarshipId: string | number, scholarshipTitle: string) => {
+    try {
+      await removeBookmark(String(scholarshipId));
+      setBookmarkedScholarships(prev => prev.filter(s => s.id !== scholarshipId));
+      toast.success(`Removed "${scholarshipTitle}" from bookmarks`);
+    } catch (error) {
+      toast.error('Failed to remove bookmark');
+    }
   };
+
+  const sortedScholarships = [...bookmarkedScholarships].sort((a, b) => {
+    const dateA = new Date(a.application_deadline).getTime();
+    const dateB = new Date(b.application_deadline).getTime();
+    return dateA - dateB;
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container max-w-7xl mx-auto px-4 py-8">
+          <div className="flex justify-center items-center h-64">
+            <p className="text-muted-foreground">Loading bookmarks...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -29,7 +82,7 @@ export function BookmarksPage() {
         <div className="mb-8">
           <h1 className="mb-2">Your Bookmarks</h1>
           <p className="text-muted-foreground">
-            {bookmarks.length} scholarship{bookmarks.length !== 1 ? 's' : ''} saved • Manage deadline notifications
+            {bookmarkedScholarships.length} scholarship{bookmarkedScholarships.length !== 1 ? 's' : ''} saved • Manage deadline notifications
           </p>
         </div>
 
@@ -52,9 +105,10 @@ export function BookmarksPage() {
           </Card>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {bookmarkedScholarships.map((scholarship) => {
+            {sortedScholarships.map((scholarship) => {
+              const deadline = new Date(scholarship.application_deadline);
               const daysUntilDeadline = Math.ceil(
-                (scholarship.deadline.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+                (deadline.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
               );
               const isUrgent = daysUntilDeadline <= 30 && daysUntilDeadline > 0;
 
@@ -68,6 +122,7 @@ export function BookmarksPage() {
                         size="icon"
                         className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => handleRemoveBookmark(scholarship.id, scholarship.title)}
+                        disabled={isLoading}
                       >
                         <BookmarkX className="w-5 h-5" />
                       </Button>
@@ -84,7 +139,7 @@ export function BookmarksPage() {
                       <div className={`flex items-center gap-2 ${isUrgent ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
                         <Calendar className="w-4 h-4 shrink-0" />
                         <span>
-                          {scholarship.deadline.toLocaleDateString('en-US', { 
+                          {deadline.toLocaleDateString('en-US', { 
                             month: 'short', 
                             day: 'numeric', 
                             year: 'numeric' 
@@ -109,9 +164,9 @@ export function BookmarksPage() {
                     )}
 
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline">{scholarship.educationLevel}</Badge>
+                      <Badge variant="outline">{scholarship.level}</Badge>
                       <Badge variant="secondary">{scholarship.type}</Badge>
-                      <DeadlineBadge deadline={scholarship.deadline} />
+                      <DeadlineBadge deadline={deadline} />
                     </div>
 
                     <p className="text-sm text-muted-foreground line-clamp-3">
