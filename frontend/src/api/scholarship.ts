@@ -1,6 +1,7 @@
 // src/api/scholarship.ts
 import axios, { AxiosRequestConfig, InternalAxiosRequestConfig } from "axios";
 import { scholarships as mockScholarships } from "../lib/scholarship-data";
+import { testSimulations } from "../lib/test-simulation-data";
 
 // Utility function for simulating network delay in mock API
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -10,6 +11,28 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_SCHOLARSHIP_API !== 'false';
 
 const MOCK_BOOKMARKS_STORAGE_KEY = 'mock_bookmarks';
+const MOCK_ROADMAPS_STORAGE_KEY = 'mock_roadmaps';
+
+type MockRoadmapTask = {
+  id: string;
+  roadmap_id: string;
+  title: string;
+  description: string;
+  due_date: string;
+  status: 'pending' | 'completed' | 'skipped';
+  day_number: number;
+};
+
+type MockRoadmap = {
+  id: string;
+  scholarship_id: string;
+  title: string;
+  description: string;
+  deadline: string;
+  progress_percentage: number;
+  status: 'active' | 'completed' | 'abandoned';
+  dailyTasks: MockRoadmapTask[];
+};
 
 const loadMockBookmarks = (): Set<string> => {
   if (typeof window === 'undefined') {
@@ -39,6 +62,32 @@ const persistMockBookmarks = (bookmarks: Set<string>) => {
   }
 
   localStorage.setItem(MOCK_BOOKMARKS_STORAGE_KEY, JSON.stringify(Array.from(bookmarks)));
+};
+
+const loadMockRoadmaps = (): MockRoadmap[] => {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  try {
+    const raw = localStorage.getItem(MOCK_ROADMAPS_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const persistMockRoadmaps = (roadmaps: MockRoadmap[]) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  localStorage.setItem(MOCK_ROADMAPS_STORAGE_KEY, JSON.stringify(roadmaps));
 };
 
 // Konfigurasi axios untuk real API
@@ -107,24 +156,84 @@ const mockGetUserProfile = async () => {
 // POST /api/roadmaps
 const mockGenerateRoadmap = async (scholarshipId: string) => {
   await delay(1000);
-  return { data: { message: "Roadmap generated successfully", roadmapId: "roadmap-1" } };
+
+  const scholarship = mockScholarships.find((item: any) => String(item.id) === String(scholarshipId));
+  if (!scholarship) {
+    throw new Error('Scholarship not found');
+  }
+
+  const roadmaps = loadMockRoadmaps();
+  const existing = roadmaps.find((item) => item.scholarship_id === scholarshipId && item.status === 'active');
+  if (existing) {
+    return { data: { data: existing } };
+  }
+
+  const roadmapId = `roadmap-${Date.now()}`;
+  const deadline = scholarship.deadline instanceof Date
+    ? scholarship.deadline
+    : new Date(scholarship.deadline);
+
+  const templates = [
+    ['Collect required documents', 'Prepare transcripts, certificate, and IDs.'],
+    ['Write personal statement', 'Draft and revise your motivation letter.'],
+    ['Request recommendations', 'Ask referees and follow up signatures.'],
+    ['Complete application form', 'Fill all fields and upload all documents.'],
+    ['Final review and submit', 'Double-check all data and submit before deadline.'],
+  ];
+
+  const tasks: MockRoadmapTask[] = templates.map(([title, description], index) => {
+    const dueDate = new Date(deadline);
+    dueDate.setDate(deadline.getDate() - (templates.length - index) * 7);
+
+    return {
+      id: `task-${roadmapId}-${index + 1}`,
+      roadmap_id: roadmapId,
+      title,
+      description,
+      due_date: dueDate.toISOString(),
+      status: 'pending',
+      day_number: index + 1,
+    };
+  });
+
+  const created: MockRoadmap = {
+    id: roadmapId,
+    scholarship_id: scholarshipId,
+    title: `Roadmap: ${scholarship.title}`,
+    description: `Auto-generated roadmap for ${scholarship.title}`,
+    deadline: deadline.toISOString(),
+    progress_percentage: 0,
+    status: 'active',
+    dailyTasks: tasks,
+  };
+
+  const nextRoadmaps = [created, ...roadmaps];
+  persistMockRoadmaps(nextRoadmaps);
+
+  return { data: { data: created } };
 };
 
 // GET /api/roadmaps
 const mockGetRoadmaps = async () => {
   await delay(500);
-  return { data: [] };
+  return { data: { data: loadMockRoadmaps() } };
 };
 
 // GET /api/tasks/daily
 const mockGetDailyTasks = async () => {
   await delay(500);
-  return { 
-    data: [
-      { id: "1", title: "Research scholarships", description: "Find 5 potential scholarships", completed: false, deadline: new Date().toISOString() },
-      { id: "2", title: "Prepare documents", description: "Gather academic transcripts", completed: true, deadline: new Date().toISOString() },
-    ] 
-  };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const tasks = loadMockRoadmaps()
+    .flatMap((roadmap) => roadmap.dailyTasks)
+    .filter((task) => {
+      const due = new Date(task.due_date);
+      due.setHours(0, 0, 0, 0);
+      return due.getTime() === today.getTime();
+    });
+
+  return { data: { data: tasks } };
 };
 
 // ============ EXPORT API FUNCTIONS ============
@@ -199,9 +308,27 @@ export const getDailyTasks = async () => {
 export const completeTask = async (taskId: string) => {
   if (USE_MOCK_API) {
     await delay(300);
+    const roadmaps = loadMockRoadmaps();
+    const nextRoadmaps = roadmaps.map((roadmap) => {
+      const dailyTasks = roadmap.dailyTasks.map((task) =>
+        task.id === taskId ? { ...task, status: 'completed' as const } : task
+      );
+
+      const total = dailyTasks.length;
+      const completed = dailyTasks.filter((task) => task.status === 'completed').length;
+      const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+      return {
+        ...roadmap,
+        dailyTasks,
+        progress_percentage: progress,
+      };
+    });
+
+    persistMockRoadmaps(nextRoadmaps);
     return { data: { success: true } };
   }
-  return API.post(`/tasks/${taskId}/complete`);
+  return API.put(`/tasks/${taskId}/complete`);
 };
 
 // Test endpoints
@@ -209,10 +336,17 @@ export const getTests = async () => {
   if (USE_MOCK_API) {
     await delay(500);
     return {
-      data: [
-        { id: 1, title: "TOEFL Simulation", description: "Practice TOEFL exam with real questions", duration: 120, totalQuestions: 100, difficulty: "medium", isPremium: false },
-        { id: 2, title: "IELTS Simulation", description: "Practice IELTS exam with real questions", duration: 120, totalQuestions: 100, difficulty: "medium", isPremium: true }
-      ]
+      data: testSimulations.map((test) => ({
+        id: test.id,
+        title: test.title,
+        category: test.category,
+        description: test.description,
+        duration: test.duration,
+        totalQuestions: test.totalQuestions,
+        passingScore: test.passingScore,
+        difficulty: test.difficulty,
+        isPremium: test.isPremium,
+      }))
     };
   }
   return API.get("/tests");
@@ -221,37 +355,13 @@ export const getTests = async () => {
 export const getTestById = async (id: string) => {
   if (USE_MOCK_API) {
     await delay(500);
+    const found = testSimulations.find((test) => String(test.id) === String(id));
+    if (!found) {
+      throw new Error('Test not found');
+    }
+
     return {
-      data: {
-        id: 1,
-        title: "TOEFL Simulation",
-        description: "Practice TOEFL exam",
-        duration: 120,
-        totalQuestions: 100,
-        passingScore: 70,
-        difficulty: "medium",
-        isPremium: false,
-        questions: [
-          {
-            id: 1,
-            question: "What is the capital of Indonesia?",
-            type: "multiple-choice",
-            options: ["Jakarta", "Surabaya", "Bandung", "Medan"],
-            correctAnswer: 0,
-            points: 1,
-            explanation: "Jakarta is the capital city of Indonesia"
-          },
-          {
-            id: 2,
-            question: "Which of the following is a renewable energy source?",
-            type: "multiple-choice",
-            options: ["Coal", "Natural Gas", "Solar Power", "Oil"],
-            correctAnswer: 2,
-            points: 1,
-            explanation: "Solar power is renewable"
-          }
-        ]
-      }
+      data: found
     };
   }
   return API.get(`/tests/${id}`);
@@ -260,15 +370,24 @@ export const getTestById = async (id: string) => {
 export const submitTest = async (id: string, answers: any) => {
   if (USE_MOCK_API) {
     await delay(1000);
-    const correctCount = Object.values(answers).filter(a => a === 0).length;
-    const totalQuestions = 2;
+    const found = testSimulations.find((test) => String(test.id) === String(id));
+    if (!found) {
+      throw new Error('Test not found');
+    }
+
+    const correctCount = found.questions.filter((question) => {
+      const answer = answers[question.id];
+      return String(answer) === String(question.correctAnswer);
+    }).length;
+
+    const totalQuestions = found.questions.length;
     const score = (correctCount / totalQuestions) * 100;
     return {
       data: {
         score: score,
         correctAnswers: correctCount,
         totalQuestions: totalQuestions,
-        passed: score >= 70
+        passed: score >= found.passingScore
       }
     };
   }

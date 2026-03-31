@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { Header } from '../Header';
-import { testSimulations, getFreeTests, getPremiumTests } from '../../lib/test-simulation-data';
+import { TestSimulation } from '../../lib/test-simulation-data';
 import { useAuth } from '../../lib/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -10,16 +10,37 @@ import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Clock, BookOpen, Target, Crown, Lock, Search, Filter } from 'lucide-react';
 import { PremiumFeatureLock } from '../PremiumFeatureLock';
+import { getTests } from '../../api/scholarship';
 
 export function TestSimulationsPage() {
   const { user } = useAuth();
+  const [tests, setTests] = useState<TestSimulation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
 
   const isPremium = user?.role === 'premium' || user?.role === 'admin';
 
-  const filteredTests = testSimulations.filter(test => {
+  useEffect(() => {
+    const fetchTests = async () => {
+      try {
+        setIsLoading(true);
+        const response = await getTests();
+        const payload = response?.data?.data ?? response?.data ?? [];
+        setTests(payload as TestSimulation[]);
+      } catch (error) {
+        console.error('Failed to fetch tests:', error);
+        setTests([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTests();
+  }, []);
+
+  const filteredTests = tests.filter(test => {
     const matchesSearch = !searchQuery || 
       test.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       test.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -30,8 +51,8 @@ export function TestSimulationsPage() {
     return matchesSearch && matchesCategory && matchesDifficulty;
   });
 
-  const freeTests = getFreeTests();
-  const premiumTests = getPremiumTests();
+  const freeTests = tests.filter((test) => !test.isPremium);
+  const premiumTests = tests.filter((test) => test.isPremium);
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -77,7 +98,7 @@ export function TestSimulationsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Total Tests</p>
-                  <p className="text-3xl font-bold">{testSimulations.length}</p>
+                  <p className="text-3xl font-bold">{tests.length}</p>
                 </div>
                 <div className="bg-blue-100 p-3 rounded-lg">
                   <BookOpen className="w-6 h-6 text-blue-600" />
@@ -168,6 +189,13 @@ export function TestSimulationsPage() {
         </Card>
 
         {/* Tests Grid */}
+        {isLoading ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">Loading tests...</p>
+            </CardContent>
+          </Card>
+        ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTests.map((test) => {
             const TestCard = (
@@ -207,7 +235,7 @@ export function TestSimulationsPage() {
                     </div>
                   </div>
 
-                  <Link to={`/test-simulations/${test.id}`} className="block">
+                  <Link to={`/tests/${test.id}`} className="block">
                     <Button className="w-full gap-2">
                       {test.isPremium && !isPremium && <Lock className="w-4 h-4" />}
                       Start Test
@@ -232,6 +260,7 @@ export function TestSimulationsPage() {
             return TestCard;
           })}
         </div>
+        )}
 
         {filteredTests.length === 0 && (
           <Card>
