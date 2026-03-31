@@ -41,6 +41,8 @@ export const register = async (payload: {
   password: string;
   password_confirmation: string;
   name: string;
+  first_name?: string;
+  last_name?: string;
 }): Promise<AuthResponse> => {
   const response = await api.post<ApiEnvelope<AuthResponse>>("/auth/register", payload);
   return response.data.data;

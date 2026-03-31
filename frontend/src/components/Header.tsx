@@ -38,7 +38,7 @@ export function Header() {
             <div className="bg-primary rounded-lg p-1.5">
               <GraduationCap className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-semibold text-lg">ScholarPath</span>
+            <span className="font-semibold text-lg">ScholarzPath</span>
           </Link>
 
           {isAuthenticated && (

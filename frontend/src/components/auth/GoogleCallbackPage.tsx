@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { setStoredToken } from "../../api/client";
+import { useAuth } from "../../lib/auth-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 
 export function GoogleCallbackPage() {
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { refreshUser } = useAuth();
 
   useEffect(() => {
     const currentUrl = new URL(window.location.href);
@@ -26,8 +29,14 @@ export function GoogleCallbackPage() {
     }
 
     setStoredToken(token);
-    window.location.replace("/dashboard");
-  }, []);
+    refreshUser()
+      .then(() => {
+        navigate("/dashboard", { replace: true });
+      })
+      .catch(() => {
+        setError("We could not load your account. Please try again.");
+      });
+  }, [navigate, refreshUser]);
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/5 to-primary/10">

@@ -6,13 +6,12 @@ use App\Models\DailyTask;
 use App\Models\Roadmap;
 use App\Models\Scholarship;
 use Carbon\Carbon;
-use Illuminate\Support\Str;
 
 class RoadmapService
 {
     /**
      * Generate roadmap dari scholarship yang dipilih user.
-     * Logic: ambil deadline → bagi jadi 3–5 task → simpan ke DB
+     * Logic: ambil deadline -> bagi jadi 3-5 task -> simpan ke DB
      */
     public function generateRoadmap(array $data, string $userId): Roadmap
     {
@@ -22,17 +21,15 @@ class RoadmapService
         $today = Carbon::today();
         $daysLeft = $today->diffInDays($deadline);
 
-        // Buat roadmap
         $roadmap = Roadmap::create([
-            'user_id'       => $userId,
+            'user_id' => $userId,
             'scholarship_id' => $scholarship->id,
-            'title'         => 'Roadmap: ' . $scholarship->title,
-            'description'   => 'Auto-generated roadmap untuk ' . $scholarship->title,
-            'deadline'      => $deadline,
-            'status'        => 'active',
+            'title' => 'Roadmap: ' . $scholarship->title,
+            'description' => 'Auto-generated roadmap untuk ' . $scholarship->title,
+            'deadline' => $deadline,
+            'status' => 'active',
         ]);
 
-        // Generate 3–5 tasks berdasarkan sisa hari
         $tasks = $this->generateTasks($daysLeft);
         $this->saveTasks($roadmap->id, $tasks, $today, $deadline);
 
@@ -52,7 +49,6 @@ class RoadmapService
             ['title' => 'Review dan submit aplikasi', 'description' => 'Cek ulang semua berkas lalu submit sebelum deadline'],
         ];
 
-        // Tentukan jumlah task: 3 jika waktu sempit, 5 jika cukup
         $taskCount = $daysLeft < 14 ? 3 : ($daysLeft < 30 ? 4 : 5);
         return array_slice($taskTemplates, 0, $taskCount);
     }
@@ -67,7 +63,6 @@ class RoadmapService
         $interval = max(1, (int) floor($totalDays / $count));
 
         foreach ($tasks as $index => $task) {
-            // Task terakhir selalu 1 hari sebelum deadline
             if ($index === $count - 1) {
                 $dueDate = $deadline->copy()->subDay();
             } else {
@@ -75,12 +70,12 @@ class RoadmapService
             }
 
             DailyTask::create([
-                'roadmap_id'  => $roadmapId,
-                'title'       => $task['title'],
+                'roadmap_id' => $roadmapId,
+                'title' => $task['title'],
                 'description' => $task['description'],
-                'due_date'    => $dueDate,
-                'day_number'  => $index + 1,
-                'status'      => 'pending',
+                'due_date' => $dueDate,
+                'day_number' => $index + 1,
+                'status' => 'pending',
             ]);
         }
     }

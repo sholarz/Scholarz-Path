@@ -1,5 +1,5 @@
 // Auth Context for managing user authentication state
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import {
   login as loginRequest,
   register as registerRequest,
@@ -25,6 +25,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
   resetPassword: (email: string) => Promise<void>;
@@ -73,6 +74,27 @@ const persistUser = (nextUser: User | null) => {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
+  const refreshUser = useCallback(async () => {
+    const token = getStoredToken();
+    if (!token) {
+      setUser(null);
+      persistUser(null);
+      return;
+    }
+
+    try {
+      const currentUser = await getCurrentUser();
+      const mappedUser = mapApiUser(currentUser);
+      setUser(mappedUser);
+      persistUser(mappedUser);
+    } catch (error) {
+      setStoredToken(null);
+      setUser(null);
+      persistUser(null);
+      throw error;
+    }
+  }, []);
+
   useEffect(() => {
     const token = getStoredToken();
     if (!token) {
@@ -90,18 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    getCurrentUser()
-      .then((currentUser) => {
-        const mappedUser = mapApiUser(currentUser);
-        setUser(mappedUser);
-        persistUser(mappedUser);
-      })
-      .catch(() => {
-        setStoredToken(null);
-        setUser(null);
-        persistUser(null);
-      });
-  }, []);
+    refreshUser().catch(() => null);
+  }, [refreshUser]);
 
   const login = async (email: string, password: string) => {
     const authResponse = await loginRequest(email, password);
@@ -118,11 +130,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signup = async (email: string, password: string, name: string) => {
+    const cleanedName = name.trim();
+    const nameParts = cleanedName.split(/\s+/).filter(Boolean);
+    const firstName = nameParts[0] ?? cleanedName;
+    const lastName = nameParts.slice(1).join(' ') || firstName;
+
     const authResponse = await registerRequest({
-      email,
+      email: email.trim(),
       password,
       password_confirmation: password,
-      name,
+      name: cleanedName,
+      first_name: firstName,
+      last_name: lastName,
     });
 
     setStoredToken(authResponse.token);
@@ -158,6 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         login,
         loginWithGoogle,
+        refreshUser,
         signup,
         logout,
         resetPassword,
