@@ -1,5 +1,8 @@
 // Auth Context for managing user authentication state
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { login as loginRequest, register as registerRequest, logout as logoutRequest, requestPasswordReset } from '../api/auth';
+import { getCurrentUser } from '../api/user';
+import { getStoredToken, setStoredToken } from '../api/client';
 
 export type UserRole = 'admin' | 'premium' | 'free';
 
@@ -24,81 +27,125 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const USER_STORAGE_KEY = 'user';
+
+const buildDisplayName = (firstName?: string, lastName?: string, email?: string) => {
+  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+  if (fullName) {
+    return fullName;
+  }
+
+  if (email) {
+    return email.split('@')[0] || email;
+  }
+
+  return 'User';
+};
+
+const mapApiUser = (apiUser: {
+  id: string;
+  email: string;
+  role: UserRole;
+  profile?: { first_name?: string; last_name?: string } | null;
+}): User => {
+  return {
+    id: apiUser.id,
+    email: apiUser.email,
+    role: apiUser.role,
+    name: buildDisplayName(apiUser.profile?.first_name, apiUser.profile?.last_name, apiUser.email),
+  };
+};
+
+const persistUser = (nextUser: User | null) => {
+  if (nextUser) {
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser));
+  } else {
+    localStorage.removeItem(USER_STORAGE_KEY);
+  }
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Check for existing session in localStorage
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    const token = getStoredToken();
+    if (!token) {
+      setUser(null);
+      persistUser(null);
+      return;
     }
+
+    const savedUser = localStorage.getItem(USER_STORAGE_KEY);
+    if (savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch {
+        setUser(null);
+      }
+    }
+
+    getCurrentUser()
+      .then((currentUser) => {
+        const mappedUser = mapApiUser(currentUser);
+        setUser(mappedUser);
+        persistUser(mappedUser);
+      })
+      .catch(() => {
+        setStoredToken(null);
+        setUser(null);
+        persistUser(null);
+      });
   }, []);
 
   const login = async (email: string, password: string) => {
-    // Mock login - in production, this would call your auth API
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Check if admin email
-    const isAdmin = email.toLowerCase() === 'admin@scholarpath.com';
-    
-    const mockUser: User = {
-      id: '1',
-      email,
-      name: email.split('@')[0],
-      role: isAdmin ? 'admin' : 'free',
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem('user', JSON.stringify(mockUser));
+    const authResponse = await loginRequest(email, password);
+    setStoredToken(authResponse.token);
+
+    const mappedUser = mapApiUser(authResponse.user);
+    setUser(mappedUser);
+    persistUser(mappedUser);
   };
 
   const loginWithGoogle = async () => {
-    // Mock Google login - in production, this would use Google OAuth
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const mockUser: User = {
-      id: '1',
-      email: 'user@gmail.com',
-      name: 'Google User',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=GoogleUser',
-      role: 'free',
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem('user', JSON.stringify(mockUser));
+    throw new Error('Google login is not configured on the backend yet.');
   };
 
   const signup = async (email: string, password: string, name: string) => {
-    // Mock signup - in production, this would call your auth API
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const mockUser: User = {
-      id: Date.now().toString(),
+    const nameParts = name.trim().split(/\s+/).filter(Boolean);
+    const firstName = nameParts[0] ?? 'User';
+    const lastName = nameParts.slice(1).join(' ') || 'User';
+
+    const authResponse = await registerRequest({
       email,
-      name,
-      role: 'free',
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem('user', JSON.stringify(mockUser));
+      password,
+      password_confirmation: password,
+      first_name: firstName,
+      last_name: lastName,
+    });
+
+    setStoredToken(authResponse.token);
+
+    const mappedUser = mapApiUser(authResponse.user);
+    setUser(mappedUser);
+    persistUser(mappedUser);
   };
 
   const logout = () => {
+    logoutRequest().catch(() => null);
+    setStoredToken(null);
     setUser(null);
-    localStorage.removeItem('user');
+    persistUser(null);
   };
 
   const resetPassword = async (email: string) => {
-    // Mock password reset - in production, this would send a reset email
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await requestPasswordReset(email);
   };
 
   const upgradeToPremium = () => {
     if (user) {
       const updatedUser = { ...user, role: 'premium' as UserRole };
       setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      persistUser(updatedUser);
     }
   };
 

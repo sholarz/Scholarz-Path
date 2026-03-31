@@ -34,6 +34,8 @@ Route::prefix('auth')->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/verify-email', [AuthController::class, 'verifyEmail']);
+    Route::get('/google/redirect', [AuthController::class, 'googleRedirect']);
+    Route::get('/google/callback', [AuthController::class, 'googleCallback']);
 });
 
 // Public Scholarships

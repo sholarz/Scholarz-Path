@@ -3,6 +3,7 @@
 namespace App\Modules\Auth\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Modules\Auth\Requests\LoginRequest;
 use App\Modules\Auth\Requests\RegisterRequest;
 use App\Modules\Auth\Services\AuthService;
@@ -11,7 +12,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -272,6 +275,119 @@ class AuthController extends Controller
                 'error' => [
                     'code' => 'EMAIL_VERIFICATION_ERROR',
                     'message' => 'Email verification failed'
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Get Google OAuth redirect URL
+     */
+    public function googleRedirect(): JsonResponse
+    {
+        $redirectUrl = Socialite::driver('google')
+            ->stateless()
+            ->redirect()
+            ->getTargetUrl();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'redirect_url' => $redirectUrl,
+            ]
+        ]);
+    }
+
+    /**
+     * Handle Google OAuth callback
+     */
+    public function googleCallback(): JsonResponse
+    {
+        try {
+            $googleUser = Socialite::driver('google')->stateless()->user();
+
+            $email = $googleUser->getEmail();
+            if (!$email) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'GOOGLE_EMAIL_MISSING',
+                        'message' => 'Google account has no email.'
+                    ]
+                ], 422);
+            }
+
+            $user = User::query()
+                ->where('provider', 'google')
+                ->where('provider_id', $googleUser->getId())
+                ->first();
+
+            if (!$user) {
+                $user = User::where('email', $email)->first();
+            }
+
+            if (!$user) {
+                $nameParts = preg_split('/\s+/', trim($googleUser->getName() ?? '')) ?: [];
+                $firstName = $nameParts[0] ?? 'User';
+                $lastName = implode(' ', array_slice($nameParts, 1)) ?: 'User';
+
+                $user = $this->userService->createUser([
+                    'email' => $email,
+                    'password' => Hash::make(Str::random(32)),
+                    'role' => 'free',
+                    'email_verified_at' => now(),
+                    'provider' => 'google',
+                    'provider_id' => $googleUser->getId(),
+                ], [
+                    'first_name' => $firstName,
+                    'last_name' => $lastName,
+                ]);
+            } else {
+                $user->update([
+                    'provider' => $user->provider ?? 'google',
+                    'provider_id' => $user->provider_id ?? $googleUser->getId(),
+                    'email_verified_at' => $user->email_verified_at ?? now(),
+                ]);
+
+                if (!$user->profile && $googleUser->getName()) {
+                    $nameParts = preg_split('/\s+/', trim($googleUser->getName())) ?: [];
+                    $firstName = $nameParts[0] ?? 'User';
+                    $lastName = implode(' ', array_slice($nameParts, 1)) ?: 'User';
+                    $user->profile()->create([
+                        'first_name' => $firstName,
+                        'last_name' => $lastName,
+                        'profile_completion_percentage' => 20,
+                    ]);
+                }
+            }
+
+            $token = $this->authService->generateToken($user);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'user' => [
+                        'id' => $user->id,
+                        'email' => $user->email,
+                        'role' => $user->role,
+                        'profile' => $user->profile ? [
+                            'first_name' => $user->profile->first_name,
+                            'last_name' => $user->profile->last_name,
+                            'profile_completion_percentage' => $user->profile->profile_completion_percentage,
+                        ] : null
+                    ],
+                    'token' => $token,
+                    'expires_at' => now()->addDays(30)->toISOString()
+                ],
+                'message' => 'Google login successful'
+            ]);
+        } catch (\Throwable $exception) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'GOOGLE_AUTH_ERROR',
+                    'message' => 'Google authentication failed',
+                    'details' => $exception->getMessage(),
                 ]
             ], 500);
         }

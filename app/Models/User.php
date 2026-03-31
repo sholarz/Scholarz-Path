@@ -25,6 +25,8 @@ class User extends Authenticatable
         'role',
         'status',
         'email_verified_at',
+        'provider',
+        'provider_id',
     ];
 
     /**
@@ -45,6 +47,8 @@ class User extends Authenticatable
             'password' => 'hashed',
             'role' => 'string',
             'status' => 'string',
+            'provider' => 'string',
+            'provider_id' => 'string',
         ];
     }
 
