@@ -75,7 +75,7 @@ tenacity==8.2.3
 ## PROJECT STRUCTURE
 
 ```
-scholarship_scrapers/
+scrape/
 ├── scrapers/
 │   ├── __init__.py
 │   ├── base/
