@@ -11,6 +11,8 @@ class UserSubscription extends Model
 {
     use HasFactory, HasUuids;
 
+    protected $table = 'user_subscriptions';
+
     protected $fillable = [
         'user_id',
         'plan_id',
@@ -30,5 +32,29 @@ class UserSubscription extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the subscription plan.
+     */
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(SubscriptionPlan::class, 'plan_id');
+    }
+
+    /**
+     * Check if current subscription is active and not expired.
+     */
+    public function isActive(): bool
+    {
+        if ($this->status !== 'active') {
+            return false;
+        }
+
+        if (!$this->expires_at) {
+            return true;
+        }
+
+        return $this->expires_at->isFuture();
     }
 }
