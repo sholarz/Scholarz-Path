@@ -1,0 +1,39 @@
+sources:
+  - name: ut
+    start_url: https://www.ut.ac.id/beasiswa/
+    provider_name: Universitas Terbuka
+    provider_website: https://www.ut.ac.id
+    default_level: bachelor
+    default_type: academic
+    selectors:
+      item: body
+      title: h3.elementor-heading-title
+      description: p.elementor-text-editor
+      link: a
+      deadline_regex: "(Batas|Deadline|Tenggat|Penutupan|Tutup)\\s*(Pendaftaran|Aplikasi)?\\s*:?\\s*([^\\n]+)"
+
+  - name: unpad
+    start_url: https://beasiswa.unpad.ac.id/
+    provider_name: Universitas Padjadjaran
+    provider_website: https://www.unpad.ac.id
+    default_level: bachelor
+    default_type: academic
+    selectors:
+      item: article
+      title: .wp-block-post-title
+      description: .wp-block-post-excerpt
+      link: a
+      deadline_regex: "(Batas|Deadline|Tenggat|Penutupan|Tutup)\\s*(Pendaftaran|Aplikasi)?\\s*:?\\s*([^\\n]+)"
+
+  - name: upertamina
+    start_url: https://universitaspertamina.ac.id/mahasiswa/daftar-beasiswa
+    provider_name: Universitas Pertamina
+    provider_website: https://universitaspertamina.ac.id
+    default_level: bachelor
+    default_type: academic
+    selectors:
+      item: div.w-full.p-5.mb-5.bg-gray-200
+      title: a.btn-more
+      description: a.btn-more@data-beasiswa
+      link: a.btn-download
+      deadline: div.text-xs.mb-2.text-gray-700 span.text-up-blue-darken

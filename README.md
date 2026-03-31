@@ -1,16 +1,3 @@
-<<<<<<< HEAD
-
-  # ScholarzPath
-
-  This is a code bundle for ScholarzPath. The original project is available at https://www.figma.com/design/pL4MpmKHNCChv8zKdBcDnM/ScholarzPath.
-
-  ## Running the code
-
-  Run `npm i` to install the dependencies.
-
-  Run `npm run dev` to start the development server.
-  
-=======
 # 🎓 Scholarship Aggregator & Preparation Platform
 **Complete MVP System Design & Architecture**
 
@@ -301,24 +288,32 @@ docs/
 
 2. **Install dependencies**
    ```bash
+   cd backend
    composer install
+   cd ../frontend
    npm install
    ```
 
 3. **Environment setup**
    ```bash
-   cp .env.example .env
+   cp backend/.env.example backend/.env
+   cd backend
    php artisan key:generate
    ```
 
 4. **Database setup**
    ```bash
+   cd backend
    php artisan migrate --seed
    ```
 
 5. **Start development server**
    ```bash
+   cd backend
    php artisan serve
+
+   # in another terminal
+   cd ../frontend
    npm run dev
    ```
 
@@ -427,4 +422,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Built with ❤️ for students pursuing their dreams through education**
->>>>>>> 319a80b6de05da3a74472d174cf3db8389bd5678
