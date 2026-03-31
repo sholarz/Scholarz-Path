@@ -1,3 +1,16 @@
+<<<<<<< HEAD
+
+  # ScholarzPath
+
+  This is a code bundle for ScholarzPath. The original project is available at https://www.figma.com/design/pL4MpmKHNCChv8zKdBcDnM/ScholarzPath.
+
+  ## Running the code
+
+  Run `npm i` to install the dependencies.
+
+  Run `npm run dev` to start the development server.
+  
+=======
 # 🎓 Scholarship Aggregator & Preparation Platform
 **Complete MVP System Design & Architecture**
 
@@ -414,3 +427,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Built with ❤️ for students pursuing their dreams through education**
+>>>>>>> 319a80b6de05da3a74472d174cf3db8389bd5678
