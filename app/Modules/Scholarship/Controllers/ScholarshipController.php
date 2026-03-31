@@ -14,9 +14,17 @@ class ScholarshipController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Scholarship::with('provider')
-            ->where('status', 'active')
-            ->where('application_deadline', '>', now());
+        $query = Scholarship::with('provider');
+
+        $status = $request->get('status');
+        $allowedStatuses = ['active', 'inactive', 'expired', 'draft'];
+
+        if ($status && in_array($status, $allowedStatuses, true)) {
+            $query->where('status', $status);
+        } else {
+            $query->where('status', 'active')
+                ->where('application_deadline', '>', now());
+        }
 
         // Filter by type
         if ($request->has('type') && $request->type) {
