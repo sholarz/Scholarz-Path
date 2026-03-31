@@ -1,6 +1,5 @@
 {
-<<<<<<< HEAD
-  "name": "ScholarzPath",
+  "name": "scholarz-path",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -65,17 +64,3 @@
     "build": "vite build"
   }
 }
-=======
-    "private": true,
-    "type": "module",
-    "scripts": {
-        "dev": "vite",
-        "build": "vite build"
-    },
-    "devDependencies": {
-        "axios": "^1.6.4",
-        "laravel-vite-plugin": "^1.0.0",
-        "vite": "^5.0.0"
-    }
-}
->>>>>>> 319a80b6de05da3a74472d174cf3db8389bd5678

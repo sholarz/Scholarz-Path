@@ -111,7 +111,7 @@ export function ScholarshipsPage() {
                       variant="ghost"
                       size="icon"
                       className="shrink-0"
-                      onClick={(e) => {
+                      onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                         e.preventDefault();
                         toggleBookmark(scholarship.id);
                       }}
