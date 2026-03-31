@@ -7,6 +7,7 @@ use App\Modules\Auth\Jobs\SendWelcomeEmailJob;
 use App\Modules\Auth\Jobs\SendPasswordResetEmailJob;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 
@@ -17,13 +18,18 @@ class AuthService
      */
     public function generateToken(User $user, string $deviceName = 'api'): string
     {
+        $subscriptionStatus = 'free';
+        if (Schema::hasTable('user_subscriptions')) {
+            $subscriptionStatus = $user->subscription?->status ?? 'free';
+        }
+
         // Delete existing tokens for this device
         $user->tokens()->where('name', $deviceName)->delete();
 
         // Create new token
         $token = $user->createToken($deviceName, [
             'role:' . $user->role,
-            'subscription:' . ($user->subscription?->status ?? 'free')
+            'subscription:' . $subscriptionStatus
         ]);
 
         return $token->plainTextToken;
@@ -179,8 +185,8 @@ class AuthService
         };
 
         // Add subscription-based permissions
-        if ($user->subscription?->isActive()) {
-            $subscriptionFeatures = $user->subscription->plan->features ?? [];
+        if (Schema::hasTable('user_subscriptions') && $user->subscription?->isActive()) {
+            $subscriptionFeatures = $user->subscription?->plan?->features ?? [];
             $basePermissions = array_merge($basePermissions, $subscriptionFeatures);
         }
 
