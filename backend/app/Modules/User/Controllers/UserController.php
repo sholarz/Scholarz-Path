@@ -40,7 +40,7 @@ class UserController extends Controller
     public function updateEmail(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'email' => 'required|email:rfc,dns|unique:users,email,' . $request->user()->id,
+            'email' => 'required|email|unique:users,email,' . $request->user()->id,
         ]);
 
         $request->user()->update($validated);

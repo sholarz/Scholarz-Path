@@ -58,7 +58,7 @@ export function LoginPage() {
             </div>
           </div>
           <CardTitle>Welcome Back</CardTitle>
-          <CardDescription>Sign in to your ScholarPath account</CardDescription>
+          <CardDescription>Sign in to your ScholarzPath account</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button

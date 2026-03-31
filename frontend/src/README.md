@@ -1,4 +1,4 @@
-# 🎓 ScholarPath - Platform Beasiswa Jawa, Indonesia
+# 🎓 ScholarzPath - Platform Beasiswa Jawa, Indonesia
 
 > Platform edukasi yang fokus khusus pada beasiswa di Jawa, Indonesia dengan sistem 3-tier user dan desain student-first.
 
@@ -13,7 +13,7 @@
 
 ## 🎨 Color Palette
 
-Platform ScholarPath menggunakan color palette yang telah disesuaikan:
+Platform ScholarzPath menggunakan color palette yang telah disesuaikan:
 
 | Color | Hex | Usage |
 |-------|-----|-------|
@@ -38,7 +38,7 @@ Platform ScholarPath menggunakan color palette yang telah disesuaikan:
 2. **Login Test Accounts:**
    ```
    Admin:
-   Email: admin@scholarpath.com
+   Email: admin@scholarzpath.com
    Password: admin123
 
    Premium User:
@@ -299,7 +299,7 @@ Platform menggunakan **shadcn/ui** components:
 - Form components (Input, Select, Checkbox, Switch)
 - Data display (Table, Avatar, Separator)
 
-Semua components sudah styled dengan ScholarPath color palette.
+Semua components sudah styled dengan ScholarzPath color palette.
 
 ---
 
@@ -364,7 +364,7 @@ Semua components sudah styled dengan ScholarPath color palette.
 
 ## 📄 License
 
-Copyright © 2026 ScholarPath. All rights reserved.
+Copyright © 2026 ScholarzPath. All rights reserved.
 
 ---
 
@@ -386,6 +386,6 @@ Copyright © 2026 ScholarPath. All rights reserved.
 
 ---
 
-**ScholarPath - Membuka Jalan Menuju Pendidikan Berkualitas di Indonesia** 🎓✨
+**ScholarzPath - Membuka Jalan Menuju Pendidikan Berkualitas di Indonesia** 🎓✨
 
 *Platform edukasi yang fokus membantu siswa menemukan dan mengajukan beasiswa di Jawa dengan pendekatan student-first yang mengutamakan trust, simplicity, clarity, dan credibility.*

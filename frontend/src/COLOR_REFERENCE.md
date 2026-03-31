@@ -1,4 +1,4 @@
-# 🎨 ScholarPath Color Palette - Quick Reference
+# 🎨 ScholarzPath Color Palette - Quick Reference
 
 ## Color Values
 
