@@ -41,8 +41,8 @@ Route::prefix('auth')->group(function () {
 // Public Scholarships
 Route::prefix('scholarships')->group(function () {
     Route::get('/', [ScholarshipController::class, 'index']);
-    Route::get('/{id}', [ScholarshipController::class, 'show']);
     Route::get('/providers/{id}', [ScholarshipController::class, 'getByProvider']);
+    Route::get('/{id}', [ScholarshipController::class, 'show'])->whereUuid('id');
 });
 
 // Subscription Plans (Public)
@@ -87,9 +87,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('scholarships')->group(function () {
         Route::post('/match', [MatchingController::class, 'performMatching']);
         Route::get('/matches/history', [MatchingController::class, 'getMatchHistory']);
-        Route::post('/{id}/bookmark', [ScholarshipController::class, 'bookmark']);
-        Route::delete('/{id}/bookmark', [ScholarshipController::class, 'removeBookmark']);
         Route::get('/bookmarks', [ScholarshipController::class, 'getBookmarks']);
+        Route::post('/{id}/bookmark', [ScholarshipController::class, 'bookmark'])->whereUuid('id');
+        Route::delete('/{id}/bookmark', [ScholarshipController::class, 'removeBookmark'])->whereUuid('id');
     });
     
     // Roadmap Management

@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import { Header } from '../Header';
 import { useBookmarks } from '../../lib/bookmark-context';
 import { NotificationSettings, DeadlineBadge } from '../NotificationSettings';
+import { Scholarship } from '../../lib/scholarship-data';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -14,13 +15,48 @@ interface BookmarkedScholarship {
   id: string | number;
   title: string;
   provider: string;
+  country: string;
   location: string;
   amount: string;
   application_deadline: string;
+  deadline: Date;
+  educationLevel: string;
+  fieldOfStudy: string[];
   level: string;
   type: string;
   description: string;
+  requirements: string[];
+  benefits: string[];
+  applicationUrl: string;
+  verified: boolean;
 }
+
+const normalizeBookmarkedScholarship = (item: any): BookmarkedScholarship | null => {
+  const raw = item?.scholarship ?? item;
+  if (!raw || !raw.id) {
+    return null;
+  }
+
+  return {
+    id: raw.id,
+    title: raw.title ?? 'Untitled Scholarship',
+    provider: raw.provider?.name ?? raw.provider ?? 'Unknown Provider',
+    country: raw.target_countries?.[0] ?? raw.country ?? 'Indonesia',
+    location: raw.target_countries?.[0] ?? raw.location ?? 'Indonesia',
+    amount: raw.formatted_amount ?? raw.amount ?? 'Amount not specified',
+    application_deadline: raw.application_deadline ?? new Date().toISOString(),
+    deadline: new Date(raw.application_deadline ?? new Date().toISOString()),
+    educationLevel: raw.level ?? 'All Levels',
+    fieldOfStudy: Array.isArray(raw.fields_of_study) ? raw.fields_of_study : [],
+    level: raw.level ?? 'All Levels',
+    type: raw.type ?? 'General',
+    description: raw.description ?? '',
+    requirements: Array.isArray(raw.requirements) ? raw.requirements : [],
+    benefits: Array.isArray(raw.benefits) ? raw.benefits : [],
+    applicationUrl: raw.application_url ?? '#',
+    verified: Boolean(raw.provider),
+  };
+};
 
 export function BookmarksPage() {
   const { removeBookmark, isLoading } = useBookmarks();
@@ -33,7 +69,10 @@ export function BookmarksPage() {
       try {
         setLoading(true);
         const response = await getBookmarks();
-        setBookmarkedScholarships(response.data.data.scholarships);
+        const normalized = response.data.data.scholarships
+          .map((item: any) => normalizeBookmarkedScholarship(item))
+          .filter((item: BookmarkedScholarship | null): item is BookmarkedScholarship => item !== null);
+        setBookmarkedScholarships(normalized);
       } catch (error) {
         console.error('Failed to fetch bookmarks:', error);
         toast.error('Failed to load bookmarks');
@@ -106,11 +145,28 @@ export function BookmarksPage() {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sortedScholarships.map((scholarship) => {
-              const deadline = new Date(scholarship.application_deadline);
+              const deadline = scholarship.deadline;
               const daysUntilDeadline = Math.ceil(
                 (deadline.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
               );
               const isUrgent = daysUntilDeadline <= 30 && daysUntilDeadline > 0;
+              const notificationScholarship: Scholarship = {
+                id: String(scholarship.id),
+                title: scholarship.title,
+                provider: scholarship.provider,
+                country: scholarship.country,
+                location: scholarship.location,
+                amount: scholarship.amount,
+                deadline,
+                educationLevel: scholarship.educationLevel,
+                fieldOfStudy: scholarship.fieldOfStudy,
+                type: scholarship.type,
+                description: scholarship.description,
+                requirements: scholarship.requirements,
+                benefits: scholarship.benefits,
+                applicationUrl: scholarship.applicationUrl,
+                verified: scholarship.verified,
+              };
 
               return (
                 <Card key={scholarship.id} className="flex flex-col hover:shadow-lg transition-shadow">
@@ -175,7 +231,7 @@ export function BookmarksPage() {
                   </CardContent>
 
                   <CardFooter className="flex-col gap-2">
-                    <NotificationSettings scholarship={scholarship} />
+                    <NotificationSettings scholarship={notificationScholarship} />
                     <Link to={`/scholarships/${scholarship.id}`} className="w-full">
                       <Button className="w-full">View Details</Button>
                     </Link>

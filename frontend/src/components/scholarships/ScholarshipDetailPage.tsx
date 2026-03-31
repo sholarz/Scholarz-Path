@@ -1,6 +1,7 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
 import { Header } from '../Header';
-import { getScholarshipById } from '../../lib/scholarship-data';
+import { Scholarship } from '../../lib/scholarship-data';
 import { useBookmarks } from '../../lib/bookmark-context';
 import { NotificationSettings, DeadlineBadge } from '../NotificationSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -19,13 +20,113 @@ import {
   Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getScholarshipDetail } from '../../api/scholarship';
+
+const levelLabel: Record<string, string> = {
+  high_school: 'High School',
+  bachelor: 'Undergraduate',
+  master: "Master's",
+  doctorate: 'PhD',
+  postdoc: 'Postdoc',
+};
+
+const toStringArray = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.map(String);
+  }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return parsed.map(String);
+      }
+    } catch {
+      return [value];
+    }
+  }
+
+  return [];
+};
+
+const mapApiScholarship = (item: any): Scholarship => {
+  const amount = item?.formatted_amount
+    ?? item?.amount
+    ?? (item?.amount ? `${item.currency ?? 'USD'} ${item.amount}` : 'Amount not specified');
+
+  const deadlineSource = item?.application_deadline ?? item?.deadline ?? new Date().toISOString();
+
+  return {
+    id: String(item.id),
+    title: item.title ?? 'Untitled Scholarship',
+    provider: item?.provider?.name ?? item?.provider ?? 'Unknown Provider',
+    country: item?.target_countries?.[0] ?? item?.country ?? 'Indonesia',
+    location: item?.target_countries?.[0] ?? item?.location ?? 'Indonesia',
+    amount,
+    deadline: new Date(deadlineSource),
+    educationLevel: item?.educationLevel ?? levelLabel[item.level] ?? item.level ?? 'All Levels',
+    fieldOfStudy: toStringArray(item.fields_of_study ?? item.fieldOfStudy),
+    type: item.type ?? 'General',
+    description: item.description ?? '',
+    requirements: toStringArray(item.requirements),
+    benefits: toStringArray(item.benefits),
+    applicationUrl: item.application_url ?? item.applicationUrl ?? '#',
+    verified: Boolean(item?.provider),
+  };
+};
 
 export function ScholarshipDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toggleBookmark, isBookmarked } = useBookmarks();
-  
-  const scholarship = id ? getScholarshipById(id) : undefined;
+  const [scholarship, setScholarship] = useState<Scholarship | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchScholarship = async () => {
+      if (!id) {
+        setScholarship(null);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const response = await getScholarshipDetail(id);
+        const payload = response?.data?.data?.scholarship ?? response?.data?.scholarship ?? response?.data?.data ?? response?.data;
+        setScholarship(mapApiScholarship(payload));
+      } catch (error) {
+        console.error('Failed to fetch scholarship detail:', error);
+        setScholarship(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchScholarship();
+  }, [id]);
+
+  const daysUntilDeadline = useMemo(() => {
+    if (!scholarship) {
+      return 0;
+    }
+    return Math.ceil((scholarship.deadline.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+  }, [scholarship]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container max-w-4xl mx-auto px-4 py-8">
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground mb-4">Loading scholarship...</p>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
 
   if (!scholarship) {
     return (
@@ -58,10 +159,6 @@ export function ScholarshipDetailPage() {
       toast.error('Failed to update bookmark');
     }
   };
-
-  const daysUntilDeadline = Math.ceil(
-    (scholarship.deadline.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-  );
 
   return (
     <div className="min-h-screen bg-background">
