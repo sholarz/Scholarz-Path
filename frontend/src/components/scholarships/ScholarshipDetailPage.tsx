@@ -45,13 +45,18 @@ export function ScholarshipDetailPage() {
     );
   }
 
-  const handleBookmarkToggle = () => {
-    toggleBookmark(scholarship.id);
-    toast.success(
-      isBookmarked(scholarship.id) 
-        ? 'Removed from bookmarks' 
-        : 'Added to bookmarks'
-    );
+  const handleBookmarkToggle = async () => {
+    try {
+      const wasBookmarked = isBookmarked(scholarship.id);
+      await toggleBookmark(scholarship.id);
+      toast.success(
+        wasBookmarked
+          ? 'Removed from bookmarks' 
+          : 'Added to bookmarks'
+      );
+    } catch (error) {
+      toast.error('Failed to update bookmark');
+    }
   };
 
   const daysUntilDeadline = Math.ceil(

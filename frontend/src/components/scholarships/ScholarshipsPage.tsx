@@ -111,9 +111,13 @@ export function ScholarshipsPage() {
                       variant="ghost"
                       size="icon"
                       className="shrink-0"
-                      onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                      onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
                         e.preventDefault();
-                        toggleBookmark(scholarship.id);
+                        try {
+                          await toggleBookmark(scholarship.id);
+                        } catch (error) {
+                          console.error('Failed to toggle bookmark:', error);
+                        }
                       }}
                     >
                       {isBookmarked(scholarship.id) ? (
