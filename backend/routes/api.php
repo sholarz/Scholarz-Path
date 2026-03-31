@@ -8,6 +8,7 @@ use App\Modules\Matching\Controllers\MatchingController;
 use App\Modules\Roadmap\Controllers\RoadmapController;
 use App\Modules\Forum\Controllers\ForumController;
 use App\Modules\Subscription\Controllers\SubscriptionController;
+use App\Modules\Test\Controllers\TestController;
 use App\Modules\Admin\Controllers\AdminDashboardController;
 use App\Modules\Scraper\Controllers\ScraperWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -51,6 +52,13 @@ Route::get('/subscriptions/plans', [SubscriptionController::class, 'getPlans']);
 // System Health
 Route::get('/health', function () {
     return response()->json(['status' => 'OK', 'timestamp' => now()]);
+});
+
+// Public Test Simulations
+Route::prefix('tests')->group(function () {
+    Route::get('/', [TestController::class, 'index']);
+    Route::get('/{id}', [TestController::class, 'show']);
+    Route::post('/{id}/submit', [TestController::class, 'submit']);
 });
 
 // =====================================================

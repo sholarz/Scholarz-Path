@@ -584,7 +584,7 @@ BUT: **Frontend uses MOCK data instead!**
 8. Implement scholarship matching page and logic
 
 ### Phase 3 (Future) - Admin & Advanced
-9. Build Admin Dashboard and management UIs
+9. Build Admin Dashboard and management UIs 
 10. Email verification flow
 11. OAuth integration (Google/Facebook)
 12. Premium feature enforcement
