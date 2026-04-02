@@ -5,6 +5,7 @@ namespace App\Modules\Auth\Services;
 use App\Models\User;
 use App\Modules\Auth\Jobs\SendWelcomeEmailJob;
 use App\Modules\Auth\Jobs\SendPasswordResetEmailJob;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -46,12 +47,29 @@ class AuthService
     /**
      * Send password reset link
      */
-    public function sendPasswordResetLink(string $email): bool
+    public function sendPasswordResetLink(string $email): string
     {
+        $normalizedEmail = strtolower(trim($email));
+        $requestCountKey = 'password_reset_request_count:'.sha1($normalizedEmail);
+
+        $maxRequests = (int) config('auth.passwords.users.max_requests', 3);
+        $requestWindowMinutes = (int) config('auth.passwords.users.request_window_minutes', 1440);
+        $currentCount = (int) Cache::get($requestCountKey, 0);
+
+        if ($maxRequests > 0 && $currentCount >= $maxRequests) {
+            return 'limit_reached';
+        }
+
+        if ($requestWindowMinutes > 0) {
+            Cache::put($requestCountKey, $currentCount + 1, now()->addMinutes($requestWindowMinutes));
+        } else {
+            Cache::forever($requestCountKey, $currentCount + 1);
+        }
+
         $user = User::where('email', $email)->first();
         
         if (!$user) {
-            return false;
+            return 'ignored';
         }
 
         // Generate reset token
@@ -70,7 +88,7 @@ class AuthService
         // Send reset email
         SendPasswordResetEmailJob::dispatch($user, $token);
 
-        return true;
+        return 'sent';
     }
 
     /**
@@ -106,6 +124,9 @@ class AuthService
 
             // Revoke all existing tokens
             $user->tokens()->delete();
+
+            // Allow future password reset requests after successful reset.
+            Cache::forget('password_reset_request_count:'.sha1(strtolower(trim($email))));
 
             return true;
         }

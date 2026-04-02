@@ -96,6 +96,8 @@ return [
             'table' => 'password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,
+            'max_requests' => env('PASSWORD_RESET_MAX_REQUESTS', 3),
+            'request_window_minutes' => env('PASSWORD_RESET_REQUEST_WINDOW_MINUTES', 1440),
         ],
     ],
 
