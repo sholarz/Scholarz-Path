@@ -28,8 +28,8 @@ use Illuminate\Support\Facades\Route;
 // PUBLIC ROUTES (No Authentication Required)
 // =====================================================
 
-// Authentication
-Route::prefix('auth')->group(function () {
+// Authentication - Rate limited (anti brute-force)
+Route::middleware('throttle:5,1')->prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
@@ -39,8 +39,8 @@ Route::prefix('auth')->group(function () {
     Route::get('/google/callback', [AuthController::class, 'googleCallback']);
 });
 
-// Public Scholarships
-Route::prefix('scholarships')->group(function () {
+// Public Scholarships - Rate limited (normal API limits)
+Route::middleware('throttle:60,1')->prefix('scholarships')->group(function () {
     Route::get('/', [ScholarshipController::class, 'index']);
     Route::get('/providers/{id}', [ScholarshipController::class, 'getByProvider']);
     Route::get('/{id}', [ScholarshipController::class, 'show'])->whereUuid('id');
@@ -76,6 +76,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // User Management
     Route::prefix('user')->group(function () {
         Route::get('/', [UserController::class, 'getCurrentUser']);
+        // Backend B demo alias endpoint
+        Route::get('/profile', [ProfileController::class, 'show']);
         Route::put('/email', [UserController::class, 'updateEmail']);
         Route::put('/password', [UserController::class, 'updatePassword']);
         Route::delete('/', [UserController::class, 'deleteAccount']);
