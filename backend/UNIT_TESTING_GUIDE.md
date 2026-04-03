@@ -2,7 +2,7 @@
 
 ## 📊 Unit Tests Overview
 
-Sudah dibuat **101 unit tests** di backend untuk Models dan Services:
+There are now **110 unit tests** in backend for Models, Services, and Utils:
 
 ```
 ✅ MODELS (41 unit tests)
@@ -16,6 +16,11 @@ Sudah dibuat **101 unit tests** di backend untuk Models dan Services:
 ├── AuthServiceTest (11 tests)
 ├── RoadmapServiceTest (15 tests)
 └── MatchingServiceTest (15 tests)
+
+✅ UTILS (9 unit tests)
+├── RegisterRequestTest (4 tests)
+├── LoginRequestTest (3 tests)
+└── SecurityHeadersTest (2 tests)
 ```
 
 ---
@@ -37,40 +42,44 @@ File: `backend/phpunit.xml`
 
 ---
 
-## 🚀 Menjalankan Tests
+## 🚀 Running Tests
 
-### 1. Run SEMUA Unit Tests
+### 1. Run all Unit Tests
 ```bash
 cd backend
 php artisan test tests/Unit
 ```
 
-### 2. Run Tests di Folder Spesifik
+### 2. Run tests by specific folder
 ```bash
-# Hanya model tests
+# Models only
 php artisan test tests/Unit/Models
 
-# Hanya service tests
+# Services only
 php artisan test tests/Unit/Services
+
+# Utils only
+php artisan test tests/Unit/Utils
 ```
 
-### 3. Run Test File Spesifik
+### 3. Run a specific test file
 ```bash
 php artisan test tests/Unit/Models/UserTest.php
 php artisan test tests/Unit/Services/AuthServiceTest.php
+php artisan test tests/Unit/Utils/SecurityHeadersTest.php
 ```
 
-### 4. Run Test Method Spesifik
+### 4. Run a specific test method
 ```bash
 php artisan test tests/Unit/Models/UserTest.php --filter=test_user_can_be_created
 ```
 
-### 5. Run dengan Stop on Failure
+### 5. Run with stop on failure
 ```bash
 php artisan test tests/Unit --stop-on-failure
 ```
 
-### 6. Run Parallel (Lebih Cepat)
+### 6. Run in parallel (faster)
 ```bash
 php artisan test tests/Unit --parallel
 ```
@@ -82,81 +91,81 @@ php artisan test tests/Unit --parallel
 ### **MODELS (41 Tests)**
 
 #### UserTest (11 tests)
-- ✓ User dapat dibuat dengan mass assignment
-- ✓ User punya default role 'free'
-- ✓ User punya default status 'active'
-- ✓ Password di-hash
-- ✓ Password hidden dari serialization
-- ✓ User punya UUID primary key
-- ✓ User punya relationship dengan profile
-- ✓ User dapat di-soft delete
-- ✓ User email dapat di-verify
-- ✓ User dapat punya berbagai roles
-- ✓ User dapat punya berbagai statuses
+- ✓ User can be created with mass assignment
+- ✓ User has default role 'free'
+- ✓ User has default status 'active'
+- ✓ Password is hashed
+- ✓ Password is hidden from serialization
+- ✓ User has UUID primary key
+- ✓ User has relationship with profile
+- ✓ User can be soft deleted
+- ✓ User email can be verified
+- ✓ User can have different roles
+- ✓ User can have different statuses
 
 #### UserProfileTest (10 tests)
-- ✓ User profile dapat dibuat
+- ✓ User profile can be created
 - ✓ Profile belongs to user
-- ✓ GPA di-cast ke decimal (2 decimal places)
-- ✓ Profile completion percentage di-track
-- ✓ Date of birth di-cast ke date
-- ✓ Profile dapat store academic information
-- ✓ Profile dapat store location information
-- ✓ Profile dapat di-update
-- ✓ Profile punya UUID primary key
-- ✓ User dapat punya multiple profiles
+- ✓ GPA is cast to decimal (2 decimal places)
+- ✓ Profile completion percentage is tracked
+- ✓ Date of birth is cast to date
+- ✓ Profile can store academic information
+- ✓ Profile can store location information
+- ✓ Profile can be updated
+- ✓ Profile has UUID primary key
+- ✓ User can have multiple profiles
 
 #### ScholarshipTest (10 tests)
-- ✓ Scholarship dapat dibuat
+- ✓ Scholarship can be created
 - ✓ Scholarship belongs to provider
-- ✓ Scholarship dapat track view count
-- ✓ Scholarship dapat track application count
+- ✓ Scholarship can track view count
+- ✓ Scholarship can track application count
 - ✓ Scholarship store JSON fields (requirements, fields)
-- ✓ Scholarship punya berbagai types (full, partial, merit)
-- ✓ Scholarship punya berbagai levels (bachelor, master, phd)
-- ✓ Scholarship dapat di-featured
-- ✓ Scholarship punya berbagai statuses (active, closed)
+- ✓ Scholarship has different types (full, partial, merit)
+- ✓ Scholarship has different levels (bachelor, master, phd)
+- ✓ Scholarship can be featured
+- ✓ Scholarship has different statuses (active, closed)
 - ✓ Scholarship store application deadline
 
 #### ScholarshipMatchTest (10 tests)
-- ✓ Scholarship match dapat dibuat
+- ✓ Scholarship match can be created
 - ✓ Match belongs to user
 - ✓ Match belongs to scholarship
-- ✓ Match dapat track bookmark status
-- ✓ Match score di-store (0-100)
-- ✓ Match dapat store analysis data (JSON)
-- ✓ Match dapat store match reasons
-- ✓ User dapat punya multiple matches dengan scholarship
-- ✓ Match punya UUID primary key
-- ✓ Match scores dalam range valid (0-100)
+- ✓ Match can track bookmark status
+- ✓ Match score is stored (0-100)
+- ✓ Match can store analysis data (JSON)
+- ✓ Match can store match reasons
+- ✓ User can have multiple matches with scholarship
+- ✓ Match has UUID primary key
+- ✓ Match scores are in valid range (0-100)
 
 ---
 
 ### **SERVICES (60+ Tests)**
 
 #### UserServiceTest (11 tests)
-- ✓ Create user dengan profile
-- ✓ Create user tanpa profile
-- ✓ Get user dengan profile dan languages
+- ✓ Create user with profile
+- ✓ Create user without profile
+- ✓ Get user with profile and languages
 - ✓ Get non-existent user returns null
-- ✓ Update profile dengan semua fields
+- ✓ Update profile with all fields
 - ✓ Update profile preserve old values
 - ✓ Profile completion percentage calculation (40%)
 - ✓ Profile completion percentage 100%
 - ✓ Profile completion percentage 0%
-- ✓ User creation di-wrap dalam transaction
-- ✓ Multiple users dapat di-create independently
+- ✓ User creation is wrapped in transaction
+- ✓ Multiple users can be created independently
 
 #### AuthServiceTest (11 tests)
 - ✓ Generate token creates valid token
-- ✓ Token associated dengan user
-- ✓ Generate token replace old tokens untuk same device
-- ✓ Generate token untuk multiple devices
-- ✓ Send password reset link store token
-- ✓ Send password reset link ignore non-existent user
+- ✓ Token is associated with user
+- ✓ Generate token replaces old tokens for same device
+- ✓ Generate token for multiple devices
+- ✓ Send password reset link stores token
+- ✓ Send password reset link ignores non-existent user
 - ✓ Send password reset link case-insensitive
-- ✓ Reset password dengan invalid token
-- ✓ Reset password tanpa reset request
+- ✓ Reset password with invalid token
+- ✓ Reset password without reset request
 - ✓ Password reset request limit (3 requests)
 - ✓ Multiple users password reset independently
 
@@ -166,7 +175,7 @@ php artisan test tests/Unit --parallel
 - ✓ 60 days deadline → 5 tasks
 - ✓ <14 days deadline → 3 tasks
 - ✓ 14-30 days deadline → 4 tasks
-- ✓ Roadmap tasks punya meaningful titles
+- ✓ Roadmap tasks have meaningful titles
 - ✓ Roadmap status is 'active'
 - ✓ Roadmap deadline match scholarship deadline
 - ✓ Task due dates spread across days
@@ -175,11 +184,11 @@ php artisan test tests/Unit --parallel
 - ✓ Get daily tasks ignore inactive roadmaps
 - ✓ Get daily tasks empty if no tasks today
 - ✓ Get daily tasks returns user-specific tasks
-- ✓ Tasks punya sequential day numbers
+- ✓ Tasks have sequential day numbers
 
 #### MatchingServiceTest (15 tests)
 - ✓ Find matches returns array
-- ✓ Find matches dengan no scholarships returns empty
+- ✓ Find matches with no scholarships returns empty
 - ✓ Find matches include active scholarships
 - ✓ Find matches exclude inactive scholarships
 - ✓ Find matches exclude past deadline
@@ -196,9 +205,28 @@ php artisan test tests/Unit --parallel
 
 ---
 
+### **UTILS (9 Tests)**
+
+#### RegisterRequestTest (4 tests)
+- ✓ authorize returns true
+- ✓ rules include required fields
+- ✓ rules include expected validators
+- ✓ localized validation messages are mapped correctly
+
+#### LoginRequestTest (3 tests)
+- ✓ authorize returns true
+- ✓ login rules include expected validators
+- ✓ localized validation messages are mapped correctly
+
+#### SecurityHeadersTest (2 tests)
+- ✓ security headers are added to responses
+- ✓ HSTS is not set in testing environment
+
+---
+
 ## 📊 Expected Output
 
-Saat menjalankan `php artisan test tests/Unit`:
+When running `php artisan test tests/Unit`:
 
 ```
    PASS  Tests\Unit\Models\UserTest
@@ -234,7 +262,19 @@ Saat menjalankan `php artisan test tests/Unit`:
   ✓ find matches returns array
   ... (14 more tests)
 
-Tests:  101 passed (100%)
+     PASS  Tests\Unit\Utils\RegisterRequestTest
+    ✓ authorize returns true
+    ... (3 more tests)
+
+     PASS  Tests\Unit\Utils\LoginRequestTest
+    ✓ authorize returns true
+    ... (2 more tests)
+
+     PASS  Tests\Unit\Utils\SecurityHeadersTest
+    ✓ security headers are added to response
+    ... (1 more tests)
+
+Tests:  110 passed (100%)
 Time: 12.45s
 ```
 
@@ -266,6 +306,7 @@ public function test_example(): void
 ```
 
 ### 3. **Using setUp() untuk Reusable Setup**
+### 3. **Using setUp() for reusable setup**
 ```php
 protected function setUp(): void
 {
@@ -276,10 +317,11 @@ protected function setUp(): void
 ```
 
 ### 4. **Use RefreshDatabase untuk Test Isolation**
+### 4. **Use RefreshDatabase for test isolation**
 ```php
 class UserTest extends TestCase
 {
-    use RefreshDatabase; // Auto rollback DB setiap test
+    use RefreshDatabase; // Automatic DB rollback on every test
 }
 ```
 
@@ -336,26 +378,26 @@ php artisan test tests/Unit --coverage
 
 ## 📦 Test Data
 
-Tests menggunakan:
+Tests use:
 - **Factories**: `database/factories/UserFactory.php`
 - **Seeders**: `database/seeders/`
 - **RefreshDatabase**: Automatic rollback per test
 
 ---
 
-## ✅ Checklist Sebelum Commit
+## ✅ Pre-Commit Checklist
 
-- [ ] Run `php artisan test tests/Unit` - semua test pass
-- [ ] Tidak ada SQL errors
-- [ ] Coverage minimal 80% untuk models/services
-- [ ] Test names jelas dan deskriptif
-- [ ] Menggunakan RefreshDatabase trait
-- [ ] Tidak ada hardcoded values (pakai factories)
-- [ ] Async/parallel tests berjalan lancar
+- [ ] Run `php artisan test tests/Unit` - all tests pass
+- [ ] No SQL errors
+- [ ] Minimum 80% coverage for models/services/utils
+- [ ] Test names are clear and descriptive
+- [ ] Use `RefreshDatabase` trait for DB-based tests
+- [ ] No unnecessary hardcoded values (prefer factories)
+- [ ] Parallel mode runs cleanly
 
 ---
 
-## 📚 Referensi
+## 📚 References
 
 - [Laravel Testing Docs](https://laravel.com/docs/11.x/testing)
 - [PHPUnit Docs](https://phpunit.de/documentation.html)
@@ -364,6 +406,6 @@ Tests menggunakan:
 ---
 
 **Created**: April 3, 2026  
-**Total Tests**: 101  
-**Coverage**: Models + Services  
+**Total Tests**: 110  
+**Coverage**: Models + Services + Utils  
 **Next**: Feature Tests + Integration Tests
