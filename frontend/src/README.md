@@ -1,4 +1,4 @@
-# 🎓 ScholarzPath - Platform Beasiswa Jawa, Indonesia
+# 🎓 ScholarPath - Platform Beasiswa Jawa, Indonesia
 
 > Platform edukasi yang fokus khusus pada beasiswa di Jawa, Indonesia dengan sistem 3-tier user dan desain student-first.
 
@@ -13,7 +13,7 @@
 
 ## 🎨 Color Palette
 
-Platform ScholarzPath menggunakan color palette yang telah disesuaikan:
+Platform ScholarPath menggunakan color palette yang telah disesuaikan:
 
 | Color | Hex | Usage |
 |-------|-----|-------|
@@ -38,7 +38,7 @@ Platform ScholarzPath menggunakan color palette yang telah disesuaikan:
 2. **Login Test Accounts:**
    ```
    Admin:
-   Email: admin@scholarzpath.com
+   Email: admin@scholarpath.com
    Password: admin123
 
    Premium User:
@@ -179,6 +179,7 @@ Visual indicators:
 └── Documentation/
     ├── README.md                   # This file
     ├── PLATFORM_STATUS.md          # Current status
+    ├── USER_FLOW_IMPLEMENTATION.md # Complete user flow & authentication logic
     ├── NEXT_JS_MIGRATION_GUIDE.md  # Next.js migration
     ├── README_MVP.md               # MVP features detail
     ├── USER_ROLES_GUIDE.md         # User roles system
@@ -283,6 +284,7 @@ Platform menggunakan mock data untuk demo. Untuk production:
 | Document | Description |
 |----------|-------------|
 | [PLATFORM_STATUS.md](PLATFORM_STATUS.md) | Status proyek & feature checklist |
+| [USER_FLOW_IMPLEMENTATION.md](USER_FLOW_IMPLEMENTATION.md) | ✅ Complete user flow & authentication logic |
 | [NEXT_JS_MIGRATION_GUIDE.md](NEXT_JS_MIGRATION_GUIDE.md) | Panduan lengkap migrasi ke Next.js 14 |
 | [README_MVP.md](README_MVP.md) | Detail 6 MVP features |
 | [USER_ROLES_GUIDE.md](USER_ROLES_GUIDE.md) | User roles & permissions system |
@@ -299,7 +301,7 @@ Platform menggunakan **shadcn/ui** components:
 - Form components (Input, Select, Checkbox, Switch)
 - Data display (Table, Avatar, Separator)
 
-Semua components sudah styled dengan ScholarzPath color palette.
+Semua components sudah styled dengan ScholarPath color palette.
 
 ---
 
@@ -364,7 +366,7 @@ Semua components sudah styled dengan ScholarzPath color palette.
 
 ## 📄 License
 
-Copyright © 2026 ScholarzPath. All rights reserved.
+Copyright © 2026 ScholarPath. All rights reserved.
 
 ---
 
@@ -386,6 +388,6 @@ Copyright © 2026 ScholarzPath. All rights reserved.
 
 ---
 
-**ScholarzPath - Membuka Jalan Menuju Pendidikan Berkualitas di Indonesia** 🎓✨
+**ScholarPath - Membuka Jalan Menuju Pendidikan Berkualitas di Indonesia** 🎓✨
 
 *Platform edukasi yang fokus membantu siswa menemukan dan mengajukan beasiswa di Jawa dengan pendekatan student-first yang mengutamakan trust, simplicity, clarity, dan credibility.*

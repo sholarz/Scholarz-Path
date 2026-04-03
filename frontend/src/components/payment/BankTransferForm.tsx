@@ -15,19 +15,19 @@ const bankAccounts = [
     id: 'bca',
     name: 'BCA',
     accountNumber: '1234567890',
-    accountHolder: 'PT ScholarzPath Indonesia',
+    accountHolder: 'PT ScholarPath Indonesia',
   },
   {
     id: 'mandiri',
     name: 'Bank Mandiri',
     accountNumber: '9876543210',
-    accountHolder: 'PT ScholarzPath Indonesia',
+    accountHolder: 'PT ScholarPath Indonesia',
   },
   {
     id: 'bni',
     name: 'BNI',
     accountNumber: '5555666677',
-    accountHolder: 'PT ScholarzPath Indonesia',
+    accountHolder: 'PT ScholarPath Indonesia',
   },
 ];
 

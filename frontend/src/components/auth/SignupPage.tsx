@@ -5,17 +5,8 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { GraduationCap, Mail, Lock, User } from 'lucide-react';
-import { AxiosError } from 'axios';
 import { useAuth } from '../../lib/auth-context';
 import { toast } from 'sonner';
-
-interface ValidationErrorResponse {
-  message?: string;
-  error?: {
-    message?: string;
-  };
-  errors?: Record<string, string[]>;
-}
 
 export function SignupPage() {
   const [name, setName] = useState('');
@@ -25,19 +16,6 @@ export function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { signup, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
-
-  const getErrorMessage = (error: unknown): string => {
-    if (!(error instanceof AxiosError)) {
-      return 'Failed to create account';
-    }
-
-    const data = error.response?.data as ValidationErrorResponse | undefined;
-    const firstValidationError = data?.errors
-      ? Object.values(data.errors)[0]?.[0]
-      : undefined;
-
-    return firstValidationError || data?.message || 'Failed to create account';
-  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,8 +30,8 @@ export function SignupPage() {
       return;
     }
 
-    if (password.length < 8) {
-      toast.error('Password must be at least 8 characters');
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters');
       return;
     }
 
@@ -63,7 +41,7 @@ export function SignupPage() {
       toast.success('Account created successfully!');
       navigate('/dashboard');
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      toast.error('Failed to create account');
     } finally {
       setIsLoading(false);
     }
@@ -76,11 +54,7 @@ export function SignupPage() {
       toast.success('Account created successfully!');
       navigate('/dashboard');
     } catch (error) {
-      const data = (error instanceof AxiosError
-        ? (error.response?.data as ValidationErrorResponse | undefined)
-        : undefined);
-
-      toast.error(data?.error?.message || data?.message || 'Failed to sign up with Google');
+      toast.error('Failed to sign up with Google');
     } finally {
       setIsLoading(false);
     }

@@ -4,65 +4,56 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
-import { GraduationCap, Mail, Lock } from 'lucide-react';
-import { AxiosError } from 'axios';
+import { Alert, AlertDescription } from '../ui/alert';
+import { GraduationCap, Mail, Lock, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import { toast } from 'sonner';
-
-interface ErrorResponse {
-  message?: string;
-  error?: {
-    message?: string;
-  };
-}
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { login, loginWithGoogle } = useAuth();
+  const [error, setError] = useState('');
+  const { login, loginWithGoogle, isLoading, user } = useAuth();
   const navigate = useNavigate();
-
-  const getErrorMessage = (error: unknown, fallback: string): string => {
-    if (!(error instanceof AxiosError)) {
-      return fallback;
-    }
-
-    const data = error.response?.data as ErrorResponse | undefined;
-
-    return data?.error?.message || data?.message || fallback;
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     
     if (!email || !password) {
-      toast.error('Please fill in all fields');
+      setError('Please fill in all fields');
       return;
     }
 
-    setIsLoading(true);
     try {
-      await login(email, password);
+      const loggedInUser = await login(email, password);
       toast.success('Welcome back!');
-      navigate('/dashboard');
-    } catch (error) {
-      toast.error(getErrorMessage(error, 'Invalid email or password'));
-    } finally {
-      setIsLoading(false);
+      
+      // Redirect based on role
+      if (loggedInUser?.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      setError('Invalid email or password. Please try again.');
     }
   };
 
   const handleGoogleLogin = async () => {
-    setIsLoading(true);
+    setError('');
     try {
-      await loginWithGoogle();
+      const loggedInUser = await loginWithGoogle();
       toast.success('Welcome back!');
-      navigate('/dashboard');
-    } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to login with Google'));
-    } finally {
-      setIsLoading(false);
+      
+      // Redirect based on role
+      if (loggedInUser?.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      setError('Failed to login with Google. Please try again.');
     }
   };
 
@@ -76,9 +67,17 @@ export function LoginPage() {
             </div>
           </div>
           <CardTitle>Welcome Back</CardTitle>
-          <CardDescription>Sign in to your ScholarzPath account</CardDescription>
+          <CardDescription>Sign in to your ScholarPath account</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Error Alert */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           <Button
             type="button"
             variant="outline"

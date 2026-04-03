@@ -147,7 +147,13 @@ class ScholarshipController extends Controller
         
         $user->scholarshipMatches()->updateOrCreate(
             ['scholarship_id' => $scholarshipId],
-            ['is_bookmarked' => true]
+            [
+                'is_bookmarked' => true,
+                'match_score' => 0,
+                'criteria_met' => [],
+                'criteria_missing' => [],
+                'recommendations' => null,
+            ]
         );
 
         return response()->json([

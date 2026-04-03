@@ -110,6 +110,10 @@ class AuthController extends Controller
                         'id' => $user->id,
                         'email' => $user->email,
                         'role' => $user->role,
+                        'profile' => $user->profile ? [
+                            'first_name' => $user->profile->first_name,
+                            'last_name' => $user->profile->last_name,
+                        ] : null,
                     ],
                     'token' => $token,
                 ],
@@ -186,15 +190,18 @@ class AuthController extends Controller
     public function forgotPassword(Request $request): JsonResponse
     {
         $request->validate([
-            'email' => 'required|email|exists:users,email'
+            'email' => 'required|email'
         ]);
 
         try {
-            $this->authService->sendPasswordResetLink($request->email);
+            $status = $this->authService->sendPasswordResetLink($request->email);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Password reset link sent to your email'
+                'message' => 'If an account exists, a password reset link has been sent',
+                'warning' => $status === 'limit_reached'
+                    ? 'You have reached the maximum reset-link requests (3). Please use your latest email link.'
+                    : null,
             ]);
 
         } catch (\Exception $e) {
