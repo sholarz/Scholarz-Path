@@ -11,6 +11,10 @@ use App\Modules\Subscription\Controllers\SubscriptionController;
 use App\Modules\Test\Controllers\TestController;
 use App\Modules\Admin\Controllers\AdminDashboardController;
 use App\Modules\Scraper\Controllers\ScraperWebhookController;
+use App\Modules\Profile\Controllers\PreferenceController;
+use App\Modules\Profile\Controllers\LanguageTestController;
+use App\Modules\Profile\Controllers\DocumentController;
+use App\Modules\Profile\Controllers\LookupController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,6 +31,15 @@ use Illuminate\Support\Facades\Route;
 // =====================================================
 // PUBLIC ROUTES (No Authentication Required)
 // =====================================================
+
+// Lookup endpoints (public — untuk dropdown di frontend)
+Route::prefix('lookups')->group(function () {
+    Route::get('/countries', [LookupController::class, 'countries']);
+    Route::get('/fields-of-study', [LookupController::class, 'fieldsOfStudy']);
+    Route::get('/budget-preferences', [LookupController::class, 'budgetPreferences']);
+    Route::get('/start-years', [LookupController::class, 'startYears']);
+    Route::get('/language-test-types', [LookupController::class, 'languageTestTypes']);
+});
 
 // Authentication - Rate limited (anti brute-force)
 Route::middleware('throttle:5,1')->prefix('auth')->group(function () {
@@ -58,7 +71,6 @@ Route::get('/health', function () {
 Route::prefix('tests')->group(function () {
     Route::get('/', [TestController::class, 'index']);
     Route::get('/{id}', [TestController::class, 'show']);
-    Route::post('/{id}/submit', [TestController::class, 'submit']);
 });
 
 // =====================================================
@@ -92,6 +104,26 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/languages/{id}', [ProfileController::class, 'deleteLanguage']);
         Route::post('/avatar', [ProfileController::class, 'uploadAvatar']);
     });
+
+    // Preferences (negara tujuan & bidang studi)
+    Route::prefix('preferences')->group(function () {
+        Route::get('/', [PreferenceController::class, 'index']);
+        Route::put('/', [PreferenceController::class, 'update']);
+    });
+
+    // Language Tests (skor IELTS/TOEFL user)
+    Route::prefix('language-tests')->group(function () {
+        Route::get('/', [LanguageTestController::class, 'index']);
+        Route::post('/', [LanguageTestController::class, 'store']);
+        Route::put('/{id}', [LanguageTestController::class, 'update']);
+        Route::delete('/{id}', [LanguageTestController::class, 'destroy']);
+    });
+
+    // Document Readiness
+    Route::prefix('documents')->group(function () {
+        Route::get('/readiness', [DocumentController::class, 'readiness']);
+        Route::put('/readiness', [DocumentController::class, 'updateReadiness']);
+    });
     
     // Scholarship Matching
     Route::prefix('scholarships')->group(function () {
@@ -117,6 +149,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/daily', [RoadmapController::class, 'getDailyTasks']);
         Route::put('/{id}/complete', [RoadmapController::class, 'completeTask']);
         Route::put('/{id}/skip', [RoadmapController::class, 'skipTask']);
+    });
+
+    // Test submissions
+    Route::prefix('tests')->group(function () {
+        Route::post('/{id}/submit', [TestController::class, 'submit']);
     });
     
     // Forum

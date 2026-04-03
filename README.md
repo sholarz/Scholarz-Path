@@ -222,27 +222,7 @@ docs/
 
 ---
 
-## � TEST SIMULATIONS (Premium Feature)
-
-### **Mock Test Practice Environment**
-- **Practice Exams**: Standardized test simulations for scholarship entrance exams
-- **Score Tracking**: Real-time scoring with detailed performance analytics
-- **Multiple Test Categories**: SAT, ACT, GRE, GMAT, IELTS, and more (mock data)
-- **Performance Dashboard**: Track progress over time, identify weak areas
-- **Timed Practice**: Full-length simulations with countdown timers
-- **Detailed Results**: Question-by-question breakdown and explanations
-
-### **Future Integration**
-- Brand partnerships with official test providers
-- Real test data integration (SAT, ACT, IELTS, etc.)
-- Adaptive difficulty algorithms
-- AI-powered study recommendations based on weak areas
-
----
-
-## 🧭 PLANNED EXTERNAL CONNECTORS
-
-The current release uses curated datasets and admin-assisted ingestion. External source connectors are planned for a later phase and are documented here as a roadmap reference.
+## 🐍 PYTHON SCRAPER SYSTEM
 
 ### **Architecture**
 - **Planned**: Scrapy-based source connectors

@@ -1,5 +1,5 @@
 {
-  "name": "ScholarzPath",
+  "name": "scholarz-path",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -55,19 +55,25 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.12",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20.10.0",
-    "@types/react": "^18.3.18",
-    "@types/react-dom": "^18.3.5",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.7.0",
     "concurrently": "^9.1.2",
+    "jsdom": "^29.0.1",
     "tailwindcss": "4.1.12",
-    "vite": "6.3.5"
+    "vite": "6.3.5",
+    "vitest": "^4.1.2"
   },
   "scripts": {
     "dev": "vite",
     "dev:frontend": "vite",
     "dev:backend": "cd ../backend && php artisan serve --host=127.0.0.1 --port=8000",
     "dev:full": "concurrently -k -n BACKEND,FRONTEND -c green,cyan \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "build": "vite build"
+    "build": "vite build",
+    "test": "vitest"
   }
 }

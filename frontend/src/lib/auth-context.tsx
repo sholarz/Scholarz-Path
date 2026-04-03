@@ -132,7 +132,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check for existing session in localStorage
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       setUser(JSON.parse(savedUser));
@@ -142,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
@@ -173,11 +172,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithGoogle = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      // Simulate Google OAuth delay
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       const mockUser: User = {
         id: Date.now().toString(),
         email: 'user@gmail.com',
@@ -185,7 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=GoogleUser',
         role: 'free',
       };
-      
+
       setUser(mockUser);
       localStorage.setItem('user', JSON.stringify(mockUser));
       return mockUser;
@@ -200,7 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = async (email: string, password: string, name: string) => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
@@ -241,8 +239,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resetPassword = async (email: string) => {
     setIsLoading(true);
     setError(null);
-    
-    // Mock password reset - in production, this would send a reset email
+
     await new Promise(resolve => setTimeout(resolve, 500));
     setIsLoading(false);
   };
