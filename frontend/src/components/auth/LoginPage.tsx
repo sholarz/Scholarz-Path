@@ -5,8 +5,16 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { GraduationCap, Mail, Lock } from 'lucide-react';
+import { AxiosError } from 'axios';
 import { useAuth } from '../../lib/auth-context';
 import { toast } from 'sonner';
+
+interface ErrorResponse {
+  message?: string;
+  error?: {
+    message?: string;
+  };
+}
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -14,6 +22,16 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+
+  const getErrorMessage = (error: unknown, fallback: string): string => {
+    if (!(error instanceof AxiosError)) {
+      return fallback;
+    }
+
+    const data = error.response?.data as ErrorResponse | undefined;
+
+    return data?.error?.message || data?.message || fallback;
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +47,7 @@ export function LoginPage() {
       toast.success('Welcome back!');
       navigate('/dashboard');
     } catch (error) {
-      toast.error('Invalid email or password');
+      toast.error(getErrorMessage(error, 'Invalid email or password'));
     } finally {
       setIsLoading(false);
     }
@@ -42,7 +60,7 @@ export function LoginPage() {
       toast.success('Welcome back!');
       navigate('/dashboard');
     } catch (error) {
-      toast.error('Failed to login with Google');
+      toast.error(getErrorMessage(error, 'Failed to login with Google'));
     } finally {
       setIsLoading(false);
     }

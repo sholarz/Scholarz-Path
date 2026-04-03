@@ -11,6 +11,9 @@ import { toast } from 'sonner';
 
 interface ValidationErrorResponse {
   message?: string;
+  error?: {
+    message?: string;
+  };
   errors?: Record<string, string[]>;
 }
 
@@ -73,7 +76,11 @@ export function SignupPage() {
       toast.success('Account created successfully!');
       navigate('/dashboard');
     } catch (error) {
-      toast.error('Failed to sign up with Google');
+      const data = (error instanceof AxiosError
+        ? (error.response?.data as ValidationErrorResponse | undefined)
+        : undefined);
+
+      toast.error(data?.error?.message || data?.message || 'Failed to sign up with Google');
     } finally {
       setIsLoading(false);
     }
