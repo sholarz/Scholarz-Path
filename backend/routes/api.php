@@ -99,6 +99,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('profile')->group(function () {
         Route::get('/', [ProfileController::class, 'show']);
         Route::put('/', [ProfileController::class, 'update']);
+        Route::get('/me', [ProfileController::class, 'me']);
+        Route::get('/me/basic', [ProfileController::class, 'basic']);
+        Route::put('/me/basic', [ProfileController::class, 'updateBasic']);
+        Route::get('/me/academic', [ProfileController::class, 'academic']);
+        Route::put('/me/academic', [ProfileController::class, 'updateAcademic']);
+        Route::get('/me/status', [ProfileController::class, 'status']);
         Route::post('/languages', [ProfileController::class, 'addLanguage']);
         Route::put('/languages/{id}', [ProfileController::class, 'updateLanguage']);
         Route::delete('/languages/{id}', [ProfileController::class, 'deleteLanguage']);

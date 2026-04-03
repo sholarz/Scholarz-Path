@@ -302,6 +302,16 @@ class AuthController extends Controller
      */
     public function googleRedirect(): JsonResponse
     {
+        if (blank(config('services.google.client_id')) || blank(config('services.google.client_secret')) || blank(config('services.google.redirect'))) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'GOOGLE_OAUTH_NOT_CONFIGURED',
+                    'message' => 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URL in backend .env.',
+                ]
+            ], 503);
+        }
+
         $redirectUrl = Socialite::driver('google')
             ->stateless()
             ->redirect()
@@ -321,6 +331,16 @@ class AuthController extends Controller
     public function googleCallback(Request $request): JsonResponse|RedirectResponse
     {
         try {
+            if (blank(config('services.google.client_id')) || blank(config('services.google.client_secret')) || blank(config('services.google.redirect'))) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'GOOGLE_OAUTH_NOT_CONFIGURED',
+                        'message' => 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URL in backend .env.',
+                    ]
+                ], 503);
+            }
+
             $googleUser = Socialite::driver('google')->stateless()->user();
 
             $email = $googleUser->getEmail();

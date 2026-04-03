@@ -3,6 +3,7 @@
 namespace App\Modules\User\Services;
 
 use App\Models\User;
+use App\Models\UserProfile;
 use Illuminate\Support\Facades\DB;
 
 class UserService
@@ -18,7 +19,7 @@ class UserService
 
             // Create user profile
             if (!empty($profileData)) {
-                $user->profile()->create([
+                $profile = $user->profile()->create([
                     'user_id' => $user->id,
                     'first_name' => $profileData['first_name'] ?? '',
                     'last_name' => $profileData['last_name'] ?? '',
@@ -30,8 +31,12 @@ class UserService
                     'major' => $profileData['major'] ?? null,
                     'degree_level' => $profileData['degree_level'] ?? null,
                     'graduation_year' => $profileData['graduation_year'] ?? null,
-                    'profile_completion_percentage' => $this->calculateCompletionPercentage($profileData),
+                    'profile_completion_percentage' => 0,
+                    'profile_status' => UserProfile::STATUS_DRAFT,
                 ]);
+
+                $profile->refreshProfileProgress();
+                $profile->save();
             }
 
             return $user->load('profile');
@@ -53,21 +58,25 @@ class UserService
     public function updateProfile(User $user, array $profileData): void
     {
         DB::transaction(function () use ($user, $profileData) {
-            if ($user->profile) {
-                $user->profile->update([
-                    'first_name' => $profileData['first_name'] ?? $user->profile->first_name,
-                    'last_name' => $profileData['last_name'] ?? $user->profile->last_name,
-                    'phone' => $profileData['phone'] ?? $user->profile->phone,
-                    'date_of_birth' => $profileData['date_of_birth'] ?? $user->profile->date_of_birth,
-                    'nationality' => $profileData['nationality'] ?? $user->profile->nationality,
-                    'current_country' => $profileData['current_country'] ?? $user->profile->current_country,
-                    'gpa' => $profileData['gpa'] ?? $user->profile->gpa,
-                    'major' => $profileData['major'] ?? $user->profile->major,
-                    'degree_level' => $profileData['degree_level'] ?? $user->profile->degree_level,
-                    'graduation_year' => $profileData['graduation_year'] ?? $user->profile->graduation_year,
-                    'profile_completion_percentage' => $this->calculateCompletionPercentage($profileData),
-                ]);
-            }
+            $profile = $user->profile()->firstOrNew([
+                'user_id' => $user->id,
+            ]);
+
+            $profile->fill([
+                'first_name' => $profileData['first_name'] ?? $profile->first_name,
+                'last_name' => $profileData['last_name'] ?? $profile->last_name,
+                'phone' => $profileData['phone'] ?? $profile->phone,
+                'date_of_birth' => $profileData['date_of_birth'] ?? $profile->date_of_birth,
+                'nationality' => $profileData['nationality'] ?? $profile->nationality,
+                'current_country' => $profileData['current_country'] ?? $profile->current_country,
+                'gpa' => $profileData['gpa'] ?? $profile->gpa,
+                'major' => $profileData['major'] ?? $profile->major,
+                'degree_level' => $profileData['degree_level'] ?? $profile->degree_level,
+                'graduation_year' => $profileData['graduation_year'] ?? $profile->graduation_year,
+            ]);
+
+            $profile->refreshProfileProgress();
+            $profile->save();
         });
     }
 
@@ -76,19 +85,14 @@ class UserService
      */
     private function calculateCompletionPercentage(array $profileData): int
     {
-        $fields = [
-            'first_name', 'last_name', 'phone', 'date_of_birth',
-            'nationality', 'current_country', 'gpa', 'major',
-            'degree_level', 'graduation_year'
-        ];
-
         $completedFields = 0;
-        foreach ($fields as $field) {
+
+        foreach (UserProfile::PROFILE_FIELDS as $field) {
             if (!empty($profileData[$field])) {
                 $completedFields++;
             }
         }
 
-        return (int)($completedFields / count($fields) * 100);
+        return (int)($completedFields / count(UserProfile::PROFILE_FIELDS) * 100);
     }
 }

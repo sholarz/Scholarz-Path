@@ -3,8 +3,14 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Models\UserProfile;
+use App\Modules\User\Requests\UpdateAcademicProfileRequest;
+use App\Modules\User\Requests\UpdateBasicProfileRequest;
+use App\Modules\User\Requests\UpdateProfileRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 
 class ProfileController extends Controller
 {
@@ -13,8 +19,96 @@ class ProfileController extends Controller
      */
     public function show(Request $request): JsonResponse
     {
-        $user = $request->user()->load('profile', 'languages');
+        return $this->legacyProfileResponse($request->user()->loadMissing('profile', 'languages'));
+    }
 
+    /**
+     * Get aggregate profile payload.
+     */
+    public function me(Request $request): JsonResponse
+    {
+        $user = $request->user()->loadMissing('profile', 'languages');
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->aggregateProfilePayload($user),
+        ]);
+    }
+
+    /**
+     * Get basic profile section.
+     */
+    public function basic(Request $request): JsonResponse
+    {
+        $user = $request->user()->loadMissing('profile');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'basic' => $this->basicProfilePayload($user),
+            ],
+        ]);
+    }
+
+    /**
+     * Get academic profile section.
+     */
+    public function academic(Request $request): JsonResponse
+    {
+        $user = $request->user()->loadMissing('profile');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'academic' => $this->academicProfilePayload($user),
+            ],
+        ]);
+    }
+
+    /**
+     * Get profile status section.
+     */
+    public function status(Request $request): JsonResponse
+    {
+        $user = $request->user()->loadMissing('profile');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'status' => $this->statusProfilePayload($user),
+            ],
+        ]);
+    }
+
+    /**
+     * Update user profile.
+     */
+    public function update(UpdateProfileRequest $request): JsonResponse
+    {
+        return $this->persistProfile($request->user(), $request->validated(), 'Profile updated successfully');
+    }
+
+    /**
+     * Update basic profile section.
+     */
+    public function updateBasic(UpdateBasicProfileRequest $request): JsonResponse
+    {
+        return $this->persistProfile($request->user(), $request->validated(), 'Basic profile updated successfully');
+    }
+
+    /**
+     * Update academic profile section.
+     */
+    public function updateAcademic(UpdateAcademicProfileRequest $request): JsonResponse
+    {
+        return $this->persistProfile($request->user(), $request->validated(), 'Academic profile updated successfully');
+    }
+
+    /**
+     * Legacy current user payload.
+     */
+    private function legacyProfileResponse(User $user): JsonResponse
+    {
         return response()->json([
             'success' => true,
             'data' => [
@@ -49,38 +143,113 @@ class ProfileController extends Controller
     }
 
     /**
-     * Update user profile
+     * Aggregate profile payload.
      */
-    public function update(Request $request): JsonResponse
+    private function aggregateProfilePayload(User $user): array
     {
-        $validated = $request->validate([
-            'first_name' => 'sometimes|string|max:100',
-            'last_name' => 'sometimes|string|max:100',
-            'phone' => 'sometimes|nullable|string|max:20',
-            'date_of_birth' => 'sometimes|nullable|date',
-            'nationality' => 'sometimes|nullable|string|max:100',
-            'current_country' => 'sometimes|nullable|string|max:100',
-            'gpa' => 'sometimes|nullable|numeric|min:0|max:4',
-            'major' => 'sometimes|nullable|string|max:200',
-            'degree_level' => 'sometimes|nullable|in:high_school,bachelor,master,doctorate',
-            'graduation_year' => 'sometimes|nullable|integer|min:1950|max:2100',
+        $profile = $user->profile;
+
+        return [
+            'user' => [
+                'id' => $user->id,
+                'email' => $user->email,
+                'role' => $user->role,
+                'status' => $user->status,
+                'email_verified_at' => $user->email_verified_at,
+            ],
+            'profile' => [
+                'basic' => $profile ? $profile->basicSection() : $this->defaultBasicProfilePayload(),
+                'academic' => $profile ? $profile->academicSection() : $this->defaultAcademicProfilePayload(),
+                'status' => $profile ? $profile->statusSection() : $this->defaultStatusProfilePayload(),
+            ],
+            'languages' => $user->languages->map(fn ($lang) => [
+                'id' => $lang->id,
+                'language' => $lang->language,
+                'proficiency_level' => $lang->proficiency_level,
+                'certification' => $lang->certification,
+                'score' => $lang->score,
+            ])->toArray(),
+        ];
+    }
+
+    /**
+     * Update user profile and recalculate completion state.
+     */
+    private function persistProfile(User $user, array $data, string $message): JsonResponse
+    {
+        $profile = $user->profile()->firstOrNew([
+            'user_id' => $user->id,
         ]);
 
-        $user = $request->user();
-        
-        if (!$user->profile) {
-            $user->profile()->create($validated);
+        if ($profile->exists) {
+            $this->authorize('update', $profile);
         } else {
-            $user->profile->update($validated);
+            $this->authorize('create', UserProfile::class);
         }
+
+        $profile->fill(array_merge(
+            Arr::only($profile->getAttributes(), UserProfile::PROFILE_FIELDS),
+            $data,
+            ['user_id' => $user->id]
+        ));
+        $profile->refreshProfileProgress();
+        $profile->save();
+
+        $user->setRelation('profile', $profile->fresh());
+        $user->loadMissing('languages');
 
         return response()->json([
             'success' => true,
-            'message' => 'Profile updated successfully',
+            'message' => $message,
             'data' => [
-                'profile' => $user->profile->fresh()
-            ]
+                'profile' => [
+                    'basic' => $profile->basicSection(),
+                    'academic' => $profile->academicSection(),
+                    'status' => $profile->statusSection(),
+                ],
+            ],
         ]);
+    }
+
+    private function basicProfilePayload(User $user): array
+    {
+        return $user->profile ? $user->profile->basicSection() : $this->defaultBasicProfilePayload();
+    }
+
+    private function academicProfilePayload(User $user): array
+    {
+        return $user->profile ? $user->profile->academicSection() : $this->defaultAcademicProfilePayload();
+    }
+
+    private function statusProfilePayload(User $user): array
+    {
+        return $user->profile ? $user->profile->statusSection() : $this->defaultStatusProfilePayload();
+    }
+
+    private function defaultBasicProfilePayload(): array
+    {
+        return array_merge(['id' => null], array_fill_keys(UserProfile::BASIC_FIELDS, null));
+    }
+
+    private function defaultAcademicProfilePayload(): array
+    {
+        return array_merge(['id' => null], array_fill_keys(UserProfile::ACADEMIC_FIELDS, null));
+    }
+
+    private function defaultStatusProfilePayload(): array
+    {
+        return [
+            'profile_status' => UserProfile::STATUS_DRAFT,
+            'profile_completion_percentage' => 0,
+            'basic_completion_percentage' => 0,
+            'academic_completion_percentage' => 0,
+            'is_basic_complete' => false,
+            'is_academic_complete' => false,
+            'missing_fields' => [
+                'basic' => UserProfile::BASIC_FIELDS,
+                'academic' => UserProfile::ACADEMIC_FIELDS,
+            ],
+        ];
     }
 
     /**
