@@ -7,10 +7,13 @@ use Illuminate\Database\Seeder;
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
+
 {
     $this->call([
         TestPreparationSeeder::class,
         LookupSeeder::class,        // ← tambahkan ini
+        AdminUserSeeder::class,
+        AdminDemoSeeder::class,
     ]);
 }
 }
