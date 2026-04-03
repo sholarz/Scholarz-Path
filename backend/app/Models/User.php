@@ -103,6 +103,54 @@ class User extends Authenticatable
     }
 
     /**
+     * Get admin audit logs created by this user.
+     */
+    public function adminAuditLogs(): HasMany
+    {
+        return $this->hasMany(AdminAuditLog::class, 'admin_id');
+    }
+
+    /**
+     * Get reports submitted by this user.
+     */
+    public function submittedReports(): HasMany
+    {
+        return $this->hasMany(AdminReport::class, 'reporter_user_id');
+    }
+
+    /**
+     * Get reports resolved by this admin user.
+     */
+    public function resolvedReports(): HasMany
+    {
+        return $this->hasMany(AdminReport::class, 'resolved_by');
+    }
+
+    /**
+     * Get moderation actions performed by this admin user.
+     */
+    public function forumModerationActions(): HasMany
+    {
+        return $this->hasMany(ForumModerationAction::class, 'admin_id');
+    }
+
+    /**
+     * Get forum bans issued against this user.
+     */
+    public function forumBans(): HasMany
+    {
+        return $this->hasMany(UserForumBan::class, 'user_id');
+    }
+
+    /**
+     * Get forum bans issued by this admin.
+     */
+    public function issuedForumBans(): HasMany
+    {
+        return $this->hasMany(UserForumBan::class, 'admin_id');
+    }
+
+    /**
      * Check if user has a specific role.
      */
     public function hasRole(string $role): bool
