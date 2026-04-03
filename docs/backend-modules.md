@@ -356,30 +356,33 @@ ReportingService
 
 ---
 
-### 10. **SCRAPER INTEGRATION MODULE**
-**Location:** `app/Modules/Scraper/`
+### 10. **DATA INGESTION & QUALITY MODULE**
+**Location:** `app/Modules/Ingestion/`
 
 **Responsibilities:**
-- Receive scraped data from Python scrapers
+- Manage curated and mock-assisted scholarship datasets
+- Handle admin-assisted ingestion workflows
 - Data validation and cleaning
 - Duplicate detection
 - Scholarship data normalization
-- Scraping logs and monitoring
+- Controlled review logs and monitoring
+- Define future external connector interfaces
 
 **Services:**
-- `ScraperService` - Webhook handling and data processing
+- `IngestionService` - Dataset handling and data processing
 - `ValidationService` - Data validation and cleaning
 - `DeduplicationService` - Duplicate scholarship detection
 - `NormalizationService` - Data format standardization
+- `ConnectorInterfaceService` - Future external source integration contracts
 
 **Key Classes:**
 ```php
-ScraperWebhookController
-ScraperService
+IngestionWebhookController
+IngestionService
 ValidationService
 DeduplicationService
 NormalizationService
-ScrapingLog (Model)
+IngestionLog (Model)
 ```
 
 ---

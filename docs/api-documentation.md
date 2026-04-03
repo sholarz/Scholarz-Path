@@ -1112,10 +1112,12 @@ All paginated endpoints follow this format:
 POST /webhooks/stripe
 ```
 
-### Scraper Results Webhook
+### Scraper Results Webhook (future)
 ```http
 POST /webhooks/scraper
 ```
+
+This endpoint is reserved for future external connector integration and is not part of the current production data flow.
 
 **Request Body:**
 ```json

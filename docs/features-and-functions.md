@@ -659,14 +659,14 @@ function runSystemDiagnostics(): array
 
 ---
 
-### 🌊 **SCRAPER INTEGRATION MODULE**
+### 🌊 **DATA INGESTION & QUALITY MODULE**
 
 #### **Data Processing Functions:**
 
 ```php
-// Webhook Handlers  
+// Ingestion Handlers  
 function handleScrapedData(array $scrapedData): ProcessingResult
-- Validate incoming webhook data
+- Validate incoming curated or connector-assisted data
 - Clean and normalize scholarship information
 - Detect and handle duplicates
 - Store new scholarships and update existing
@@ -683,11 +683,11 @@ function normalizeFieldsOfStudy(array $fields): array
 function standardizeCountryNames(array $countries): array
 function parseAndValidateDates(string $dateText): ?Carbon
 
-// Scraping Coordination
-function schedulScrapingJob(string $source): void
-function getScrapingStatus(string $source): array
-function pauseScrapingSource(string $source): bool
-function resumeScrapingSource(string $source): bool
+// Future Connector Coordination
+function scheduleConnectorJob(string $source): void
+function getConnectorStatus(string $source): array
+function pauseConnectorSource(string $source): bool
+function resumeConnectorSource(string $source): bool
 ```
 
 This comprehensive feature and function breakdown provides the complete development roadmap for building the Scholarship Aggregator & Preparation Platform MVP. Each function is designed to be implementable by a small development team within the 1-2 month timeline while maintaining scalability for future growth.

@@ -1,6 +1,6 @@
 # Scholarship Scrapers (Starter)
 
-This is a lightweight starter scraper project that posts scholarship data to the Laravel webhook.
+This is a lightweight starter project for a future scraper connector demo. It is not part of the current production data flow.
 
 ## Setup
 
@@ -29,6 +29,6 @@ python -m src.scrape
 ## Notes
 
 - Source selectors live in `src/sources.py`.
-- The webhook requires `application_deadline`, `level`, and `type`.
-- If those fields are missing on a page, the scraper will skip the item.
+- The webhook schema is intended for future integration and expects `application_deadline`, `level`, and `type`.
+- If those fields are missing on a page, the demo connector will skip the item.
 - Update selectors and field extraction for accuracy.
