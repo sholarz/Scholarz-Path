@@ -1,117 +1,36 @@
 import { Link } from 'react-router';
 import { Header } from '../Header';
+import { scholarships } from '../../lib/scholarship-data';
 import { useBookmarks } from '../../lib/bookmark-context';
+import { useAuth } from '../../lib/auth-context';
 import { NotificationSettings, DeadlineBadge } from '../NotificationSettings';
-import { Scholarship } from '../../lib/scholarship-data';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Bookmark, Calendar, MapPin, GraduationCap, BookmarkX, Bell } from 'lucide-react';
+import { Alert, AlertDescription } from '../ui/alert';
+import { Bookmark, Calendar, MapPin, GraduationCap, BookmarkX, Bell, Crown, Info } from 'lucide-react';
 import { toast } from 'sonner';
-import { useState, useEffect } from 'react';
-import { getBookmarks } from '../../api/scholarship';
 
-interface BookmarkedScholarship {
-  id: string | number;
-  title: string;
-  provider: string;
-  country: string;
-  location: string;
-  amount: string;
-  application_deadline: string;
-  deadline: Date;
-  educationLevel: string;
-  fieldOfStudy: string[];
-  level: string;
-  type: string;
-  description: string;
-  requirements: string[];
-  benefits: string[];
-  applicationUrl: string;
-  verified: boolean;
-}
-
-const normalizeBookmarkedScholarship = (item: any): BookmarkedScholarship | null => {
-  const raw = item?.scholarship ?? item;
-  if (!raw || !raw.id) {
-    return null;
-  }
-
-  return {
-    id: raw.id,
-    title: raw.title ?? 'Untitled Scholarship',
-    provider: raw.provider?.name ?? raw.provider ?? 'Unknown Provider',
-    country: raw.target_countries?.[0] ?? raw.country ?? 'Indonesia',
-    location: raw.target_countries?.[0] ?? raw.location ?? 'Indonesia',
-    amount: raw.formatted_amount ?? raw.amount ?? 'Amount not specified',
-    application_deadline: raw.application_deadline ?? new Date().toISOString(),
-    deadline: new Date(raw.application_deadline ?? new Date().toISOString()),
-    educationLevel: raw.level ?? 'All Levels',
-    fieldOfStudy: Array.isArray(raw.fields_of_study) ? raw.fields_of_study : [],
-    level: raw.level ?? 'All Levels',
-    type: raw.type ?? 'General',
-    description: raw.description ?? '',
-    requirements: Array.isArray(raw.requirements) ? raw.requirements : [],
-    benefits: Array.isArray(raw.benefits) ? raw.benefits : [],
-    applicationUrl: raw.application_url ?? '#',
-    verified: Boolean(raw.provider),
-  };
-};
+const FREE_USER_BOOKMARK_LIMIT = 5;
 
 export function BookmarksPage() {
-  const { removeBookmark, isLoading } = useBookmarks();
-  const [bookmarkedScholarships, setBookmarkedScholarships] = useState<BookmarkedScholarship[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { bookmarks, removeBookmark } = useBookmarks();
+  const { user } = useAuth();
+  
+  const bookmarkedScholarships = scholarships
+    .filter(s => bookmarks.includes(s.id))
+    .sort((a, b) => a.deadline.getTime() - b.deadline.getTime());
 
-  // Fetch bookmarks from API
-  useEffect(() => {
-    const fetchBookmarks = async () => {
-      try {
-        setLoading(true);
-        const response = await getBookmarks();
-        const normalized = response.data.data.scholarships
-          .map((item: any) => normalizeBookmarkedScholarship(item))
-          .filter((item: BookmarkedScholarship | null): item is BookmarkedScholarship => item !== null);
-        setBookmarkedScholarships(normalized);
-      } catch (error) {
-        console.error('Failed to fetch bookmarks:', error);
-        toast.error('Failed to load bookmarks');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBookmarks();
-  }, []);
-
-  const handleRemoveBookmark = async (scholarshipId: string | number, scholarshipTitle: string) => {
-    try {
-      await removeBookmark(String(scholarshipId));
-      setBookmarkedScholarships(prev => prev.filter(s => s.id !== scholarshipId));
-      toast.success(`Removed "${scholarshipTitle}" from bookmarks`);
-    } catch (error) {
-      toast.error('Failed to remove bookmark');
-    }
+  const handleRemoveBookmark = (scholarshipId: string, scholarshipTitle: string) => {
+    removeBookmark(scholarshipId);
+    toast.success(`Removed "${scholarshipTitle}" from bookmarks`);
   };
 
-  const sortedScholarships = [...bookmarkedScholarships].sort((a, b) => {
-    const dateA = new Date(a.application_deadline).getTime();
-    const dateB = new Date(b.application_deadline).getTime();
-    return dateA - dateB;
-  });
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container max-w-7xl mx-auto px-4 py-8">
-          <div className="flex justify-center items-center h-64">
-            <p className="text-muted-foreground">Loading bookmarks...</p>
-          </div>
-        </main>
-      </div>
-    );
-  }
+  const isFreeUser = user?.role === 'free';
+  const bookmarkCount = bookmarks.length;
+  const remainingBookmarks = FREE_USER_BOOKMARK_LIMIT - bookmarkCount;
+  const isNearLimit = isFreeUser && remainingBookmarks <= 2 && remainingBookmarks > 0;
+  const isAtLimit = isFreeUser && remainingBookmarks <= 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -121,7 +40,7 @@ export function BookmarksPage() {
         <div className="mb-8">
           <h1 className="mb-2">Your Bookmarks</h1>
           <p className="text-muted-foreground">
-            {bookmarkedScholarships.length} scholarship{bookmarkedScholarships.length !== 1 ? 's' : ''} saved • Manage deadline notifications
+            {bookmarks.length} scholarship{bookmarks.length !== 1 ? 's' : ''} saved • Manage deadline notifications
           </p>
         </div>
 
@@ -144,29 +63,11 @@ export function BookmarksPage() {
           </Card>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sortedScholarships.map((scholarship) => {
-              const deadline = scholarship.deadline;
+            {bookmarkedScholarships.map((scholarship) => {
               const daysUntilDeadline = Math.ceil(
-                (deadline.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+                (scholarship.deadline.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
               );
               const isUrgent = daysUntilDeadline <= 30 && daysUntilDeadline > 0;
-              const notificationScholarship: Scholarship = {
-                id: String(scholarship.id),
-                title: scholarship.title,
-                provider: scholarship.provider,
-                country: scholarship.country,
-                location: scholarship.location,
-                amount: scholarship.amount,
-                deadline,
-                educationLevel: scholarship.educationLevel,
-                fieldOfStudy: scholarship.fieldOfStudy,
-                type: scholarship.type,
-                description: scholarship.description,
-                requirements: scholarship.requirements,
-                benefits: scholarship.benefits,
-                applicationUrl: scholarship.applicationUrl,
-                verified: scholarship.verified,
-              };
 
               return (
                 <Card key={scholarship.id} className="flex flex-col hover:shadow-lg transition-shadow">
@@ -178,7 +79,6 @@ export function BookmarksPage() {
                         size="icon"
                         className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => handleRemoveBookmark(scholarship.id, scholarship.title)}
-                        disabled={isLoading}
                       >
                         <BookmarkX className="w-5 h-5" />
                       </Button>
@@ -195,7 +95,7 @@ export function BookmarksPage() {
                       <div className={`flex items-center gap-2 ${isUrgent ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
                         <Calendar className="w-4 h-4 shrink-0" />
                         <span>
-                          {deadline.toLocaleDateString('en-US', { 
+                          {scholarship.deadline.toLocaleDateString('en-US', { 
                             month: 'short', 
                             day: 'numeric', 
                             year: 'numeric' 
@@ -220,9 +120,9 @@ export function BookmarksPage() {
                     )}
 
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline">{scholarship.level}</Badge>
+                      <Badge variant="outline">{scholarship.educationLevel}</Badge>
                       <Badge variant="secondary">{scholarship.type}</Badge>
-                      <DeadlineBadge deadline={deadline} />
+                      <DeadlineBadge deadline={scholarship.deadline} />
                     </div>
 
                     <p className="text-sm text-muted-foreground line-clamp-3">
@@ -231,7 +131,7 @@ export function BookmarksPage() {
                   </CardContent>
 
                   <CardFooter className="flex-col gap-2">
-                    <NotificationSettings scholarship={notificationScholarship} />
+                    <NotificationSettings scholarship={scholarship} />
                     <Link to={`/scholarships/${scholarship.id}`} className="w-full">
                       <Button className="w-full">View Details</Button>
                     </Link>
@@ -240,6 +140,24 @@ export function BookmarksPage() {
               );
             })}
           </div>
+        )}
+
+        {isNearLimit && (
+          <Alert className="mt-6">
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              You have {remainingBookmarks} bookmark{remainingBookmarks !== 1 ? 's' : ''} left. Upgrade to a premium plan to bookmark more scholarships.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {isAtLimit && (
+          <Alert className="mt-6">
+            <Crown className="h-4 w-4" />
+            <AlertDescription>
+              You have reached the bookmark limit for your free plan. Upgrade to a premium plan to bookmark more scholarships.
+            </AlertDescription>
+          </Alert>
         )}
       </main>
     </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '../ui/button';
 import { Building2, Wallet, CreditCard, Check, Loader2 } from 'lucide-react';
 import { usePayment, formatCurrency, PREMIUM_PRICE_IDR } from '../../lib/payment-context';
+import { UserSubscriptionSnapshot } from './UserSubscriptionSnapshot';
 
 interface PaymentConfirmationProps {
   paymentDetails: any;
@@ -19,7 +20,9 @@ export function PaymentConfirmation({ paymentDetails, onConfirm, onBack, onSucce
     onConfirm();
 
     try {
-      const success = await processPayment(paymentDetails);
+      // Pass scholarship ID 'SCH001' for demo purposes
+      // In production, this would come from props or context
+      const success = await processPayment(paymentDetails, 'SCH001');
       if (success) {
         onSuccess();
       }
@@ -158,6 +161,11 @@ export function PaymentConfirmation({ paymentDetails, onConfirm, onBack, onSucce
           By confirming this payment, you agree to our terms of service. 
           Your premium access will be activated immediately upon successful payment verification.
         </p>
+      </div>
+
+      {/* User Subscription Snapshot - placed above button for visibility */}
+      <div className="flex justify-center">
+        <UserSubscriptionSnapshot />
       </div>
 
       <div className="flex gap-3">
