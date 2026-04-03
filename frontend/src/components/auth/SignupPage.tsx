@@ -41,7 +41,8 @@ export function SignupPage() {
       toast.success('Account created successfully!');
       navigate('/dashboard');
     } catch (error) {
-      toast.error('Failed to create account');
+      const message = error instanceof Error ? error.message : 'Failed to create account';
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }

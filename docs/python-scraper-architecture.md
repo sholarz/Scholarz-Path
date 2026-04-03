@@ -1,13 +1,15 @@
 # PYTHON SCRAPER ARCHITECTURE
 **Scholarship Data Collection System**
 
-This document outlines the Python-based scraping system that collects scholarship data from various sources and feeds it into the Laravel backend.
+Status: planned / parked. This document is kept as a reference for a future external connector phase and should not be read as the current production data flow.
+
+This document outlines the planned Python-based scraping system that could collect scholarship data from various sources and feed it into the Laravel backend in a later release.
 
 ---
 
-## SYSTEM OVERVIEW
+## PLANNED SYSTEM OVERVIEW
 
-The scraping system follows a **modular, distributed** architecture designed for:
+The planned scraping system follows a **modular, distributed** architecture designed for:
 - **Scalability**: Handle multiple sources simultaneously
 - **Reliability**: Robust error handling and retry mechanisms
 - **Maintainability**: Easy to add new sources and modify existing scrapers
@@ -118,7 +120,7 @@ scrape/
 │   ├── __init__.py
 │   ├── settings.py                # Application settings
 │   ├── logging.py                 # Logging configuration
-│   └── celery.py                  # Celery configuration
+│   └── celery.py                  # Planned Celery configuration
 ├── tests/
 │   ├── __init__.py
 │   ├── test_spiders.py
@@ -669,7 +671,7 @@ class DataCleaner:
 
 ## TASK SCHEDULING
 
-### **CELERY CONFIGURATION**
+### **PLANNED CELERY CONFIGURATION**
 
 ```python
 # tasks/scheduler.py
@@ -787,7 +789,7 @@ app.conf.beat_schedule = {
 
 ## INTEGRATION WITH LARAVEL
 
-### **WEBHOOK CLIENT**
+### **PLANNED WEBHOOK CLIENT**
 
 ```python
 # api/client.py
@@ -1041,4 +1043,4 @@ def start_metrics_server(port: int = 8000):
     start_http_server(port)
 ```
 
-This scraping architecture provides a robust, scalable foundation for collecting scholarship data from multiple sources while maintaining data quality and system reliability.
+This planned architecture provides a reference foundation for a future external connector phase while preserving current production focus on curated and mock-assisted datasets.
