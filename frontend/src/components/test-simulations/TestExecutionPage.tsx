@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { Header } from '../Header';
-import { getTestById, calculateScore } from '../../lib/test-simulation-data';
 import { useAuth } from '../../lib/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -11,27 +10,59 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { Clock, CheckCircle, XCircle, AlertTriangle, ArrowRight, ArrowLeft, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { getTestDetail, submitTest, type TestDetail, type TestSubmitResult } from '../../lib/test-prep-api';
+import { toast } from 'sonner';
 
-type TestState = 'instructions' | 'inprogress' | 'completed';
+type TestState = 'instructions' | 'in-progress' | 'completed';
 
 export function TestExecutionPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const test = id ? getTestById(id) : undefined;
+  const [test, setTest] = useState<TestDetail | null>(null);
+  const [isLoadingTest, setIsLoadingTest] = useState(true);
 
   const [testState, setTestState] = useState<TestState>('instructions');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [answers, setAnswers] = useState<Record<string, number>>({});
   const [timeRemaining, setTimeRemaining] = useState(0);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<TestSubmitResult | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Check premium access
   const isPremium = user?.role === 'premium' || user?.role === 'admin';
+
+  useEffect(() => {
+    if (!id) {
+      navigate('/tests');
+      return;
+    }
+
+    const loadTest = async () => {
+      setIsLoadingTest(true);
+      try {
+        const payload = await getTestDetail(id);
+        setTest(payload);
+
+        if (payload.isPremium && !isPremium) {
+          navigate('/tests', { replace: true });
+          return;
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to load test';
+        toast.error(message);
+        navigate('/tests', { replace: true });
+      } finally {
+        setIsLoadingTest(false);
+      }
+    };
+
+    loadTest();
+  }, [id, navigate, isPremium]);
   
   useEffect(() => {
     if (test && test.isPremium && !isPremium) {
-      navigate('/test-simulations');
+      navigate('/tests');
     }
   }, [test, isPremium, navigate]);
 
@@ -57,6 +88,19 @@ export function TestExecutionPage() {
     return () => clearInterval(timer);
   }, [testState, timeRemaining]);
 
+  if (isLoadingTest) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container max-w-4xl mx-auto px-4 py-8">
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground">Loading test...</CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
   if (!test) {
     return (
       <div className="min-h-screen bg-background">
@@ -65,7 +109,7 @@ export function TestExecutionPage() {
           <Card>
             <CardContent className="py-12 text-center">
               <p className="text-muted-foreground mb-4">Test not found</p>
-              <Button onClick={() => navigate('/test-simulations')}>
+              <Button onClick={() => navigate('/tests')}>
                 Back to Tests
               </Button>
             </CardContent>
@@ -90,7 +134,7 @@ export function TestExecutionPage() {
     setCurrentQuestionIndex(0);
   };
 
-  const handleAnswer = (value: any) => {
+  const handleAnswer = (value: number) => {
     setAnswers(prev => ({
       ...prev,
       [currentQuestion.id]: value
@@ -109,10 +153,23 @@ export function TestExecutionPage() {
     }
   };
 
-  const handleFinishTest = () => {
-    const testResult = calculateScore(answers, test);
-    setResult(testResult);
-    setTestState('completed');
+  const handleFinishTest = async () => {
+    if (!id) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const timeTaken = Math.max(0, (test.duration * 60) - timeRemaining);
+      const testResult = await submitTest(id, answers, timeTaken);
+      setResult(testResult);
+      setTestState('completed');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to submit test';
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (testState === 'instructions') {
@@ -157,7 +214,7 @@ export function TestExecutionPage() {
               </div>
 
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => navigate('/test-simulations')} className="flex-1">
+                <Button variant="outline" onClick={() => navigate('/tests')} className="flex-1">
                   Cancel
                 </Button>
                 <Button onClick={handleStartTest} className="flex-1 gap-2">
@@ -233,13 +290,12 @@ export function TestExecutionPage() {
 
                 <div className="space-y-4">
                   <h4 className="font-semibold">Review Answers</h4>
-                  {test.questions.map((question, index) => {
-                    const userAnswer = answers[question.id];
-                    const isCorrect = userAnswer === question.correctAnswer || 
-                      (typeof userAnswer === 'string' && userAnswer === String(question.correctAnswer));
+                  {result.reviewAnswers.map((review, index) => {
+                    const userAnswer = review.yourAnswer;
+                    const isCorrect = review.isCorrect;
 
                     return (
-                      <div key={question.id} className="border rounded-lg p-4">
+                      <div key={review.question_id} className="border rounded-lg p-4">
                         <div className="flex items-start gap-3 mb-2">
                           <Badge variant={isCorrect ? 'default' : 'destructive'} className="shrink-0">
                             Question {index + 1}
@@ -250,26 +306,26 @@ export function TestExecutionPage() {
                             <XCircle className="w-5 h-5 text-red-600 shrink-0" />
                           )}
                         </div>
-                        <p className="font-medium mb-2">{question.question}</p>
-                        {question.options && (
+                        <p className="font-medium mb-2">{review.question}</p>
+                        {review.options && (
                           <div className="space-y-1 text-sm">
                             <p className="text-muted-foreground">
                               Your answer: <span className={isCorrect ? 'text-green-600' : 'text-red-600'}>
-                                {question.options[Number(userAnswer)] || 'Not answered'}
+                                {typeof userAnswer === 'number' ? review.options[Number(userAnswer)] : 'Not answered'}
                               </span>
                             </p>
                             {!isCorrect && (
                               <p className="text-muted-foreground">
                                 Correct answer: <span className="text-green-600">
-                                  {question.options[Number(question.correctAnswer)]}
+                                  {review.options[Number(review.correctAnswer)]}
                                 </span>
                               </p>
                             )}
                           </div>
                         )}
-                        {question.explanation && (
+                        {review.explanation && (
                           <p className="text-sm text-muted-foreground mt-2 p-2 bg-muted/50 rounded">
-                            💡 {question.explanation}
+                            💡 {review.explanation}
                           </p>
                         )}
                       </div>
@@ -278,7 +334,7 @@ export function TestExecutionPage() {
                 </div>
 
                 <div className="flex gap-3">
-                  <Button variant="outline" onClick={() => navigate('/test-simulations')} className="flex-1">
+                  <Button variant="outline" onClick={() => navigate('/tests')} className="flex-1">
                     Back to Tests
                   </Button>
                   <Button onClick={() => window.location.reload()} className="flex-1">
@@ -336,7 +392,7 @@ export function TestExecutionPage() {
                 {currentQuestion.type === 'multiple-choice' && currentQuestion.options && (
                   <RadioGroup
                     value={answers[currentQuestion.id]?.toString()}
-                    onValueChange={(value) => handleAnswer(parseInt(value))}
+                    onValueChange={(value: string) => handleAnswer(parseInt(value, 10))}
                   >
                     <div className="space-y-3">
                       {currentQuestion.options.map((option, index) => (
@@ -366,8 +422,12 @@ export function TestExecutionPage() {
                   </Button>
 
                   {currentQuestionIndex === test.questions.length - 1 ? (
-                    <Button onClick={handleFinishTest} className="flex-1">
-                      Finish Test
+                    <Button
+                      onClick={() => void handleFinishTest()}
+                      className="flex-1"
+                      disabled={Object.keys(answers).length === 0 || isSubmitting}
+                    >
+                      {isSubmitting ? 'Submitting...' : 'Finish Test'}
                     </Button>
                   ) : (
                     <Button onClick={handleNext} className="flex-1 gap-2">
