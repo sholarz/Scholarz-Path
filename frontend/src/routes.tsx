@@ -52,112 +52,112 @@ export const router = createBrowserRouter([
       },
       { path: "scholarships", Component: ScholarshipsPage },
       { path: "scholarships/:id", Component: ScholarshipDetailPage },
-      { 
-        path: "calendar", 
+      {
+        path: "calendar",
         element: (
           <ProtectedRoute>
             <CalendarPage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "bookmarks", 
+      {
+        path: "bookmarks",
         element: (
           <ProtectedRoute>
             <BookmarksPage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "timeline", 
+      {
+        path: "timeline",
         element: (
           <ProtectedRoute>
             <TimelinePage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "tests", 
+      {
+        path: "tests",
         element: (
           <ProtectedRoute>
             <TestSimulationsPage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "tests/:id", 
+      {
+        path: "tests/:id",
         element: (
           <ProtectedRoute>
             <TestExecutionPage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "profile", 
+      {
+        path: "profile",
         element: (
           <ProtectedRoute>
             <UserProfilePage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "forum", 
+      {
+        path: "forum",
         element: (
           <ProtectedRoute>
             <ForumPage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "forum/create", 
+      {
+        path: "forum/create",
         element: (
           <ProtectedRoute>
             <CreatePostPage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "forum/:id", 
+      {
+        path: "forum/:id",
         element: (
           <ProtectedRoute>
             <PostDetailPage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "forum/reports", 
+      {
+        path: "forum/reports",
         element: (
           <AdminRoute>
             <AdminReportsPage />
           </AdminRoute>
         )
       },
-      { 
-        path: "forum/pending", 
+      {
+        path: "forum/pending",
         element: (
           <AdminRoute>
             <AdminPendingPostsPage />
           </AdminRoute>
         )
       },
-      { 
-        path: "notifications", 
+      {
+        path: "notifications",
         element: (
           <ProtectedRoute>
             <NotificationsPage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "admin/payments", 
+      {
+        path: "admin/payments",
         element: (
           <AdminRoute>
             <AdminPaymentManagementPage />
           </AdminRoute>
         )
       },
-      { 
-        path: "admin/payment-verification", 
+      {
+        path: "admin/payment-verification",
         element: (
           <AdminRoute>
             <AdminPaymentPage />
