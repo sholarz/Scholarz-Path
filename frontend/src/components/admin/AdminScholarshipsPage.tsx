@@ -14,8 +14,18 @@ import {
   TableHeader,
   TableRow,
 } from '../ui/table';
-import { Search, Trash2, CheckCircle, XCircle, GraduationCap, Star } from 'lucide-react';
 import {
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  CheckCircle,
+  XCircle,
+  GraduationCap,
+  Star,
+  X,
+} from 'lucide-react';
+
 import {
   Dialog,
   DialogContent,
@@ -30,12 +40,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
-import { Search, Plus, Edit, Trash2, CheckCircle, XCircle, GraduationCap, X } from 'lucide-react';
 import { Checkbox } from '../ui/checkbox';
 
 // API & Data Imports
-import { scholarships, Scholarship } from '../../lib/scholarship-data';
-import { useAuth } from '../../lib/auth-context';
+import type { Scholarship } from '../../lib/scholarship-data';
 import {
   deleteAdminScholarship,
   featureAdminScholarship,
@@ -124,7 +132,7 @@ export function AdminScholarshipsPage() {
     scholarship.country.toLowerCase().includes(searchQuery.toLowerCase())
   ), [scholarships, searchQuery]);
 
-  const formatDeadline = (date: string) => {
+  const formatDeadline = (date: string | Date) => {
     return new Date(date).toLocaleDateString('en-US', {
       day: 'numeric',
       month: 'short',
@@ -553,7 +561,7 @@ export function AdminScholarshipsPage() {
                     </Label>
                     <Select
                       value={newScholarship.type}
-                      onValueChange={(value) => setNewScholarship({ ...newScholarship, type: value })}
+                      onValueChange={(value: string) => setNewScholarship({ ...newScholarship, type: value })}
                     >
                       <SelectTrigger id="type" className="mt-1.5">
                         <SelectValue placeholder="Select type" />
@@ -608,7 +616,7 @@ export function AdminScholarshipsPage() {
                     </Label>
                     <Select
                       value={newScholarship.educationLevel}
-                      onValueChange={(value) => setNewScholarship({ ...newScholarship, educationLevel: value })}
+                      onValueChange={(value: string) => setNewScholarship({ ...newScholarship, educationLevel: value })}
                     >
                       <SelectTrigger id="educationLevel" className="mt-1.5">
                         <SelectValue placeholder="Select level" />
@@ -866,8 +874,8 @@ export function AdminScholarshipsPage() {
                   <Checkbox
                     id="verified"
                     checked={newScholarship.verified}
-                    onCheckedChange={(checked) =>
-                      setNewScholarship({ ...newScholarship, verified: checked as boolean })
+                    onCheckedChange={(checked: boolean | 'indeterminate') =>
+                      setNewScholarship({ ...newScholarship, verified: checked === true })
                     }
                   />
                   <Label
