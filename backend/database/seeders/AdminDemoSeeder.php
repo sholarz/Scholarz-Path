@@ -7,6 +7,7 @@ use App\Models\AdminReport;
 use App\Models\User;
 use App\Models\UserForumBan;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class AdminDemoSeeder extends Seeder
 {
@@ -26,17 +27,29 @@ class AdminDemoSeeder extends Seeder
             ]);
         }
 
-        $reporter = User::factory()->create([
-            'email' => 'reporter.demo@example.com',
-            'role' => 'free',
-            'status' => 'active',
-        ]);
+        $reporter = User::firstOrCreate(
+            ['email' => 'reporter.demo@example.com'],
+            [
+                'password' => Hash::make('password'),
+                'role' => 'free',
+                'status' => 'active',
+                'email_verified_at' => now(),
+                'provider' => null,
+                'provider_id' => null,
+            ]
+        );
 
-        $targetUser = User::factory()->create([
-            'email' => 'target.demo@example.com',
-            'role' => 'free',
-            'status' => 'active',
-        ]);
+        $targetUser = User::firstOrCreate(
+            ['email' => 'target.demo@example.com'],
+            [
+                'password' => Hash::make('password'),
+                'role' => 'free',
+                'status' => 'active',
+                'email_verified_at' => now(),
+                'provider' => null,
+                'provider_id' => null,
+            ]
+        );
 
         $report = AdminReport::updateOrCreate(
             [
@@ -73,11 +86,11 @@ class AdminDemoSeeder extends Seeder
                 'target_id' => 'demo-bootstrap',
             ],
             [
-                'metadata' => [
+                'metadata' => json_encode([
                     'report_id' => $report->id,
                     'reporter_id' => $reporter->id,
                     'target_user_id' => $targetUser->id,
-                ],
+                ]),
             ]
         );
     }

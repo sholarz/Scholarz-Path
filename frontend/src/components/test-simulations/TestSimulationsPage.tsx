@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Header } from '../Header';
-import { testSimulations, getFreeTests, getPremiumTests } from '../../lib/test-simulation-data';
 import { useAuth } from '../../lib/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -10,16 +9,37 @@ import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Clock, BookOpen, Target, Crown, Lock, Search, Filter } from 'lucide-react';
 import { PremiumFeatureLock } from '../PremiumFeatureLock';
+import { getTests, type TestListItem } from '../../lib/test-prep-api';
+import { toast } from 'sonner';
 
 export function TestSimulationsPage() {
   const { user } = useAuth();
+  const [tests, setTests] = useState<TestListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
 
   const isPremium = user?.role === 'premium' || user?.role === 'admin';
 
-  const filteredTests = testSimulations.filter(test => {
+  useEffect(() => {
+    const loadTests = async () => {
+      setIsLoading(true);
+      try {
+        const payload = await getTests();
+        setTests(payload);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to load test simulations';
+        toast.error(message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTests();
+  }, []);
+
+  const filteredTests = useMemo(() => tests.filter(test => {
     const matchesSearch = !searchQuery || 
       test.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       test.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -28,10 +48,10 @@ export function TestSimulationsPage() {
     const matchesDifficulty = difficultyFilter === 'all' || test.difficulty === difficultyFilter;
 
     return matchesSearch && matchesCategory && matchesDifficulty;
-  });
+  }), [tests, searchQuery, categoryFilter, difficultyFilter]);
 
-  const freeTests = getFreeTests();
-  const premiumTests = getPremiumTests();
+  const freeTests = useMemo(() => tests.filter(test => !test.isPremium), [tests]);
+  const premiumTests = useMemo(() => tests.filter(test => test.isPremium), [tests]);
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -77,7 +97,7 @@ export function TestSimulationsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Total Tests</p>
-                  <p className="text-3xl font-bold">{testSimulations.length}</p>
+                  <p className="text-3xl font-bold">{tests.length}</p>
                 </div>
                 <div className="bg-blue-100 p-3 rounded-lg">
                   <BookOpen className="w-6 h-6 text-blue-600" />
@@ -168,6 +188,13 @@ export function TestSimulationsPage() {
         </Card>
 
         {/* Tests Grid */}
+        {isLoading ? (
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground">
+              Loading test simulations...
+            </CardContent>
+          </Card>
+        ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTests.map((test) => {
             const TestCard = (
@@ -207,9 +234,9 @@ export function TestSimulationsPage() {
                     </div>
                   </div>
 
-                  <Link to={`/test-simulations/${test.id}`} className="block">
+                  <Link to={`/tests/${test.id}`} className="block">
                     <Button className="w-full gap-2">
-                      {test.isPremium && !isPremium && <Lock className="w-4 h-4" />}
+                      {(test.isLocked || (test.isPremium && !isPremium)) && <Lock className="w-4 h-4" />}
                       Start Test
                     </Button>
                   </Link>
@@ -217,7 +244,7 @@ export function TestSimulationsPage() {
               </Card>
             );
 
-            if (test.isPremium && !isPremium) {
+            if (test.isLocked || (test.isPremium && !isPremium)) {
               return (
                 <PremiumFeatureLock
                   key={test.id}
@@ -232,8 +259,9 @@ export function TestSimulationsPage() {
             return TestCard;
           })}
         </div>
+        )}
 
-        {filteredTests.length === 0 && (
+        {!isLoading && filteredTests.length === 0 && (
           <Card>
             <CardContent className="py-12 text-center">
               <p className="text-muted-foreground">
