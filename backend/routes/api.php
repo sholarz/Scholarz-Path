@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Test\Controllers\TestController;
 use App\Modules\Auth\Controllers\AuthController;
 use App\Modules\User\Controllers\UserController;
 use App\Modules\User\Controllers\ProfileController;
@@ -8,10 +9,14 @@ use App\Modules\Matching\Controllers\MatchingController;
 use App\Modules\Roadmap\Controllers\RoadmapController;
 use App\Modules\Forum\Controllers\ForumController;
 use App\Modules\Subscription\Controllers\SubscriptionController;
-use App\Modules\Test\Controllers\TestController;
 use App\Modules\Admin\Controllers\AdminDashboardController;
 use App\Modules\Scraper\Controllers\ScraperWebhookController;
+use App\Modules\Profile\Controllers\PreferenceController;
+use App\Modules\Profile\Controllers\LanguageTestController;
+use App\Modules\Profile\Controllers\DocumentController;
+use App\Modules\Profile\Controllers\LookupController;
 use Illuminate\Support\Facades\Route;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -27,6 +32,35 @@ use Illuminate\Support\Facades\Route;
 // =====================================================
 // PUBLIC ROUTES (No Authentication Required)
 // =====================================================
+
+// Lookup endpoints (public — untuk dropdown di frontend)
+Route::prefix('lookups')->group(function () {
+    Route::get('/countries',            [LookupController::class, 'countries']);
+    Route::get('/fields-of-study',      [LookupController::class, 'fieldsOfStudy']);
+    Route::get('/budget-preferences',   [LookupController::class, 'budgetPreferences']);
+    Route::get('/start-years',          [LookupController::class, 'startYears']);
+    Route::get('/language-test-types',  [LookupController::class, 'languageTestTypes']); // ← tambah
+});
+
+// Preferences (negara tujuan & bidang studi)
+Route::prefix('preferences')->group(function () {
+    Route::get('/',  [PreferenceController::class, 'index']);
+    Route::put('/',  [PreferenceController::class, 'update']);
+});
+
+// Language Tests (skor IELTS/TOEFL user)
+Route::prefix('language-tests')->group(function () {
+    Route::get('/',      [LanguageTestController::class, 'index']);
+    Route::post('/',     [LanguageTestController::class, 'store']);
+    Route::put('/{id}',  [LanguageTestController::class, 'update']);
+    Route::delete('/{id}', [LanguageTestController::class, 'destroy']);
+});
+
+// Document Readiness
+Route::prefix('documents')->group(function () {
+    Route::get('/readiness',  [DocumentController::class, 'readiness']);
+    Route::put('/readiness',  [DocumentController::class, 'updateReadiness']); // ← ganti dari /{type}
+});
 
 // Authentication
 Route::prefix('auth')->group(function () {
@@ -52,13 +86,6 @@ Route::get('/subscriptions/plans', [SubscriptionController::class, 'getPlans']);
 // System Health
 Route::get('/health', function () {
     return response()->json(['status' => 'OK', 'timestamp' => now()]);
-});
-
-// Public Test Simulations
-Route::prefix('tests')->group(function () {
-    Route::get('/', [TestController::class, 'index']);
-    Route::get('/{id}', [TestController::class, 'show']);
-    Route::post('/{id}/submit', [TestController::class, 'submit']);
 });
 
 // =====================================================
@@ -117,6 +144,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::put('/{id}/skip', [RoadmapController::class, 'skipTask']);
     });
     
+    // ✅ TAMBAHKAN DI SINI — Test Preparation
+    Route::prefix('tests')->group(function () {
+        Route::get('/',              [TestController::class, 'index']);
+        Route::get('/{id}',          [TestController::class, 'show']);
+        Route::post('/{id}/submit',  [TestController::class, 'submit']);
+    });
+
     // Forum
     Route::prefix('forum')->group(function () {
         Route::get('/categories', [ForumController::class, 'getCategories']);
@@ -209,3 +243,4 @@ Route::prefix('webhooks')->group(function () {
     // Email Service Webhooks
     Route::post('/sendgrid', [UserController::class, 'sendgridWebhook']);
 });
+
