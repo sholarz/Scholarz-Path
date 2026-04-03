@@ -1,7 +1,6 @@
 // Payment Context for handling premium upgrades
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { useAuth } from './auth-context';
-import { subscribeToPremium } from '../api/subscription';
 
 export type PaymentMethod = 'bank-transfer' | 'e-wallet' | 'credit-card';
 
@@ -10,6 +9,8 @@ export interface PaymentDetails {
   amount: number;
   currency: string;
   timestamp: string;
+  scholarshipId?: string; // Track which scholarship this payment is for
+  methodDetails?: string; // E.g., "BCA Virtual Account", "GoPay", etc.
 }
 
 export interface BankTransferDetails {
@@ -40,8 +41,9 @@ interface PaymentContextType {
   isPaymentFlowOpen: boolean;
   openPaymentFlow: () => void;
   closePaymentFlow: () => void;
-  processPayment: (details: any) => Promise<boolean>;
+  processPayment: (details: any, scholarshipId?: string) => Promise<boolean>;
   paymentHistory: PaymentDetails[];
+  hasPaidForScholarship: (scholarshipId: string) => boolean;
 }
 
 const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
@@ -52,7 +54,7 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [isPaymentFlowOpen, setIsPaymentFlowOpen] = useState(false);
   const [paymentHistory, setPaymentHistory] = useState<PaymentDetails[]>([]);
-  const { upgradeToPremium, refreshUser } = useAuth();
+  const { upgradeToPremium } = useAuth();
 
   const openPaymentFlow = () => {
     setIsPaymentFlowOpen(true);
@@ -64,33 +66,45 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
     setSelectedMethod(null);
   };
 
-  const processPayment = async (details: any): Promise<boolean> => {
-    if (!selectedMethod) {
-      return false;
-    }
+  const processPayment = async (details: any, scholarshipId?: string): Promise<boolean> => {
+    // Simulate payment processing
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // Determine payment method details
+        let methodDetails = '';
+        switch (selectedMethod) {
+          case 'bank-transfer':
+            methodDetails = `${details.bankName} Virtual Account`;
+            break;
+          case 'e-wallet':
+            methodDetails = details.provider?.toUpperCase() || 'E-Wallet';
+            break;
+          case 'credit-card':
+            methodDetails = 'Credit Card';
+            break;
+        }
 
-    const payment: PaymentDetails = {
-      method: selectedMethod,
-      amount: PREMIUM_PRICE,
-      currency: 'IDR',
-      timestamp: new Date().toISOString(),
-    };
+        const payment: PaymentDetails = {
+          method: selectedMethod!,
+          amount: PREMIUM_PRICE,
+          currency: 'IDR',
+          timestamp: new Date().toISOString(),
+          scholarshipId,
+          methodDetails,
+        };
 
-    setPaymentHistory(prev => [...prev, payment]);
+        setPaymentHistory(prev => [...prev, payment]);
+        
+        // Upgrade user to premium after successful payment
+        upgradeToPremium();
+        
+        resolve(true);
+      }, 2000); // Simulate 2 second processing time
+    });
+  };
 
-    try {
-      await subscribeToPremium({
-        payment_method: selectedMethod,
-        payment_details: details,
-      });
-
-      await refreshUser();
-      return true;
-    } catch (error) {
-      // Fallback to local premium upgrade while backend payment stack is in progress.
-      upgradeToPremium();
-      return true;
-    }
+  const hasPaidForScholarship = (scholarshipId: string): boolean => {
+    return paymentHistory.some(payment => payment.scholarshipId === scholarshipId);
   };
 
   return (
@@ -103,6 +117,7 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
         closePaymentFlow,
         processPayment,
         paymentHistory,
+        hasPaidForScholarship,
       }}
     >
       {children}

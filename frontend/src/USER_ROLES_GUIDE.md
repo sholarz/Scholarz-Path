@@ -1,6 +1,6 @@
 # User Roles & Features Guide
 
-This guide explains the 3 user roles in ScholarzPath and how to test each one.
+This guide explains the 3 user roles in ScholarPath and how to test each one.
 
 ## 🎭 User Roles
 
@@ -83,7 +83,7 @@ This guide explains the 3 user roles in ScholarzPath and how to test each one.
 4. Refresh the page to see premium features unlocked
 
 ### Testing as **Admin User**
-1. Login with email: `admin@scholarzpath.com`
+1. Login with email: `admin@scholarpath.com`
 2. Use any password
 3. You'll automatically get admin role
 4. See admin notice on dashboard
@@ -132,7 +132,7 @@ This guide explains the 3 user roles in ScholarzPath and how to test each one.
 4. No upgrade prompts anywhere
 
 # Test Admin Flow
-1. Login as admin@scholarzpath.com
+1. Login as admin@scholarpath.com
 2. See Admin badge and notice
 3. Full access to everything
 4. No limitations

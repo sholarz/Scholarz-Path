@@ -2,7 +2,6 @@ import { Link, useNavigate } from 'react-router';
 import { Header } from '../Header';
 import { useAuth } from '../../lib/auth-context';
 import { useBookmarks } from '../../lib/bookmark-context';
-import { usePayment } from '../../lib/payment-context';
 import { useNotifications, isDeadlineApproaching, isDeadlineOverdue, getDaysUntilDeadline } from '../../lib/notification-context';
 import { scholarships } from '../../lib/scholarship-data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
@@ -13,8 +12,7 @@ import { useEffect } from 'react';
 import { PremiumBadge } from '../PremiumFeatureLock';
 
 export function DashboardPage() {
-  const { user, isAuthenticated } = useAuth();
-  const { openPaymentFlow } = usePayment();
+  const { user, isAuthenticated, upgradeToPremium } = useAuth();
   const { bookmarks, bookmarkLimit, canAddMore } = useBookmarks();
   const { preferences } = useNotifications();
   const navigate = useNavigate();
@@ -47,7 +45,7 @@ export function DashboardPage() {
     .sort((a, b) => a.deadline.getTime() - b.deadline.getTime())
     .slice(0, 5);
 
-  const activeNotifications = preferences.filter(p => p.emailEnabled).length;
+  const activeNotifications = preferences?.filter(p => p.emailEnabled).length || 0;
 
   const stats = [
     {
@@ -229,7 +227,7 @@ export function DashboardPage() {
                   </div>
                 </div>
                 <Button
-                  onClick={openPaymentFlow}
+                  onClick={upgradeToPremium}
                   className="bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-white shrink-0"
                 >
                   <Crown className="w-4 h-4 mr-2" />
