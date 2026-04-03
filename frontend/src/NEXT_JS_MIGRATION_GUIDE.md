@@ -67,8 +67,8 @@ your-nextjs-project/
 ### 1. Setup Next.js 14 Project
 
 ```bash
-npx create-next-app@latest scholarzpath --typescript --tailwind --app --no-src-dir
-cd scholarzpath
+npx create-next-app@latest scholarpath --typescript --tailwind --app --no-src-dir
+cd scholarpath
 ```
 
 ### 2. Install Dependencies
@@ -133,7 +133,7 @@ import { PaymentProvider } from '@/lib/payment-context';
 import { Toaster } from '@/components/ui/sonner';
 
 export const metadata: Metadata = {
-  title: 'ScholarzPath - Your Path to Education in Indonesia',
+  title: 'ScholarPath - Your Path to Education in Indonesia',
   description: 'Find and apply for scholarships in Java, Indonesia',
 };
 
@@ -212,10 +212,10 @@ module.exports = nextConfig;
 
 ## 🎨 Color Palette (Sudah Diupdate)
 
-Platform ScholarzPath sekarang menggunakan color palette yang sesuai:
+Platform ScholarPath sekarang menggunakan color palette yang sesuai:
 
 ```css
-/* ScholarzPath Brand Colors */
+/* ScholarPath Brand Colors */
 --color-navy: #2f4156;      /* Primary - Headers, CTA, Trust elements */
 --color-teal: #567c8d;      /* Accent - Links, Icons, Highlights */
 --color-skyblue: #c8d9e6;   /* Secondary - Backgrounds, Borders */

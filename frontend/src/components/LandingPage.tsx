@@ -51,7 +51,8 @@ export function LandingPage() {
           </div>
           
           <h1 className="mb-6 max-w-4xl mx-auto">
-            Find Your Perfect Scholarship to Study         </h1>
+            Find Your Perfect Scholarship to Study in Java
+          </h1>
           
           <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
             Discover scholarships, track deadlines, and prepare your application with our automated timeline. 
@@ -83,7 +84,7 @@ export function LandingPage() {
           <div className="text-center mb-12">
             <h2 className="mb-4">Everything You Need to Succeed</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              ScholarzPath provides all the tools you need to find, track, and apply for scholarships efficiently.
+              ScholarPath provides all the tools you need to find, track, and apply for scholarships efficiently.
             </p>
           </div>
 
@@ -108,7 +109,7 @@ export function LandingPage() {
         <div className="container max-w-4xl mx-auto text-center">
           <h2 className="mb-4">Ready to Start Your Journey?</h2>
           <p className="text-lg mb-8 opacity-90">
-            Join thousands of students who are using ScholarzPath to achieve their educational goals in Indonesia.
+            Join thousands of students who are using ScholarPath to achieve their educational goals in Indonesia.
           </p>
           <Link to="/signup">
             <Button size="lg" variant="secondary">
@@ -121,7 +122,7 @@ export function LandingPage() {
       {/* Footer */}
       <footer className="px-4 py-8 border-t">
         <div className="container max-w-6xl mx-auto text-center text-sm text-muted-foreground">
-          <p>&copy; 2026 ScholarzPath. All rights reserved.</p>
+          <p>&copy; 2026 ScholarPath. All rights reserved.</p>
         </div>
       </footer>
     </div>

@@ -14,7 +14,7 @@ Students struggle to find relevant scholarships and manage the complex applicati
 An intelligence-first platform that:
 - Uses curated and mock-assisted scholarship datasets while external source connectors are planned for a later release
 - Matches students with relevant opportunities based on their profiles  
-- Generates AI-powered preparation roadmaps and daily task lists
+- Generates deadline-based preparation roadmaps and daily task lists
 - Provides a community forum for peer support and knowledge sharing
 - Offers tiered access with premium features for enhanced functionality
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { usePayment, formatCurrency, PREMIUM_PRICE_IDR } from '../../lib/payment-context';
 import { PaymentMethodSelection } from './PaymentMethodSelection';
 import { BankTransferForm } from './BankTransferForm';
@@ -49,7 +49,7 @@ export function PaymentFlow() {
 
   return (
     <Dialog open={isPaymentFlowOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {currentStep === 'method' && 'Upgrade to Premium'}
@@ -58,6 +58,13 @@ export function PaymentFlow() {
             {currentStep === 'processing' && 'Processing Payment...'}
             {currentStep === 'success' && 'Payment Successful!'}
           </DialogTitle>
+          <DialogDescription>
+            {currentStep === 'method' && 'Choose your preferred payment method to upgrade to Premium.'}
+            {currentStep === 'details' && 'Enter your payment details to complete the transaction.'}
+            {currentStep === 'confirmation' && 'Review your payment details before confirming.'}
+            {currentStep === 'processing' && 'Please wait while we process your payment.'}
+            {currentStep === 'success' && 'Thank you for upgrading to Premium!'}
+          </DialogDescription>
         </DialogHeader>
 
         {currentStep === 'method' && (
