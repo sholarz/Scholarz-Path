@@ -22,7 +22,7 @@ import {
   isDeadlineApproaching 
 } from '../lib/notification-context';
 import { Scholarship } from '../lib/scholarship-data';
-import { toast } from 'sonner';
+import { toast } from 'sonner@2.0.3';
 
 interface NotificationSettingsProps {
   scholarship: Scholarship;
@@ -64,12 +64,12 @@ export function NotificationSettings({ scholarship }: NotificationSettingsProps)
   };
 
   const handleDownloadCalendar = () => {
-    downloadICSFile(
-      scholarship.title,
-      scholarship.deadline,
-      scholarship.description,
-      scholarship.applicationUrl
-    );
+    downloadICSFile({
+      title: scholarship.title,
+      deadline: scholarship.deadline,
+      description: scholarship.description,
+      location: scholarship.applicationUrl
+    });
     markCalendarAdded(scholarship.id);
   };
 

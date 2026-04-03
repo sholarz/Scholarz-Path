@@ -130,7 +130,7 @@ async function sendNotificationEmail(pref, scholarship, daysBeforeDeadline) {
   
   try {
     await resend.emails.send({
-      from: 'ScholarzPath <notifications@scholarzpath.com>',
+      from: 'ScholarPath <notifications@scholarpath.com>',
       to: pref.email,
       subject: subject,
       html: html,
@@ -174,7 +174,7 @@ function generateEmailHTML(scholarship, days) {
     <body>
       <div class="container">
         <div class="header">
-          <h1>🎓 ScholarzPath Deadline Reminder</h1>
+          <h1>🎓 ScholarPath Deadline Reminder</h1>
         </div>
         
         <div class="content">
@@ -206,7 +206,7 @@ function generateEmailHTML(scholarship, days) {
         </div>
         
         <div class="footer">
-          <p>This is an automated reminder from ScholarzPath</p>
+          <p>This is an automated reminder from ScholarPath</p>
           <p>To manage your notification settings, visit your bookmarks page</p>
         </div>
       </div>
@@ -315,8 +315,8 @@ Add these to your Supabase project:
 
 ```
 RESEND_API_KEY=re_xxxxxxxxxx
-FROM_EMAIL=notifications@scholarzpath.com
-ADMIN_EMAIL=admin@scholarzpath.com
+FROM_EMAIL=notifications@scholarpath.com
+ADMIN_EMAIL=admin@scholarpath.com
 TEST_MODE=false
 ```
 
