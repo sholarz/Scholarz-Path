@@ -1,74 +1,74 @@
 import { AdminLayout } from './AdminLayout';
-import { useState } from 'react';
-import { Search, UserPlus, MoreVertical, Crown, Shield } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Search, MoreVertical, Crown, Shield } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
+import {
+  getAdminUsers,
+  updateAdminUserRole,
+  updateAdminUserStatus,
+  type AdminUser,
+} from '../../lib/admin-api';
 
 interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'premium' | 'free';
+  role: 'admin' | 'premium' | 'free' | 'guest';
   joinedAt: string;
-  status: 'active' | 'suspended';
+  status: 'active' | 'inactive' | 'banned';
 }
 
-const MOCK_USERS: User[] = [
-  {
-    id: '1',
-    name: 'Admin User',
-    email: 'admin@scholarpath.com',
-    role: 'admin',
-    joinedAt: '2026-01-15',
-    status: 'active',
-  },
-  {
-    id: '2',
-    name: 'Premium User',
-    email: 'premium@test.com',
-    role: 'premium',
-    joinedAt: '2026-02-20',
-    status: 'active',
-  },
-  {
-    id: '3',
-    name: 'Free User',
-    email: 'user@test.com',
-    role: 'free',
-    joinedAt: '2026-03-10',
-    status: 'active',
-  },
-  {
-    id: '4',
-    name: 'Budi Santoso',
-    email: 'budi.santoso@email.com',
-    role: 'free',
-    joinedAt: '2026-03-28',
-    status: 'active',
-  },
-  {
-    id: '5',
-    name: 'Siti Nurhaliza',
-    email: 'siti.nurhaliza@email.com',
-    role: 'premium',
-    joinedAt: '2026-03-30',
-    status: 'active',
-  },
-];
-
 export function AdminUsersPage() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'premium' | 'free'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'premium' | 'free' | 'guest'>('all');
 
-  const filteredUsers = MOCK_USERS.filter((user) => {
+  const toDisplayUser = (user: AdminUser): User => {
+    const firstName = user.profile?.first_name?.trim() || '';
+    const lastName = user.profile?.last_name?.trim() || '';
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    return {
+      id: user.id,
+      name: fullName || user.email,
+      email: user.email,
+      role: user.role,
+      joinedAt: user.created_at,
+      status: user.status,
+    };
+  };
+
+  const loadUsers = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const payload = await getAdminUsers();
+      setUsers(payload.data.map(toDisplayUser));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load users');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const filteredUsers = useMemo(() => users.filter((user) => {
     const matchesSearch = 
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase());
@@ -76,19 +76,47 @@ export function AdminUsersPage() {
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     
     return matchesSearch && matchesRole;
-  });
+  }), [users, searchQuery, roleFilter]);
+
+  const updateRole = async (userId: string, role: User['role']) => {
+    try {
+      setIsUpdating(userId);
+      await updateAdminUserRole(userId, role);
+      await loadUsers();
+      toast.success('User role updated');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update role');
+    } finally {
+      setIsUpdating(null);
+    }
+  };
+
+  const updateStatus = async (userId: string, status: User['status']) => {
+    try {
+      setIsUpdating(userId);
+      await updateAdminUserStatus(userId, status);
+      await loadUsers();
+      toast.success('User status updated');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update status');
+    } finally {
+      setIsUpdating(null);
+    }
+  };
 
   const getRoleBadge = (role: User['role']) => {
     const styles = {
       admin: 'bg-purple-100 text-purple-800 border-purple-200',
       premium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
       free: 'bg-gray-100 text-gray-800 border-gray-200',
+      guest: 'bg-slate-100 text-slate-800 border-slate-200',
     };
     
     const icons = {
       admin: <Shield className="h-3 w-3 mr-1" />,
       premium: <Crown className="h-3 w-3 mr-1" />,
       free: null,
+      guest: null,
     };
 
     return (
@@ -100,10 +128,10 @@ export function AdminUsersPage() {
   };
 
   const stats = {
-    total: MOCK_USERS.length,
-    admin: MOCK_USERS.filter(u => u.role === 'admin').length,
-    premium: MOCK_USERS.filter(u => u.role === 'premium').length,
-    free: MOCK_USERS.filter(u => u.role === 'free').length,
+    total: users.length,
+    admin: users.filter(u => u.role === 'admin').length,
+    premium: users.filter(u => u.role === 'premium').length,
+    free: users.filter(u => u.role === 'free').length,
   };
 
   return (
@@ -114,6 +142,12 @@ export function AdminUsersPage() {
           <h1 className="text-3xl font-bold text-[#2f4156] mb-2">Users Management</h1>
           <p className="text-gray-600">Manage and monitor all platform users</p>
         </div>
+
+        {error && (
+          <Card className="rounded-2xl border border-red-200 bg-red-50">
+            <CardContent className="pt-6 text-red-700">{error}</CardContent>
+          </Card>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -189,6 +223,13 @@ export function AdminUsersPage() {
                 >
                   Free
                 </Button>
+                <Button
+                  variant={roleFilter === 'guest' ? 'default' : 'outline'}
+                  onClick={() => setRoleFilter('guest')}
+                  size="sm"
+                >
+                  Guest
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -218,6 +259,20 @@ export function AdminUsersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
+                {isLoading && (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
+                      Loading users...
+                    </td>
+                  </tr>
+                )}
+                {!isLoading && filteredUsers.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
+                      No users found.
+                    </td>
+                  </tr>
+                )}
                 {filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-[#f5efeb]/50 transition-colors">
                     <td className="px-6 py-4">
@@ -249,6 +304,8 @@ export function AdminUsersPage() {
                         className={
                           user.status === 'active'
                             ? 'bg-green-100 text-green-800 border-green-200'
+                            : user.status === 'inactive'
+                            ? 'bg-amber-100 text-amber-800 border-amber-200'
                             : 'bg-red-100 text-red-800 border-red-200'
                         }
                       >
@@ -258,16 +315,18 @@ export function AdminUsersPage() {
                     <td className="px-6 py-4">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" disabled={isUpdating === user.id}>
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
-                          <DropdownMenuItem>Edit User</DropdownMenuItem>
-                          <DropdownMenuItem>Change Role</DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600">
-                            Suspend User
+                          <DropdownMenuItem onClick={() => updateRole(user.id, 'free')}>Set role: Free</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateRole(user.id, 'premium')}>Set role: Premium</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateRole(user.id, 'admin')}>Set role: Admin</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateStatus(user.id, 'active')}>Set status: Active</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateStatus(user.id, 'inactive')}>Set status: Inactive</DropdownMenuItem>
+                          <DropdownMenuItem className="text-red-600" onClick={() => updateStatus(user.id, 'banned')}>
+                            Set status: Banned
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

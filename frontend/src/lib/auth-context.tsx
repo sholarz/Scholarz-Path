@@ -17,7 +17,8 @@ interface AuthContextType {
   isLoading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<User>;
-  loginWithGoogle: () => Promise<User>;
+  loginWithGoogle: () => Promise<void>;
+  completeGoogleLogin: (token: string) => Promise<User>;
   signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
   resetPassword: (email: string) => Promise<void>;
@@ -46,6 +47,7 @@ type AuthApiResponse = {
   data?: {
     user?: ApiUserPayload;
     token?: string;
+    redirect_url?: string;
   };
   message?: string;
   errors?: Record<string, string[]>;
@@ -119,6 +121,28 @@ const persistSession = (setUser: (user: User) => void, user: User, token?: strin
   }
 };
 
+const fetchCurrentUser = async (token: string): Promise<ApiUserPayload> => {
+  const response = await fetch(`${API_BASE_URL}/user`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(await readAuthError(response));
+  }
+
+  const payload = (await response.json()) as AuthApiResponse;
+  if (!payload.data?.user) {
+    throw new Error('Unable to load user profile after Google login');
+  }
+
+  return payload.data.user;
+};
+
 // Mock test accounts
 const TEST_ACCOUNTS = {
   'admin@scholarpath.com': { password: 'admin123', role: 'admin' as UserRole, name: 'Admin User' },
@@ -174,21 +198,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch(`${API_BASE_URL}/auth/google/redirect`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      });
 
-      const mockUser: User = {
-        id: Date.now().toString(),
-        email: 'user@gmail.com',
-        name: 'Google User',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=GoogleUser',
-        role: 'free',
-      };
+      if (!response.ok) {
+        throw new Error(await readAuthError(response));
+      }
 
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      return mockUser;
+      const payload = (await response.json()) as AuthApiResponse;
+      const redirectUrl = payload.data?.redirect_url;
+
+      if (!redirectUrl) {
+        throw new Error('Google redirect URL is unavailable');
+      }
+
+      window.location.assign(redirectUrl);
     } catch (err) {
-      setError('Google login failed');
+      setError(err instanceof Error ? err.message : 'Google login failed');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const completeGoogleLogin = async (token: string) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const payloadUser = await fetchCurrentUser(token);
+      const apiUser = mapApiUser(payloadUser, payloadUser.email || 'google-user', payloadUser.email || 'Google User');
+
+      persistSession(setUser, apiUser, token);
+      return apiUser;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google login failed');
       throw err;
     } finally {
       setIsLoading(false);
@@ -265,6 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error,
         login,
         loginWithGoogle,
+        completeGoogleLogin,
         signup,
         logout,
         resetPassword,

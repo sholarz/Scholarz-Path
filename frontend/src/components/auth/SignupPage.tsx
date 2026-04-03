@@ -52,10 +52,10 @@ export function SignupPage() {
     setIsLoading(true);
     try {
       await loginWithGoogle();
-      toast.success('Account created successfully!');
-      navigate('/dashboard');
+      toast.success('Redirecting to Google...');
     } catch (error) {
-      toast.error('Failed to sign up with Google');
+      const message = error instanceof Error ? error.message : 'Failed to sign up with Google';
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }

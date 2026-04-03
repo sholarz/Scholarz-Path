@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   Users, 
   FileText, 
@@ -14,50 +14,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui
 import { Button } from '../ui/button';
 import { Link } from 'react-router';
 import { useAuth } from '../../lib/auth-context';
+import { getAdminDashboardStats, type AdminDashboardStats } from '../../lib/admin-api';
 
 interface DashboardStat {
   title: string;
   value: string | number;
-  change: string;
-  trend: 'up' | 'down';
   icon: any;
   color: string;
 }
-
-const DASHBOARD_STATS: DashboardStat[] = [
-  {
-    title: 'Total Users',
-    value: '2,847',
-    change: '+12.5%',
-    trend: 'up',
-    icon: Users,
-    color: 'text-blue-600',
-  },
-  {
-    title: 'Active Scholarships',
-    value: '156',
-    change: '+8 new',
-    trend: 'up',
-    icon: Award,
-    color: 'text-green-600',
-  },
-  {
-    title: 'Pending Reports',
-    value: '12',
-    change: '-3 today',
-    trend: 'down',
-    icon: AlertTriangle,
-    color: 'text-yellow-600',
-  },
-  {
-    title: 'Subscription Revenue',
-    value: 'Rp 45.6M',
-    change: '+18.2%',
-    trend: 'up',
-    icon: CreditCard,
-    color: 'text-[#567c8d]',
-  },
-];
 
 interface QuickAction {
   title: string;
@@ -99,6 +63,82 @@ const QUICK_ACTIONS: QuickAction[] = [
 
 export function AdminDashboard() {
   const { user } = useAuth();
+  const [stats, setStats] = useState<AdminDashboardStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const dashboardStats = await getAdminDashboardStats();
+        setStats(dashboardStats);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load admin dashboard');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadStats();
+  }, []);
+
+  const dashboardStats: DashboardStat[] = [
+    {
+      title: 'Total Users',
+      value: stats?.users.total ?? '-',
+      icon: Users,
+      color: 'text-blue-600',
+    },
+    {
+      title: 'Active Scholarships',
+      value: stats?.scholarships.active ?? '-',
+      icon: Award,
+      color: 'text-green-600',
+    },
+    {
+      title: 'Open Reports',
+      value: stats?.reports.open ?? '-',
+      icon: AlertTriangle,
+      color: 'text-yellow-600',
+    },
+    {
+      title: 'Featured Scholarships',
+      value: stats?.scholarships.featured ?? '-',
+      icon: CreditCard,
+      color: 'text-[#567c8d]',
+    },
+  ];
+
+  const quickActions = [
+    {
+      title: 'Payment Verification',
+      description: 'Review pending payment submissions',
+      icon: CreditCard,
+      href: '/admin/payment-verification-demo',
+      badge: stats?.reports.open ?? undefined,
+    },
+    {
+      title: 'User Reports',
+      description: 'Moderate reported content',
+      icon: AlertTriangle,
+      href: '/forum/reports',
+      badge: stats?.reports.open ?? undefined,
+    },
+    {
+      title: 'Pending Posts',
+      description: 'Review posts awaiting approval',
+      icon: FileText,
+      href: '/forum/pending',
+    },
+    {
+      title: 'Subscription Monitor',
+      description: 'View subscription analytics',
+      icon: Activity,
+      href: '/subscription-snapshot-demo',
+    },
+  ];
 
   return (
     <div className="space-y-8">
@@ -112,9 +152,17 @@ export function AdminDashboard() {
         </p>
       </div>
 
+      {error && (
+        <Card className="rounded-2xl border border-red-200 bg-red-50">
+          <CardContent className="pt-6 text-red-700">
+            {error}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {DASHBOARD_STATS.map((stat, index) => {
+        {dashboardStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <Card key={index} className="rounded-2xl border border-gray-200">
@@ -123,23 +171,9 @@ export function AdminDashboard() {
                   <div className="flex-1">
                     <p className="text-sm text-gray-600 mb-1">{stat.title}</p>
                     <p className="text-3xl font-bold text-[#2f4156] mb-2">
-                      {stat.value}
+                      {isLoading ? '...' : stat.value}
                     </p>
-                    <div className="flex items-center gap-1">
-                      <TrendingUp
-                        className={`h-4 w-4 ${
-                          stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
-                        }`}
-                      />
-                      <span
-                        className={`text-sm font-medium ${
-                          stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
-                        }`}
-                      >
-                        {stat.change}
-                      </span>
-                      <span className="text-sm text-gray-500">this month</span>
-                    </div>
+                    <span className="text-sm text-gray-500">live backend data</span>
                   </div>
                   <div className={`w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center ${stat.color}`}>
                     <Icon className="h-6 w-6" />
@@ -155,7 +189,7 @@ export function AdminDashboard() {
       <div>
         <h2 className="text-xl font-bold text-[#2f4156] mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {QUICK_ACTIONS.map((action, index) => {
+          {quickActions.map((action, index) => {
             const Icon = action.icon;
             return (
               <Link key={index} to={action.href}>

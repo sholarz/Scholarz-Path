@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from './AdminLayout';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -13,55 +12,119 @@ import {
   TableHeader,
   TableRow,
 } from '../ui/table';
+import { Search, Trash2, CheckCircle, XCircle, GraduationCap, Star } from 'lucide-react';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog';
-import { Search, Plus, Edit, Trash2, CheckCircle, XCircle, GraduationCap } from 'lucide-react';
-import { scholarships, Scholarship } from '../../lib/scholarship-data';
-import { useAuth } from '../../lib/auth-context';
+  deleteAdminScholarship,
+  featureAdminScholarship,
+  getAdminScholarships,
+  verifyAdminScholarship,
+  type AdminScholarship,
+} from '../../lib/admin-api';
+import { toast } from 'sonner';
+
+type ScholarshipRow = {
+  id: string;
+  title: string;
+  provider: string;
+  country: string;
+  deadline: string;
+  educationLevel: string;
+  status: 'active' | 'inactive' | 'expired' | 'draft';
+  featured: boolean;
+};
 
 export function AdminScholarshipsPage() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const [scholarships, setScholarships] = useState<ScholarshipRow[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | null>(null);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Redirect if not admin
-  useEffect(() => {
-    if (user?.role !== 'admin') {
-      navigate('/dashboard');
+  const toRow = (item: AdminScholarship): ScholarshipRow => {
+    return {
+      id: item.id,
+      title: item.title,
+      provider: item.provider?.name || 'Unknown Provider',
+      country: item.provider?.country || '-',
+      deadline: item.application_deadline,
+      educationLevel: item.level,
+      status: item.status,
+      featured: item.is_featured,
+    };
+  };
+
+  const loadScholarships = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const payload = await getAdminScholarships();
+      setScholarships(payload.data.map(toRow));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load scholarships');
+    } finally {
+      setIsLoading(false);
     }
-  }, [user, navigate]);
+  };
 
-  if (user?.role !== 'admin') {
-    return null;
-  }
+  useEffect(() => {
+    loadScholarships();
+  }, []);
 
-  // Filter scholarships
-  const filteredScholarships = scholarships.filter(scholarship => 
+  const filteredScholarships = useMemo(() => scholarships.filter((scholarship) => 
     scholarship.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     scholarship.provider.toLowerCase().includes(searchQuery.toLowerCase()) ||
     scholarship.country.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ), [scholarships, searchQuery]);
 
-  // Format deadline
-  const formatDeadline = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
+  const formatDeadline = (date: string) => {
+    return new Date(date).toLocaleDateString('en-US', {
       day: 'numeric',
       month: 'short',
-      year: 'numeric'
+      year: 'numeric',
     });
   };
 
-  // Handle edit (opens details dialog)
-  const handleEdit = (scholarship: Scholarship) => {
-    setSelectedScholarship(scholarship);
-    setIsDetailsOpen(true);
+  const handleVerify = async (scholarshipId: string) => {
+    try {
+      setIsUpdating(scholarshipId);
+      await verifyAdminScholarship(scholarshipId);
+      toast.success('Scholarship verified');
+      await loadScholarships();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to verify scholarship');
+    } finally {
+      setIsUpdating(null);
+    }
+  };
+
+  const handleFeatureToggle = async (scholarshipId: string, featured: boolean) => {
+    try {
+      setIsUpdating(scholarshipId);
+      await featureAdminScholarship(scholarshipId, !featured);
+      toast.success(!featured ? 'Scholarship featured' : 'Scholarship unfeatured');
+      await loadScholarships();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update featured status');
+    } finally {
+      setIsUpdating(null);
+    }
+  };
+
+  const handleDelete = async (scholarshipId: string) => {
+    if (!confirm('Delete this scholarship? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setIsUpdating(scholarshipId);
+      await deleteAdminScholarship(scholarshipId);
+      toast.success('Scholarship deleted');
+      await loadScholarships();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete scholarship');
+    } finally {
+      setIsUpdating(null);
+    }
   };
 
   return (
@@ -75,11 +138,13 @@ export function AdminScholarshipsPage() {
               Manage and monitor all scholarship data in the system
             </p>
           </div>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add New Scholarship
-          </Button>
         </div>
+
+        {error && (
+          <Card className="rounded-2xl border border-red-200 bg-red-50">
+            <CardContent className="pt-6 text-red-700">{error}</CardContent>
+          </Card>
+        )}
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -103,7 +168,7 @@ export function AdminScholarshipsPage() {
             <CardContent>
               <div className="flex items-center gap-2">
                 <div className="text-2xl font-bold text-green-600">
-                  {scholarships.filter(s => s.verified).length}
+                  {scholarships.filter(s => s.status === 'active').length}
                 </div>
                 <CheckCircle className="h-5 w-5 text-green-600" />
               </div>
@@ -119,7 +184,7 @@ export function AdminScholarshipsPage() {
             <CardContent>
               <div className="flex items-center gap-2">
                 <div className="text-2xl font-bold text-yellow-600">
-                  {scholarships.filter(s => !s.verified).length}
+                  {scholarships.filter(s => s.status === 'draft').length}
                 </div>
                 <XCircle className="h-5 w-5 text-yellow-600" />
               </div>
@@ -134,7 +199,7 @@ export function AdminScholarshipsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                {scholarships.filter(s => s.deadline > new Date()).length}
+                {scholarships.filter(s => new Date(s.deadline) > new Date()).length}
               </div>
             </CardContent>
           </Card>
@@ -153,7 +218,7 @@ export function AdminScholarshipsPage() {
                   className="pl-10"
                 />
               </div>
-              <Button variant="outline">
+              <Button variant="outline" disabled>
                 <GraduationCap className="h-4 w-4 mr-2" />
                 Filter by Level
               </Button>
@@ -177,13 +242,21 @@ export function AdminScholarshipsPage() {
                     <TableHead>Deadline</TableHead>
                     <TableHead>Education Level</TableHead>
                     <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-center">Featured</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredScholarships.length === 0 ? (
+                  {isLoading && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                        Loading scholarships...
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {!isLoading && filteredScholarships.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                         No scholarships found
                       </TableCell>
                     </TableRow>
@@ -216,28 +289,48 @@ export function AdminScholarshipsPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          {scholarship.verified ? (
+                          {scholarship.status === 'active' ? (
                             <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200">
                               <CheckCircle className="h-3 w-3 mr-1" />
-                              Verified
+                              Active
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="text-yellow-700 border-yellow-300">
                               <XCircle className="h-3 w-3 mr-1" />
-                              Pending
+                              {scholarship.status}
                             </Badge>
                           )}
                         </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={scholarship.featured ? 'default' : 'outline'}>
+                            {scholarship.featured ? 'Yes' : 'No'}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
-                              onClick={() => handleEdit(scholarship)}
+                              disabled={isUpdating === scholarship.id}
+                              onClick={() => handleFeatureToggle(scholarship.id, scholarship.featured)}
                             >
-                              <Edit className="h-4 w-4" />
+                              <Star className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={isUpdating === scholarship.id}
+                              onClick={() => handleVerify(scholarship.id)}
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive"
+                              disabled={isUpdating === scholarship.id}
+                              onClick={() => handleDelete(scholarship.id)}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -250,116 +343,6 @@ export function AdminScholarshipsPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Scholarship Details Dialog */}
-        <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{selectedScholarship?.title}</DialogTitle>
-              <DialogDescription>
-                View and edit detailed information about this scholarship
-              </DialogDescription>
-            </DialogHeader>
-
-            {selectedScholarship && (
-              <div className="space-y-6">
-                {/* Basic Info */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Provider</p>
-                    <p className="mt-1">{selectedScholarship.provider}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Country</p>
-                    <p className="mt-1">{selectedScholarship.country}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Location</p>
-                    <p className="mt-1">{selectedScholarship.location}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Amount</p>
-                    <p className="mt-1">{selectedScholarship.amount}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Deadline</p>
-                    <p className="mt-1">{formatDeadline(selectedScholarship.deadline)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Education Level</p>
-                    <p className="mt-1">{selectedScholarship.educationLevel}</p>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Description</p>
-                  <p className="text-sm leading-relaxed">{selectedScholarship.description}</p>
-                </div>
-
-                {/* Field of Study */}
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Field of Study</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedScholarship.fieldOfStudy.map((field, index) => (
-                      <Badge key={index} variant="secondary">{field}</Badge>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Requirements */}
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Requirements</p>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    {selectedScholarship.requirements.map((req, index) => (
-                      <li key={index}>{req}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Benefits */}
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Benefits</p>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    {selectedScholarship.benefits.map((benefit, index) => (
-                      <li key={index}>{benefit}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Application URL */}
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Application URL</p>
-                  <a 
-                    href={selectedScholarship.applicationUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline break-all"
-                  >
-                    {selectedScholarship.applicationUrl}
-                  </a>
-                </div>
-
-                {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t">
-                  <Button variant="outline" onClick={() => setIsDetailsOpen(false)}>
-                    Close
-                  </Button>
-                  <Button variant="outline">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
-                  {!selectedScholarship.verified && (
-                    <Button>
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Verify
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
       </div>
     </AdminLayout>
   );
