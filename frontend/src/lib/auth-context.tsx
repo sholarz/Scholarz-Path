@@ -27,6 +27,98 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const API_BASE_URL = ((import.meta as ImportMeta & {
+  env?: { VITE_API_BASE_URL?: string };
+}).env?.VITE_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
+
+type ApiUserPayload = {
+  id?: string;
+  email?: string;
+  role?: UserRole;
+  profile?: {
+    first_name?: string;
+    last_name?: string;
+  } | null;
+};
+
+type AuthApiResponse = {
+  success?: boolean;
+  data?: {
+    user?: ApiUserPayload;
+    token?: string;
+  };
+  message?: string;
+  errors?: Record<string, string[]>;
+  error?: {
+    message?: string;
+    details?: unknown;
+  };
+};
+
+const mapApiUser = (payload: ApiUserPayload | undefined, fallbackEmail: string, fallbackName: string): User => {
+  const firstName = payload?.profile?.first_name?.trim() || '';
+  const lastName = payload?.profile?.last_name?.trim() || '';
+  const fullName = `${firstName} ${lastName}`.trim() || fallbackName;
+
+  return {
+    id: payload?.id || Date.now().toString(),
+    email: payload?.email || fallbackEmail,
+    name: fullName,
+    role: payload?.role || 'free',
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(fullName || fallbackEmail)}`,
+  };
+};
+
+const readAuthError = async (response: Response): Promise<string> => {
+  try {
+    const body = (await response.json()) as AuthApiResponse;
+
+    if (body?.errors && typeof body.errors === 'object') {
+      const firstFieldErrors = Object.values(body.errors).find((messages) => Array.isArray(messages) && messages.length > 0);
+      if (firstFieldErrors && firstFieldErrors[0]) {
+        return firstFieldErrors[0];
+      }
+    }
+
+    if (body?.error?.message) {
+      return body.error.message;
+    }
+
+    if (body?.error?.details && typeof body.error.details === 'object') {
+      const detailErrors = Object.values(body.error.details as Record<string, unknown>).find(
+        (messages) => Array.isArray(messages) && messages.length > 0 && typeof messages[0] === 'string'
+      ) as string[] | undefined;
+
+      if (detailErrors?.[0]) {
+        return detailErrors[0];
+      }
+    }
+
+    if (typeof body?.error?.details === 'string') {
+      return body.error.details;
+    }
+
+    if (body?.message) {
+      return body.message;
+    }
+  } catch {
+    // Fall through to a generic error below.
+  }
+
+  return response.status === 422
+    ? 'Unable to process your request. Please check the form and try again.'
+    : 'Authentication request failed';
+};
+
+const persistSession = (setUser: (user: User) => void, user: User, token?: string) => {
+  setUser(user);
+  localStorage.setItem('user', JSON.stringify(user));
+
+  if (token) {
+    localStorage.setItem('auth_token', token);
+  }
+};
+
 // Mock test accounts
 const TEST_ACCOUNTS = {
   'admin@scholarpath.com': { password: 'admin123', role: 'admin' as UserRole, name: 'Admin User' },
@@ -52,29 +144,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     
     try {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Check test accounts
-      const testAccount = TEST_ACCOUNTS[email.toLowerCase() as keyof typeof TEST_ACCOUNTS];
-      
-      if (testAccount && testAccount.password === password) {
-        // Valid test account
-        const mockUser: User = {
-          id: Date.now().toString(),
-          email,
-          name: testAccount.name,
-          role: testAccount.role,
-          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${testAccount.name}`,
-        };
-        
-        setUser(mockUser);
-        localStorage.setItem('user', JSON.stringify(mockUser));
-        return mockUser;
-      } else {
-        // Invalid credentials
-        throw new Error('Invalid email or password');
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await readAuthError(response));
       }
+
+      const payload = (await response.json()) as AuthApiResponse;
+      const apiUser = mapApiUser(payload.data?.user, email, TEST_ACCOUNTS[email.toLowerCase() as keyof typeof TEST_ACCOUNTS]?.name || email);
+
+      persistSession(setUser, apiUser, payload.data?.token);
+      return apiUser;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
       throw err;
@@ -115,21 +202,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     
     try {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const mockUser: User = {
-        id: Date.now().toString(),
-        email,
-        name,
-        role: 'free',
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
-      };
-      
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          password_confirmation: password,
+          name,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await readAuthError(response));
+      }
+
+      const payload = (await response.json()) as AuthApiResponse;
+      const apiUser = mapApiUser(payload.data?.user, email, name);
+
+      persistSession(setUser, apiUser, payload.data?.token);
     } catch (err) {
-      setError('Signup failed');
+      setError(err instanceof Error ? err.message : 'Signup failed');
       throw err;
     } finally {
       setIsLoading(false);
@@ -139,6 +235,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('auth_token');
   };
 
   const resetPassword = async (email: string) => {
