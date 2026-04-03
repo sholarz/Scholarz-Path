@@ -9,7 +9,8 @@
         "skipLibCheck": true,
         "strict": false,
         "baseUrl": ".",
-        "types": ["vite/client", "vitest/globals"]
+        "types": ["vite/client", "vitest/globals"],
+        "ignoreDeprecations": "6.0"
     },
     "include": ["src/**/*", "src/**/*.d.ts", "src/**/*.test.ts", "src/**/*.test.tsx"]
 }

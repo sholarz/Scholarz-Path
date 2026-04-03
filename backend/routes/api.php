@@ -159,10 +159,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
     
     // Dashboard
-    Route::get('/dashboard', [AdminDashboardController::class, 'getDashboardStats']);
+    Route::get('/dashboard', [AdminDashboardController::class, 'getDashboardStats'])
+        ->middleware('permission:admin_dashboard');
     
     // User Management
-    Route::prefix('users')->group(function () {
+    Route::prefix('users')->middleware('permission:manage_users')->group(function () {
         Route::get('/', [AdminDashboardController::class, 'getUsers']);
         Route::get('/{id}', [AdminDashboardController::class, 'getUserDetails']);
         Route::put('/{id}/role', [AdminDashboardController::class, 'updateUserRole']);
@@ -171,7 +172,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     });
     
     // Scholarship Management
-    Route::prefix('scholarships')->group(function () {
+    Route::prefix('scholarships')->middleware('permission:manage_scholarships')->group(function () {
         Route::get('/', [AdminDashboardController::class, 'getScholarshipsForAdmin']);
         Route::post('/', [AdminDashboardController::class, 'createScholarship']);
         Route::put('/{id}', [AdminDashboardController::class, 'updateScholarship']);
@@ -181,15 +182,20 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     });
     
     // Forum Moderation
-    Route::prefix('forum')->group(function () {
+    Route::prefix('forum')->middleware('permission:moderate_forum')->group(function () {
         Route::get('/flagged-content', [AdminDashboardController::class, 'getFlaggedContent']);
+        Route::get('/bans', [AdminDashboardController::class, 'getForumBans']);
         Route::put('/topics/{id}/status', [AdminDashboardController::class, 'updateTopicStatus']);
         Route::delete('/replies/{id}', [AdminDashboardController::class, 'deleteReply']);
         Route::put('/users/{id}/forum-ban', [AdminDashboardController::class, 'banFromForum']);
+        Route::put('/users/{id}/forum-unban', [AdminDashboardController::class, 'unbanFromForum']);
     });
     
     // System Reports
-    Route::prefix('reports')->group(function () {
+    Route::prefix('reports')->middleware('permission:view_analytics')->group(function () {
+        Route::get('/', [AdminDashboardController::class, 'getReports']);
+        Route::put('/{id}/resolve', [AdminDashboardController::class, 'resolveReport']);
+        Route::get('/audit-logs', [AdminDashboardController::class, 'getAuditLogs']);
         Route::get('/analytics', [AdminDashboardController::class, 'getAnalytics']);
         Route::get('/usage-stats', [AdminDashboardController::class, 'getUsageStats']);
         Route::get('/revenue', [AdminDashboardController::class, 'getRevenueStats']);
