@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router';
 import { Header } from '../Header';
-import { Scholarship } from '../../lib/scholarship-data';
+import { scholarships, filterScholarships } from '../../lib/scholarship-data';
 import { useBookmarks } from '../../lib/bookmark-context';
 import { DeadlineBadge } from '../NotificationSettings';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
@@ -10,108 +10,18 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Search, Calendar, MapPin, GraduationCap, Bookmark, BookmarkCheck } from 'lucide-react';
-import { getScholarships } from '../../api/scholarship';
-
-const levelLabel: Record<string, string> = {
-  high_school: 'High School',
-  bachelor: 'Undergraduate',
-  master: "Master's",
-  doctorate: 'PhD',
-  postdoc: 'Postdoc',
-};
-
-const toStringArray = (value: unknown): string[] => {
-  if (Array.isArray(value)) {
-    return value.map(String);
-  }
-
-  if (typeof value === 'string') {
-    try {
-      const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) {
-        return parsed.map(String);
-      }
-    } catch {
-      return [value];
-    }
-  }
-
-  return [];
-};
-
-const mapApiScholarship = (item: any): Scholarship => {
-  const amount = item?.formatted_amount
-    ?? item?.amount
-    ?? (item?.amount ? `${item.currency ?? 'USD'} ${item.amount}` : 'Amount not specified');
-
-  const deadlineSource = item?.application_deadline ?? item?.deadline ?? new Date().toISOString();
-
-  return {
-    id: String(item.id),
-    title: item.title ?? 'Untitled Scholarship',
-    provider: item?.provider?.name ?? item?.provider ?? 'Unknown Provider',
-    country: item?.target_countries?.[0] ?? item?.country ?? 'Indonesia',
-    location: item?.target_countries?.[0] ?? item?.location ?? 'Indonesia',
-    amount,
-    deadline: new Date(deadlineSource),
-    educationLevel: item?.educationLevel ?? levelLabel[item.level] ?? item.level ?? 'All Levels',
-    fieldOfStudy: toStringArray(item.fields_of_study ?? item.fieldOfStudy),
-    type: item.type ?? 'General',
-    description: item.description ?? '',
-    requirements: toStringArray(item.requirements),
-    benefits: toStringArray(item.benefits),
-    applicationUrl: item.application_url ?? item.applicationUrl ?? '#',
-    verified: Boolean(item?.provider),
-  };
-};
 
 export function ScholarshipsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [educationFilter, setEducationFilter] = useState('all');
   const [fieldFilter, setFieldFilter] = useState('all');
-  const [scholarships, setScholarships] = useState<Scholarship[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { toggleBookmark, isBookmarked } = useBookmarks();
+  const { bookmarks, toggleBookmark, isBookmarked } = useBookmarks();
 
-  useEffect(() => {
-    const fetchScholarships = async () => {
-      try {
-        setIsLoading(true);
-        const response = await getScholarships();
-        const apiScholarships = response?.data?.data?.scholarships ?? response?.data ?? [];
-        setScholarships(apiScholarships.map((item: any) => mapApiScholarship(item)));
-      } catch (error) {
-        console.error('Failed to fetch scholarships:', error);
-        setScholarships([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchScholarships();
-  }, []);
-
-  const filteredScholarships = useMemo(() => {
-    const search = searchQuery.trim().toLowerCase();
-
-    return scholarships.filter((scholarship) => {
-      const matchesSearch =
-        !search ||
-        scholarship.title.toLowerCase().includes(search) ||
-        scholarship.provider.toLowerCase().includes(search) ||
-        scholarship.location.toLowerCase().includes(search) ||
-        scholarship.description.toLowerCase().includes(search) ||
-        scholarship.fieldOfStudy.some((field) => field.toLowerCase().includes(search));
-
-      const matchesEducation =
-        educationFilter === 'all' || scholarship.educationLevel === educationFilter;
-
-      const matchesField =
-        fieldFilter === 'all' || scholarship.fieldOfStudy.includes(fieldFilter);
-
-      return matchesSearch && matchesEducation && matchesField;
-    });
-  }, [scholarships, searchQuery, educationFilter, fieldFilter]);
+  const filteredScholarships = filterScholarships(
+    searchQuery,
+    educationFilter === 'all' ? undefined : educationFilter,
+    fieldFilter === 'all' ? undefined : fieldFilter
+  );
 
   const allFields = Array.from(
     new Set(scholarships.flatMap(s => s.fieldOfStudy))
@@ -182,13 +92,7 @@ export function ScholarshipsPage() {
         </Card>
 
         {/* Scholarships Grid */}
-        {isLoading ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">Loading scholarships...</p>
-            </CardContent>
-          </Card>
-        ) : filteredScholarships.length === 0 ? (
+        {filteredScholarships.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <p className="text-muted-foreground">
@@ -207,13 +111,9 @@ export function ScholarshipsPage() {
                       variant="ghost"
                       size="icon"
                       className="shrink-0"
-                      onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
+                      onClick={(e) => {
                         e.preventDefault();
-                        try {
-                          await toggleBookmark(scholarship.id);
-                        } catch (error) {
-                          console.error('Failed to toggle bookmark:', error);
-                        }
+                        toggleBookmark(scholarship.id);
                       }}
                     >
                       {isBookmarked(scholarship.id) ? (

@@ -1,214 +1,286 @@
 // Auth Context for managing user authentication state
-import {
-    createContext,
-    useContext,
-    useState,
-    useEffect,
-    useCallback,
-    ReactNode,
-} from "react";
-import {
-    login as loginRequest,
-    register as registerRequest,
-    logout as logoutRequest,
-    requestPasswordReset,
-    getGoogleRedirectUrl,
-    type ForgotPasswordResponse,
-} from "../api/auth";
-import { getCurrentUser } from "../api/user";
-import { getStoredToken, setStoredToken } from "../api/client";
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type UserRole = "admin" | "premium" | "free";
+export type UserRole = 'admin' | 'premium' | 'free';
 
 export interface User {
-    id: string;
-    email: string;
-    name: string;
-    avatar?: string;
-    role: UserRole;
+  id: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  role: UserRole;
 }
 
 interface AuthContextType {
-    user: User | null;
-    isAuthenticated: boolean;
-    login: (email: string, password: string) => Promise<void>;
-    loginWithGoogle: () => Promise<void>;
-    refreshUser: () => Promise<void>;
-    signup: (email: string, password: string, name: string) => Promise<void>;
-    logout: () => void;
-    resetPassword: (email: string) => Promise<ForgotPasswordResponse>;
-    upgradeToPremium: () => void;
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+  login: (email: string, password: string) => Promise<User>;
+  loginWithGoogle: () => Promise<User>;
+  signup: (email: string, password: string, name: string) => Promise<void>;
+  logout: () => void;
+  resetPassword: (email: string) => Promise<void>;
+  upgradeToPremium: () => void;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const USER_STORAGE_KEY = "user";
+const API_BASE_URL = ((import.meta as ImportMeta & {
+  env?: { VITE_API_BASE_URL?: string };
+}).env?.VITE_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
 
-const buildDisplayName = (
-    firstName?: string,
-    lastName?: string,
-    email?: string,
-) => {
-    const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
-    if (fullName) {
-        return fullName;
-    }
-
-    if (email) {
-        return email.split("@")[0] || email;
-    }
-
-    return "User";
+type ApiUserPayload = {
+  id?: string;
+  email?: string;
+  role?: UserRole;
+  profile?: {
+    first_name?: string;
+    last_name?: string;
+  } | null;
 };
 
-const mapApiUser = (apiUser: {
-    id: string;
-    email: string;
-    role: UserRole;
-    profile?: { first_name?: string; last_name?: string } | null;
-}): User => {
-    return {
-        id: apiUser.id,
-        email: apiUser.email,
-        role: apiUser.role,
-        name: buildDisplayName(
-            apiUser.profile?.first_name,
-            apiUser.profile?.last_name,
-            apiUser.email,
-        ),
-    };
+type AuthApiResponse = {
+  success?: boolean;
+  data?: {
+    user?: ApiUserPayload;
+    token?: string;
+  };
+  message?: string;
+  errors?: Record<string, string[]>;
+  error?: {
+    message?: string;
+    details?: unknown;
+  };
 };
 
-const persistUser = (nextUser: User | null) => {
-    if (nextUser) {
-        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser));
-    } else {
-        localStorage.removeItem(USER_STORAGE_KEY);
+const mapApiUser = (payload: ApiUserPayload | undefined, fallbackEmail: string, fallbackName: string): User => {
+  const firstName = payload?.profile?.first_name?.trim() || '';
+  const lastName = payload?.profile?.last_name?.trim() || '';
+  const fullName = `${firstName} ${lastName}`.trim() || fallbackName;
+
+  return {
+    id: payload?.id || Date.now().toString(),
+    email: payload?.email || fallbackEmail,
+    name: fullName,
+    role: payload?.role || 'free',
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(fullName || fallbackEmail)}`,
+  };
+};
+
+const readAuthError = async (response: Response): Promise<string> => {
+  try {
+    const body = (await response.json()) as AuthApiResponse;
+
+    if (body?.errors && typeof body.errors === 'object') {
+      const firstFieldErrors = Object.values(body.errors).find((messages) => Array.isArray(messages) && messages.length > 0);
+      if (firstFieldErrors && firstFieldErrors[0]) {
+        return firstFieldErrors[0];
+      }
     }
+
+    if (body?.error?.message) {
+      return body.error.message;
+    }
+
+    if (body?.error?.details && typeof body.error.details === 'object') {
+      const detailErrors = Object.values(body.error.details as Record<string, unknown>).find(
+        (messages) => Array.isArray(messages) && messages.length > 0 && typeof messages[0] === 'string'
+      ) as string[] | undefined;
+
+      if (detailErrors?.[0]) {
+        return detailErrors[0];
+      }
+    }
+
+    if (typeof body?.error?.details === 'string') {
+      return body.error.details;
+    }
+
+    if (body?.message) {
+      return body.message;
+    }
+  } catch {
+    // Fall through to a generic error below.
+  }
+
+  return response.status === 422
+    ? 'Unable to process your request. Please check the form and try again.'
+    : 'Authentication request failed';
+};
+
+const persistSession = (setUser: (user: User) => void, user: User, token?: string) => {
+  setUser(user);
+  localStorage.setItem('user', JSON.stringify(user));
+
+  if (token) {
+    localStorage.setItem('auth_token', token);
+  }
+};
+
+// Mock test accounts
+const TEST_ACCOUNTS = {
+  'admin@scholarpath.com': { password: 'admin123', role: 'admin' as UserRole, name: 'Admin User' },
+  'premium@test.com': { password: 'premium123', role: 'premium' as UserRole, name: 'Premium User' },
+  'user@test.com': { password: 'user123', role: 'free' as UserRole, name: 'Free User' },
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    const refreshUser = useCallback(async () => {
-        const token = getStoredToken();
-        if (!token) {
-            setUser(null);
-            persistUser(null);
-            return;
-        }
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+  }, []);
 
-        try {
-            const currentUser = await getCurrentUser();
-            const mappedUser = mapApiUser(currentUser);
-            setUser(mappedUser);
-            persistUser(mappedUser);
-        } catch (error) {
-            setStoredToken(null);
-            setUser(null);
-            persistUser(null);
-            throw error;
-        }
-    }, []);
+  const login = async (email: string, password: string) => {
+    setIsLoading(true);
+    setError(null);
 
-    useEffect(() => {
-        const token = getStoredToken();
-        if (!token) {
-            setUser(null);
-            persistUser(null);
-            return;
-        }
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-        const savedUser = localStorage.getItem(USER_STORAGE_KEY);
-        if (savedUser) {
-            try {
-                setUser(JSON.parse(savedUser));
-            } catch {
-                setUser(null);
-            }
-        }
+      if (!response.ok) {
+        throw new Error(await readAuthError(response));
+      }
 
-        refreshUser().catch(() => null);
-    }, [refreshUser]);
+      const payload = (await response.json()) as AuthApiResponse;
+      const apiUser = mapApiUser(payload.data?.user, email, TEST_ACCOUNTS[email.toLowerCase() as keyof typeof TEST_ACCOUNTS]?.name || email);
 
-    const login = async (email: string, password: string) => {
-        const authResponse = await loginRequest(email, password);
-        setStoredToken(authResponse.token);
+      persistSession(setUser, apiUser, payload.data?.token);
+      return apiUser;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-        const mappedUser = mapApiUser(authResponse.user);
-        setUser(mappedUser);
-        persistUser(mappedUser);
-    };
+  const loginWithGoogle = async () => {
+    setIsLoading(true);
+    setError(null);
 
-    const loginWithGoogle = async () => {
-        const redirectUrl = await getGoogleRedirectUrl();
-        window.location.assign(redirectUrl);
-    };
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const signup = async (email: string, password: string, name: string) => {
-        const cleanedName = name.trim();
-        const nameParts = cleanedName.split(/\s+/).filter(Boolean);
-        const firstName = nameParts[0] ?? cleanedName;
-        const lastName = nameParts.slice(1).join(" ") || firstName;
+      const mockUser: User = {
+        id: Date.now().toString(),
+        email: 'user@gmail.com',
+        name: 'Google User',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=GoogleUser',
+        role: 'free',
+      };
 
-        const authResponse = await registerRequest({
-            email: email.trim(),
-            password,
-            password_confirmation: password,
-            name: cleanedName,
-            first_name: firstName,
-            last_name: lastName,
-        });
+      setUser(mockUser);
+      localStorage.setItem('user', JSON.stringify(mockUser));
+      return mockUser;
+    } catch (err) {
+      setError('Google login failed');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-        setStoredToken(authResponse.token);
+  const signup = async (email: string, password: string, name: string) => {
+    setIsLoading(true);
+    setError(null);
 
-        const mappedUser = mapApiUser(authResponse.user);
-        setUser(mappedUser);
-        persistUser(mappedUser);
-    };
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          password_confirmation: password,
+          name,
+        }),
+      });
 
-    const logout = () => {
-        logoutRequest().catch(() => null);
-        setStoredToken(null);
-        setUser(null);
-        persistUser(null);
-    };
+      if (!response.ok) {
+        throw new Error(await readAuthError(response));
+      }
 
-    const resetPassword = async (email: string) => {
-        return requestPasswordReset(email);
-    };
+      const payload = (await response.json()) as AuthApiResponse;
+      const apiUser = mapApiUser(payload.data?.user, email, name);
 
-    const upgradeToPremium = () => {
-        if (user) {
-            const updatedUser = { ...user, role: "premium" as UserRole };
-            setUser(updatedUser);
-            persistUser(updatedUser);
-        }
-    };
+      persistSession(setUser, apiUser, payload.data?.token);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Signup failed');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    return (
-        <AuthContext.Provider
-            value={{
-                user,
-                isAuthenticated: !!user,
-                login,
-                loginWithGoogle,
-                refreshUser,
-                signup,
-                logout,
-                resetPassword,
-                upgradeToPremium,
-            }}
-        >
-            {children}
-        </AuthContext.Provider>
-    );
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('auth_token');
+  };
+
+  const resetPassword = async (email: string) => {
+    setIsLoading(true);
+    setError(null);
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setIsLoading(false);
+  };
+
+  const upgradeToPremium = () => {
+    if (user) {
+      const updatedUser = { ...user, role: 'premium' as UserRole };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  };
+
+  const clearError = () => {
+    setError(null);
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        isLoading,
+        error,
+        login,
+        loginWithGoogle,
+        signup,
+        logout,
+        resetPassword,
+        upgradeToPremium,
+        clearError,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error("useAuth must be used within an AuthProvider");
-    }
-    return context;
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }

@@ -1,7 +1,7 @@
-# ScholarzPath - Scholarship Platform MVP
+# ScholarPath - Scholarship Platform MVP
 
 ## Overview
-ScholarzPath is a comprehensive scholarship platform focused on helping international students find and apply for scholarships to study in Java, Indonesia. The MVP includes all essential features for scholarship discovery, tracking, application preparation, and deadline notification management.
+ScholarPath is a comprehensive scholarship platform focused on helping international students find and apply for scholarships to study in Java, Indonesia. The MVP includes all essential features for scholarship discovery, tracking, application preparation, and deadline notification management.
 
 ## MVP Features Implemented
 
@@ -194,7 +194,7 @@ This implementation provides a working MVP and can easily be migrated to **Supab
 
 ## Regional Focus
 
-ScholarzPath exclusively features scholarships for studying in **Java, Indonesia**, covering:
+ScholarPath exclusively features scholarships for studying in **Java, Indonesia**, covering:
 - **Jakarta** - University of Indonesia, BINUS University
 - **Bandung** - Institut Teknologi Bandung (ITB), Telkom University, Universitas Padjadjaran
 - **Yogyakarta** - Universitas Gadjah Mada (UGM)

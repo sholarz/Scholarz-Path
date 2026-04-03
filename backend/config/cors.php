@@ -20,10 +20,20 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        env('FRONTEND_URL', 'http://127.0.0.1:3001'),
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'http://127.0.0.1:3001',
+        'http://127.0.0.1:5173',
+        'http://127.0.0.1:5174',
+        env('FRONTEND_URL', 'https://scholarz-path.com'),
     ],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '/^https?:\/\/localhost(:\d+)?$/',
+        '/^https?:\/\/127\.0\.0\.1(:\d+)?$/',
+    ],
 
     'allowed_headers' => ['*'],
 

@@ -1,9 +1,10 @@
-import { Link } from 'react-router';
-import { GraduationCap, Search, Calendar, Bookmark, LayoutDashboard, Menu, LogOut, User, Crown, BookOpen } from 'lucide-react';
+import { Link, useNavigate } from 'react-router';
+import { GraduationCap, Search, Calendar, Bookmark, LayoutDashboard, Menu, LogOut, User, Crown, BookOpen, UserCircle, MessageCircle, Shield } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '../lib/auth-context';
 import { usePayment } from '../lib/payment-context';
-import { PremiumBadge, AdminBadge } from './PremiumFeatureLock';
+import { RoleBadge, RoleIcon } from './RoleBadge';
+import { NotificationCenter } from './notifications/NotificationCenter';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +19,13 @@ import { useState } from 'react';
 export function Header() {
   const { user, isAuthenticated, logout } = useAuth();
   const { openPaymentFlow } = usePayment();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const navigationItems = isAuthenticated
     ? [
@@ -27,18 +34,19 @@ export function Header() {
         { name: 'Calendar', href: '/calendar', icon: Calendar },
         { name: 'Bookmarks', href: '/bookmarks', icon: Bookmark },
         { name: 'Test Prep', href: '/tests', icon: BookOpen },
+        { name: 'Forum', href: '/forum', icon: MessageCircle },
       ]
     : [];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="bg-primary rounded-lg p-1.5">
-              <GraduationCap className="w-5 h-5 text-primary-foreground" />
+      <div className="container flex h-16 items-center justify-between px-6">
+        <div className="flex items-center gap-6 ml-2">
+          <Link to="/" className="flex items-center gap-2.5">
+            <div className="bg-primary rounded-lg p-1">
+              <GraduationCap className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-semibold text-lg">ScholarzPath</span>
+            <span className="font-semibold text-base">ScholarPath</span>
           </Link>
 
           {isAuthenticated && (
@@ -69,6 +77,9 @@ export function Header() {
                 </Button>
               )}
               
+              {/* Notification Center */}
+              <NotificationCenter />
+              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full relative">
@@ -83,14 +94,27 @@ export function Header() {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <p className="font-medium">{user?.name}</p>
-                        {user?.role === 'premium' && <PremiumBadge />}
-                        {user?.role === 'admin' && <AdminBadge />}
+                        {user && <RoleBadge role={user.role} size="sm" />}
                       </div>
                       <p className="text-xs text-muted-foreground">{user?.email}</p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout} className="cursor-pointer">
+                  <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
+                    <UserCircle className="w-4 h-4 mr-2" />
+                    Profile
+                  </DropdownMenuItem>
+                  {user?.role === 'admin' && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => navigate('/admin/payment-verification')} className="cursor-pointer">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Payment Verification
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                     <LogOut className="w-4 h-4 mr-2" />
                     Logout
                   </DropdownMenuItem>
@@ -117,6 +141,16 @@ export function Header() {
                         </Button>
                       </Link>
                     ))}
+                    
+                    <div className="my-2 border-t" />
+                    
+                    <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start gap-2">
+                        <UserCircle className="w-4 h-4" />
+                        Profile
+                      </Button>
+                    </Link>
+                    
                     {user?.role === 'free' && (
                       <>
                         <div className="my-2 border-t" />

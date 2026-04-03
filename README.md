@@ -11,10 +11,10 @@ A comprehensive platform that helps students discover scholarships, match them w
 Students struggle to find relevant scholarships and manage the complex application process, leading to missed opportunities and suboptimal preparation strategies.
 
 ### **Solution**
-An intelligent platform that:
-- Aggregates scholarships from multiple sources using automated scraping
+An intelligence-first platform that:
+- Uses curated and mock-assisted scholarship datasets while external source connectors are planned for a later release
 - Matches students with relevant opportunities based on their profiles  
-- Generates AI-powered preparation roadmaps and daily task lists
+- Generates deadline-based preparation roadmaps and daily task lists
 - Provides a community forum for peer support and knowledge sharing
 - Offers tiered access with premium features for enhanced functionality
 
@@ -22,7 +22,7 @@ An intelligent platform that:
 - **Backend**: Laravel 10 (REST API)
 - **Frontend**: Next.js 14 (React)
 - **Database**: PostgreSQL 15
-- **Scraping**: Python (Scrapy + Celery)
+- **Data ingestion**: Curated datasets, admin-assisted imports, and planned external connectors
 - **Cache/Queue**: Redis
 - **Storage**: AWS S3 / Local
 - **Deployment**: Docker + Docker Compose
@@ -64,7 +64,7 @@ An intelligent platform that:
 ┌─────────────────────────────────────────────────────────────────┐
 │                   EXTERNAL SYSTEMS                              │
 ├─────────────────────────────────────────────────────────────────┤
-│  Python Scrapers  │  Payment (Stripe)  │  Email (SendGrid)     │
+│  Planned Connectors │  Payment (Stripe)  │  Email (SendGrid)    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -84,7 +84,7 @@ app/
 │   ├── Forum/                 # Discussion forum
 │   ├── Subscription/          # Payment & subscription management
 │   ├── Admin/                 # Administrative functions
-│   └── Scraper/               # Scraper integration
+│   └── Ingestion/             # Curated data ingestion and validation
 ├── Models/                    # Eloquent models
 ├── Services/                  # Shared services
 └── Utils/                     # Helper utilities
@@ -222,34 +222,20 @@ docs/
 
 ---
 
-## � TEST SIMULATIONS (Premium Feature)
-
-### **Mock Test Practice Environment**
-- **Practice Exams**: Standardized test simulations for scholarship entrance exams
-- **Score Tracking**: Real-time scoring with detailed performance analytics
-- **Multiple Test Categories**: SAT, ACT, GRE, GMAT, IELTS, and more (mock data)
-- **Performance Dashboard**: Track progress over time, identify weak areas
-- **Timed Practice**: Full-length simulations with countdown timers
-- **Detailed Results**: Question-by-question breakdown and explanations
-
-### **Future Integration**
-- Brand partnerships with official test providers
-- Real test data integration (SAT, ACT, IELTS, etc.)
-- Adaptive difficulty algorithms
-- AI-powered study recommendations based on weak areas
-
----
-
-## �🐍 PYTHON SCRAPER SYSTEM
+## 🐍 PYTHON SCRAPER SYSTEM
 
 ### **Architecture**
-- **Scrapy** framework for web scraping
-- **Celery** for distributed task management
-- **Redis** for message queuing and caching
-- **PostgreSQL** for data storage
-- **Docker** for containerization
+- **Planned**: Scrapy-based source connectors
+- **Planned**: Celery-based job orchestration
+- **Current**: Redis-backed queueing and cache support for platform services
+- **Current**: PostgreSQL for platform data storage
+- **Current**: Docker for containerization
 
 ### **Data Sources**
+- Curated scholarship datasets
+- Admin-reviewed ingestion batches
+- Mock-assisted records for development and testing
+- External sources listed below are planned connector targets, not active production feeds
 - Scholarships.com
 - Fastweb.com
 - Government scholarship portals
@@ -259,8 +245,9 @@ docs/
 ### **Quality Assurance**
 - Duplicate detection algorithms
 - Data validation and cleaning
-- Link verification
-- Content freshness monitoring
+- Controlled review workflows
+- Automated external link checks are planned for a future phase
+- Content freshness monitoring is planned for a future phase
 
 ---
 
@@ -349,7 +336,7 @@ docker-compose exec app php artisan migrate --seed
 - **[Database Schema](docs/database-schema.sql)** - Complete PostgreSQL database design
 - **[API Documentation](docs/api-documentation.md)** - REST API specification  
 - **[Backend Modules](docs/backend-modules.md)** - System architecture details
-- **[Scraper Architecture](docs/python-scraper-architecture.md)** - Python scraping system
+- **[Scraper Architecture](docs/python-scraper-architecture.md)** - Planned Python scraping architecture reference
 - **[Features & Functions](docs/features-and-functions.md)** - Complete feature specifications
 
 ---

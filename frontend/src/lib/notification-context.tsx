@@ -1,20 +1,48 @@
-// Notification Context for managing deadline notifications
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useAuth } from './auth-context';
-import { toast } from 'sonner@2.0.3';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+
+export type NotificationType = 
+  | 'post_like'
+  | 'post_comment'
+  | 'comment_reply'
+  | 'post_approved'
+  | 'post_rejected'
+  | 'report_reviewed'
+  | 'payment_approved'
+  | 'payment_rejected'
+  | 'deadline_reminder'
+  | 'new_scholarship'
+  | 'system_announcement';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: Date;
+  link?: string;
+  actionBy?: string;
+  metadata?: Record<string, any>;
+}
 
 export interface NotificationPreference {
   scholarshipId: string;
   emailEnabled: boolean;
-  notifyDaysBefore: number[]; // e.g., [7, 3, 1] means notify 7 days, 3 days, and 1 day before deadline
+  notifyDaysBefore: number[];
   calendarAdded: boolean;
 }
 
 interface NotificationContextType {
+  notifications: Notification[];
+  unreadCount: number;
   preferences: NotificationPreference[];
+  addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => void;
+  markAsRead: (id: string) => void;
+  markAllAsRead: () => void;
+  deleteNotification: (id: string) => void;
+  clearAll: () => void;
   getPreference: (scholarshipId: string) => NotificationPreference | undefined;
-  updatePreference: (preference: NotificationPreference) => void;
-  removePreference: (scholarshipId: string) => void;
   enableEmailNotifications: (scholarshipId: string, daysBefore: number[]) => void;
   disableEmailNotifications: (scholarshipId: string) => void;
   markCalendarAdded: (scholarshipId: string) => void;
@@ -22,84 +50,142 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
+const MOCK_NOTIFICATIONS: Notification[] = [
+  {
+    id: '1',
+    userId: 'user1',
+    type: 'post_like',
+    title: 'Post Anda disukai',
+    message: 'Budi Santoso menyukai post Anda "Tips Lolos Beasiswa LPDP 2026"',
+    read: false,
+    createdAt: new Date('2026-04-03T10:30:00'),
+    link: '/forum/1',
+    actionBy: 'Budi Santoso',
+  },
+  {
+    id: '2',
+    userId: 'user1',
+    type: 'post_comment',
+    title: 'Komentar baru',
+    message: 'Siti Nurhaliza berkomentar pada post Anda',
+    read: false,
+    createdAt: new Date('2026-04-03T09:15:00'),
+    link: '/forum/1',
+    actionBy: 'Siti Nurhaliza',
+  },
+  {
+    id: '3',
+    userId: 'user1',
+    type: 'deadline_reminder',
+    title: 'Pengingat Deadline',
+    message: 'Beasiswa LPDP 2026 akan ditutup dalam 7 hari',
+    read: true,
+    createdAt: new Date('2026-04-02T08:00:00'),
+    link: '/scholarships/lpdp-2026',
+  },
+  {
+    id: '4',
+    userId: 'user1',
+    type: 'new_scholarship',
+    title: 'Beasiswa Baru!',
+    message: 'Beasiswa Chevening 2026 telah ditambahkan',
+    read: true,
+    createdAt: new Date('2026-04-01T14:00:00'),
+    link: '/scholarships/chevening-2026',
+  },
+];
+
 export function NotificationProvider({ children }: { children: ReactNode }) {
+  const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
   const [preferences, setPreferences] = useState<NotificationPreference[]>([]);
-  const { user } = useAuth();
 
-  useEffect(() => {
-    // Load preferences from localStorage
-    const savedPreferences = localStorage.getItem('notification_preferences');
-    if (savedPreferences) {
-      setPreferences(JSON.parse(savedPreferences));
-    }
-  }, []);
+  const unreadCount = notifications.filter(n => !n.read).length;
 
-  const savePreferences = (newPreferences: NotificationPreference[]) => {
-    setPreferences(newPreferences);
-    localStorage.setItem('notification_preferences', JSON.stringify(newPreferences));
+  const addNotification = (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
+    const newNotification: Notification = {
+      ...notification,
+      id: Date.now().toString(),
+      read: false,
+      createdAt: new Date(),
+    };
+    setNotifications(prev => [newNotification, ...prev]);
+  };
+
+  const markAsRead = (id: string) => {
+    setNotifications(prev =>
+      prev.map(n => (n.id === id ? { ...n, read: true } : n))
+    );
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(prev =>
+      prev.map(n => ({ ...n, read: true }))
+    );
+  };
+
+  const deleteNotification = (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  const clearAll = () => {
+    setNotifications([]);
   };
 
   const getPreference = (scholarshipId: string) => {
     return preferences.find(p => p.scholarshipId === scholarshipId);
   };
 
-  const updatePreference = (preference: NotificationPreference) => {
-    const existingIndex = preferences.findIndex(p => p.scholarshipId === preference.scholarshipId);
-    let newPreferences: NotificationPreference[];
-
-    if (existingIndex >= 0) {
-      newPreferences = [...preferences];
-      newPreferences[existingIndex] = preference;
-    } else {
-      newPreferences = [...preferences, preference];
-    }
-
-    savePreferences(newPreferences);
-    toast.success('Notification settings updated');
-  };
-
-  const removePreference = (scholarshipId: string) => {
-    savePreferences(preferences.filter(p => p.scholarshipId !== scholarshipId));
-  };
-
   const enableEmailNotifications = (scholarshipId: string, daysBefore: number[]) => {
-    const existing = getPreference(scholarshipId);
-    updatePreference({
-      scholarshipId,
-      emailEnabled: true,
-      notifyDaysBefore: daysBefore,
-      calendarAdded: existing?.calendarAdded || false,
+    setPreferences(prev => {
+      const existingPreference = prev.find(p => p.scholarshipId === scholarshipId);
+      if (existingPreference) {
+        return prev.map(p => 
+          p.scholarshipId === scholarshipId ? { ...p, emailEnabled: true, notifyDaysBefore: daysBefore } : p
+        );
+      } else {
+        return [...prev, { scholarshipId, emailEnabled: true, notifyDaysBefore: daysBefore, calendarAdded: false }];
+      }
     });
   };
 
   const disableEmailNotifications = (scholarshipId: string) => {
-    const existing = getPreference(scholarshipId);
-    if (existing) {
-      updatePreference({
-        ...existing,
-        emailEnabled: false,
-      });
-    }
+    setPreferences(prev => {
+      const existingPreference = prev.find(p => p.scholarshipId === scholarshipId);
+      if (existingPreference) {
+        return prev.map(p => 
+          p.scholarshipId === scholarshipId ? { ...p, emailEnabled: false } : p
+        );
+      } else {
+        return [...prev, { scholarshipId, emailEnabled: false, notifyDaysBefore: [], calendarAdded: false }];
+      }
+    });
   };
 
   const markCalendarAdded = (scholarshipId: string) => {
-    const existing = getPreference(scholarshipId);
-    updatePreference({
-      scholarshipId,
-      emailEnabled: existing?.emailEnabled || false,
-      notifyDaysBefore: existing?.notifyDaysBefore || [7, 3, 1],
-      calendarAdded: true,
+    setPreferences(prev => {
+      const existingPreference = prev.find(p => p.scholarshipId === scholarshipId);
+      if (existingPreference) {
+        return prev.map(p => 
+          p.scholarshipId === scholarshipId ? { ...p, calendarAdded: true } : p
+        );
+      } else {
+        return [...prev, { scholarshipId, emailEnabled: false, notifyDaysBefore: [], calendarAdded: true }];
+      }
     });
-    toast.success('Calendar event exported');
   };
 
   return (
     <NotificationContext.Provider
       value={{
+        notifications,
+        unreadCount,
         preferences,
+        addNotification,
+        markAsRead,
+        markAllAsRead,
+        deleteNotification,
+        clearAll,
         getPreference,
-        updatePreference,
-        removePreference,
         enableEmailNotifications,
         disableEmailNotifications,
         markCalendarAdded,
@@ -112,103 +198,63 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
 export function useNotifications() {
   const context = useContext(NotificationContext);
-  
-  if (context === undefined) {
-    throw new Error('useNotifications must be used within a NotificationProvider');
+  if (!context) {
+    throw new Error('useNotifications must be used within NotificationProvider');
   }
-
   return context;
 }
 
-// Helper function to calculate days until deadline
+// Utility functions for deadline notifications
 export function getDaysUntilDeadline(deadline: Date): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
   const deadlineDate = new Date(deadline);
-  deadlineDate.setHours(0, 0, 0, 0);
-  const diffTime = deadlineDate.getTime() - today.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const diffTime = deadlineDate.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
 }
 
-// Helper function to check if deadline is approaching
-export function isDeadlineApproaching(deadline: Date, threshold: number = 7): boolean {
-  const days = getDaysUntilDeadline(deadline);
-  return days >= 0 && days <= threshold;
-}
-
-// Helper function to check if deadline is overdue
 export function isDeadlineOverdue(deadline: Date): boolean {
   return getDaysUntilDeadline(deadline) < 0;
 }
 
-// Helper function to generate ICS calendar file content
-export function generateICSFile(
-  scholarshipTitle: string,
-  deadline: Date,
-  description: string,
-  applicationUrl: string
-): string {
-  const formatDate = (date: Date): string => {
+export function isDeadlineApproaching(deadline: Date): boolean {
+  const days = getDaysUntilDeadline(deadline);
+  return days >= 0 && days <= 7; // Within 7 days
+}
+
+// Download ICS file for calendar
+export function downloadICSFile(scholarship: { title: string; deadline: Date; description?: string; location?: string }) {
+  const { title, deadline, description, location } = scholarship;
+  
+  const formatDate = (date: Date) => {
     return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
   };
-
-  const now = new Date();
-  const deadlineEnd = new Date(deadline);
-  deadlineEnd.setHours(23, 59, 59);
 
   const icsContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//ScholarzPath//Scholarship Deadline//EN',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
+    'PRODID:-//ScholarPath//Scholarship Reminder//EN',
     'BEGIN:VEVENT',
     `DTSTART:${formatDate(deadline)}`,
-    `DTEND:${formatDate(deadlineEnd)}`,
-    `DTSTAMP:${formatDate(now)}`,
-    `UID:scholarship-${Date.now()}@scholarzpath.com`,
-    `SUMMARY:Scholarship Deadline: ${scholarshipTitle}`,
-    `DESCRIPTION:${description}\\n\\nApplication URL: ${applicationUrl}`,
-    `URL:${applicationUrl}`,
+    `DTEND:${formatDate(deadline)}`,
+    `SUMMARY:Deadline: ${title}`,
+    `DESCRIPTION:${description || `Deadline untuk ${title}`}`,
+    `LOCATION:${location || 'Online'}`,
     'STATUS:CONFIRMED',
-    'SEQUENCE:0',
     'BEGIN:VALARM',
     'TRIGGER:-P7D',
     'ACTION:DISPLAY',
-    'DESCRIPTION:Scholarship deadline in 7 days',
-    'END:VALARM',
-    'BEGIN:VALARM',
-    'TRIGGER:-P3D',
-    'ACTION:DISPLAY',
-    'DESCRIPTION:Scholarship deadline in 3 days',
-    'END:VALARM',
-    'BEGIN:VALARM',
-    'TRIGGER:-P1D',
-    'ACTION:DISPLAY',
-    'DESCRIPTION:Scholarship deadline tomorrow',
+    `DESCRIPTION:Pengingat: Deadline ${title} dalam 7 hari`,
     'END:VALARM',
     'END:VEVENT',
-    'END:VCALENDAR',
+    'END:VCALENDAR'
   ].join('\r\n');
 
-  return icsContent;
-}
-
-// Helper function to download ICS file
-export function downloadICSFile(
-  scholarshipTitle: string,
-  deadline: Date,
-  description: string,
-  applicationUrl: string
-): void {
-  const icsContent = generateICSFile(scholarshipTitle, deadline, description, applicationUrl);
   const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  link.href = url;
-  link.download = `scholarship-${scholarshipTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.ics`;
+  link.href = URL.createObjectURL(blob);
+  link.download = `${title.replace(/[^a-z0-9]/gi, '-')}-reminder.ics`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
 }

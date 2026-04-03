@@ -2,86 +2,56 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './auth-context';
 import { toast } from 'sonner@2.0.3';
-import { addBookmark, removeBookmark, getBookmarks } from '../api/scholarship';
 
 const FREE_USER_BOOKMARK_LIMIT = 3;
 
 interface BookmarkContextType {
   bookmarks: string[];
   isBookmarked: (scholarshipId: string) => boolean;
-  addBookmark: (scholarshipId: string) => Promise<void>;
-  removeBookmark: (scholarshipId: string) => Promise<void>;
-  toggleBookmark: (scholarshipId: string) => Promise<void>;
+  addBookmark: (scholarshipId: string) => void;
+  removeBookmark: (scholarshipId: string) => void;
+  toggleBookmark: (scholarshipId: string) => void;
   canAddMore: boolean;
   bookmarkLimit: number | null;
-  isLoading: boolean;
 }
 
 const BookmarkContext = createContext<BookmarkContextType | undefined>(undefined);
 
 export function BookmarkProvider({ children }: { children: ReactNode }) {
   const [bookmarks, setBookmarks] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const { isAuthenticated } = useAuth();
 
-  // Fetch bookmarks from API when authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchBookmarks();
+    // Load bookmarks from localStorage
+    const savedBookmarks = localStorage.getItem('bookmarks');
+    if (savedBookmarks) {
+      setBookmarks(JSON.parse(savedBookmarks));
     }
-  }, [isAuthenticated]);
+  }, []);
 
-  const fetchBookmarks = async () => {
-    try {
-      setIsLoading(true);
-      const response = await getBookmarks();
-      const scholarshipIds = response.data.data.scholarships
-        .map((item: any) => {
-          const scholarshipId = item?.scholarship_id ?? item?.scholarship?.id ?? item?.id;
-          return scholarshipId ? String(scholarshipId) : null;
-        })
-        .filter((id: string | null): id is string => id !== null);
-      setBookmarks(scholarshipIds);
-    } catch (error) {
-      console.error('Failed to fetch bookmarks:', error);
-      // Fallback to empty bookmarks if fetch fails
-      setBookmarks([]);
-    } finally {
-      setIsLoading(false);
-    }
+  const saveBookmarks = (newBookmarks: string[]) => {
+    setBookmarks(newBookmarks);
+    localStorage.setItem('bookmarks', JSON.stringify(newBookmarks));
   };
 
   const isBookmarked = (scholarshipId: string) => {
     return bookmarks.includes(scholarshipId);
   };
 
-  const handleAddBookmark = async (scholarshipId: string) => {
-    if (!isBookmarked(scholarshipId)) {
-      try {
-        await addBookmark(scholarshipId);
-        setBookmarks([...bookmarks, scholarshipId]);
-      } catch (error) {
-        console.error('Failed to bookmark:', error);
-        throw error;
-      }
+  const addBookmark = (scholarshipId: string) => {
+    if (!bookmarks.includes(scholarshipId)) {
+      saveBookmarks([...bookmarks, scholarshipId]);
     }
   };
 
-  const handleRemoveBookmark = async (scholarshipId: string) => {
-    try {
-      await removeBookmark(scholarshipId);
-      setBookmarks(bookmarks.filter(id => id !== scholarshipId));
-    } catch (error) {
-      console.error('Failed to remove bookmark:', error);
-      throw error;
-    }
+  const removeBookmark = (scholarshipId: string) => {
+    saveBookmarks(bookmarks.filter(id => id !== scholarshipId));
   };
 
-  const handleToggleBookmark = async (scholarshipId: string) => {
+  const toggleBookmark = (scholarshipId: string) => {
     if (isBookmarked(scholarshipId)) {
-      await handleRemoveBookmark(scholarshipId);
+      removeBookmark(scholarshipId);
     } else {
-      await handleAddBookmark(scholarshipId);
+      addBookmark(scholarshipId);
     }
   };
 
@@ -90,12 +60,11 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
       value={{
         bookmarks,
         isBookmarked,
-        addBookmark: handleAddBookmark,
-        removeBookmark: handleRemoveBookmark,
-        toggleBookmark: handleToggleBookmark,
+        addBookmark,
+        removeBookmark,
+        toggleBookmark,
         canAddMore: true,
         bookmarkLimit: null,
-        isLoading,
       }}
     >
       {children}
@@ -116,21 +85,17 @@ export function useBookmarks() {
   const bookmarkLimit = isFreeUser ? FREE_USER_BOOKMARK_LIMIT : null;
   const canAddMore = !isFreeUser || context.bookmarks.length < FREE_USER_BOOKMARK_LIMIT;
 
-  const enhancedToggleBookmark = async (scholarshipId: string) => {
-    try {
-      if (context.isBookmarked(scholarshipId)) {
-        await context.removeBookmark(scholarshipId);
-        toast.success('Bookmark removed');
-      } else {
-        if (isFreeUser && context.bookmarks.length >= FREE_USER_BOOKMARK_LIMIT) {
-          toast.error(`Free users can only bookmark up to ${FREE_USER_BOOKMARK_LIMIT} scholarships. Upgrade to Premium for unlimited bookmarks!`);
-          return;
-        }
-        await context.addBookmark(scholarshipId);
-        toast.success('Scholarship bookmarked');
+  const enhancedToggleBookmark = (scholarshipId: string) => {
+    if (context.isBookmarked(scholarshipId)) {
+      context.removeBookmark(scholarshipId);
+      toast.success('Bookmark removed');
+    } else {
+      if (isFreeUser && context.bookmarks.length >= FREE_USER_BOOKMARK_LIMIT) {
+        toast.error(`Free users can only bookmark up to ${FREE_USER_BOOKMARK_LIMIT} scholarships. Upgrade to Premium for unlimited bookmarks!`);
+        return;
       }
-    } catch (error) {
-      toast.error('Failed to update bookmark');
+      context.addBookmark(scholarshipId);
+      toast.success('Scholarship bookmarked');
     }
   };
 
