@@ -7,6 +7,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         // Hapus data lama dulu supaya tidak conflict
         DB::table('user_documents')->truncate();
 
@@ -43,6 +47,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement("ALTER TABLE user_documents DROP CONSTRAINT IF EXISTS user_documents_document_type_check");
         DB::statement("ALTER TABLE user_documents DROP CONSTRAINT IF EXISTS user_documents_status_check");
     }

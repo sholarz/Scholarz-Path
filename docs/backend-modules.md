@@ -1,4 +1,5 @@
 # BACKEND MODULE DESIGN
+
 **Scholarship Aggregator & Preparation Platform**
 
 This document outlines the modular architecture of the Laravel backend system, detailing each service module, its responsibilities, and interactions.
@@ -30,9 +31,11 @@ The backend follows a **Clean Architecture** pattern with clear separation of co
 ## MODULE BREAKDOWN
 
 ### 1. **AUTHENTICATION MODULE**
+
 **Location:** `app/Modules/Auth/`
 
 **Responsibilities:**
+
 - User registration and login
 - JWT token management
 - Password reset functionality
@@ -40,12 +43,14 @@ The backend follows a **Clean Architecture** pattern with clear separation of co
 - Rate limiting for auth endpoints
 
 **Services:**
+
 - `AuthService` - Core authentication logic
 - `JWTService` - Token generation and validation
 - `EmailVerificationService` - Email verification workflow
 - `PasswordResetService` - Password reset workflow
 
 **Key Classes:**
+
 ```php
 AuthController
 AuthService
@@ -59,20 +64,24 @@ RegisterRequest
 ---
 
 ### 2. **USER MANAGEMENT MODULE**
+
 **Location:** `app/Modules/User/`
 
 **Responsibilities:**
+
 - User profile management
 - Language proficiency tracking
 - Account settings
 - User statistics and analytics
 
 **Services:**
+
 - `UserService` - User profile operations
 - `ProfileService` - Profile completion and validation
 - `LanguageService` - Language proficiency management
 
 **Key Classes:**
+
 ```php
 UserController
 ProfileController
@@ -87,9 +96,11 @@ UserLanguage (Model)
 ---
 
 ### 3. **SCHOLARSHIP SERVICE MODULE**
+
 **Location:** `app/Modules/Scholarship/`
 
 **Responsibilities:**
+
 - Scholarship CRUD operations
 - Provider management
 - Search and filtering
@@ -97,12 +108,14 @@ UserLanguage (Model)
 - View tracking and analytics
 
 **Services:**
+
 - `ScholarshipService` - Core scholarship operations
 - `ProviderService` - Provider management
 - `SearchService` - Advanced search and filtering
 - `ValidationService` - Data validation for scraped content
 
 **Key Classes:**
+
 ```php
 ScholarshipController
 ProviderController
@@ -117,9 +130,11 @@ ScholarshipRepository
 ---
 
 ### 4. **MATCHING ENGINE MODULE**
+
 **Location:** `app/Modules/Matching/`
 
 **Responsibilities:**
+
 - Profile-to-scholarship matching algorithm
 - Match scoring and ranking
 - Rate limiting for free users
@@ -127,12 +142,14 @@ ScholarshipRepository
 - AI-powered recommendations
 
 **Services:**
+
 - `MatchingService` - Core matching algorithm
 - `ScoringService` - Match score calculation
 - `RateLimitService` - Free user limitations
 - `RecommendationService` - AI recommendations
 
 **Key Classes:**
+
 ```php
 MatchingController
 MatchingService
@@ -145,6 +162,7 @@ MatchingEngine
 ```
 
 **Algorithm Components:**
+
 ```php
 interface MatchingCriteria {
     public function evaluate(UserProfile $profile, Scholarship $scholarship): float;
@@ -160,9 +178,11 @@ class DegreeLevelMatcher implements MatchingCriteria
 ---
 
 ### 5. **ROADMAP GENERATOR MODULE**
+
 **Location:** `app/Modules/Roadmap/`
 
 **Responsibilities:**
+
 - AI-powered roadmap generation
 - Milestone and task creation
 - Progress tracking
@@ -170,6 +190,7 @@ class DegreeLevelMatcher implements MatchingCriteria
 - Document checklist management
 
 **Services:**
+
 - `RoadmapService` - Roadmap CRUD operations
 - `GeneratorService` - AI roadmap generation
 - `ProgressService` - Progress tracking and analytics
@@ -177,6 +198,7 @@ class DegreeLevelMatcher implements MatchingCriteria
 - `DocumentService` - Document checklist management
 
 **Key Classes:**
+
 ```php
 RoadmapController
 TaskController
@@ -193,6 +215,7 @@ DocumentChecklist (Model)
 ```
 
 **AI Components:**
+
 ```php
 class RoadmapGenerator {
     public function generateForScholarship(Scholarship $scholarship, User $user): array;
@@ -204,9 +227,11 @@ class RoadmapGenerator {
 ---
 
 ### 6. **FORUM MODULE**
+
 **Location:** `app/Modules/Forum/`
 
 **Responsibilities:**
+
 - Forum category management
 - Topic and reply CRUD
 - User interactions (likes, solutions)
@@ -214,6 +239,7 @@ class RoadmapGenerator {
 - Search within forum
 
 **Services:**
+
 - `ForumService` - Core forum operations
 - `CategoryService` - Category management
 - `TopicService` - Topic operations
@@ -221,6 +247,7 @@ class RoadmapGenerator {
 - `ModerationService` - Admin moderation tools
 
 **Key Classes:**
+
 ```php
 ForumController
 CategoryController
@@ -240,9 +267,11 @@ ForumReplyLike (Model)
 ---
 
 ### 7. **SUBSCRIPTION MODULE**
+
 **Location:** `app/Modules/Subscription/`
 
 **Responsibilities:**
+
 - Subscription plan management
 - Payment processing integration
 - Usage tracking and limits
@@ -250,6 +279,7 @@ ForumReplyLike (Model)
 - Upgrade/downgrade workflows
 
 **Services:**
+
 - `SubscriptionService` - Core subscription logic
 - `PlanService` - Plan management
 - `PaymentService` - Payment processing (Stripe integration)
@@ -257,6 +287,7 @@ ForumReplyLike (Model)
 - `BillingService` - Billing and invoicing
 
 **Key Classes:**
+
 ```php
 SubscriptionController
 PlanController
@@ -271,6 +302,7 @@ UserSubscription (Model)
 ```
 
 **Payment Integration:**
+
 ```php
 interface PaymentGateway {
     public function createSubscription(User $user, Plan $plan): PaymentResult;
@@ -285,9 +317,11 @@ class PayPalGateway implements PaymentGateway
 ---
 
 ### 8. **NOTIFICATION MODULE**
+
 **Location:** `app/Modules/Notification/`
 
 **Responsibilities:**
+
 - In-app notifications
 - Email notifications
 - Push notifications (future)
@@ -295,11 +329,13 @@ class PayPalGateway implements PaymentGateway
 - Delivery tracking
 
 **Services:**
+
 - `NotificationService` - Core notification logic
 - `EmailService` - Email notification handling
 - `PreferenceService` - User notification preferences
 
 **Key Classes:**
+
 ```php
 NotificationController
 NotificationService
@@ -310,6 +346,7 @@ NotificationPreference (Model)
 ```
 
 **Notification Types:**
+
 ```php
 abstract class BaseNotification {
     abstract public function toMail(User $user): MailMessage;
@@ -325,9 +362,11 @@ class ForumReplyNotification extends BaseNotification
 ---
 
 ### 9. **ADMIN MODULE**
+
 **Location:** `app/Modules/Admin/`
 
 **Responsibilities:**
+
 - System analytics and reporting
 - User management
 - Content moderation
@@ -335,6 +374,7 @@ class ForumReplyNotification extends BaseNotification
 - Data export and import
 
 **Services:**
+
 - `AdminDashboardService` - Dashboard analytics
 - `UserManagementService` - Admin user operations
 - `ContentModerationService` - Content moderation
@@ -342,6 +382,7 @@ class ForumReplyNotification extends BaseNotification
 - `ReportingService` - Analytics and reporting
 
 **Key Classes:**
+
 ```php
 AdminDashboardController
 UserManagementController
@@ -357,9 +398,11 @@ ReportingService
 ---
 
 ### 10. **DATA INGESTION & QUALITY MODULE**
+
 **Location:** `app/Modules/Ingestion/`
 
 **Responsibilities:**
+
 - Manage curated and mock-assisted scholarship datasets
 - Handle admin-assisted ingestion workflows
 - Data validation and cleaning
@@ -369,6 +412,7 @@ ReportingService
 - Define future external connector interfaces
 
 **Services:**
+
 - `IngestionService` - Dataset handling and data processing
 - `ValidationService` - Data validation and cleaning
 - `DeduplicationService` - Duplicate scholarship detection
@@ -376,6 +420,7 @@ ReportingService
 - `ConnectorInterfaceService` - Future external source integration contracts
 
 **Key Classes:**
+
 ```php
 IngestionWebhookController
 IngestionService
@@ -388,9 +433,11 @@ IngestionLog (Model)
 ---
 
 ### 11. **ANALYTICS MODULE**
+
 **Location:** `app/Modules/Analytics/`
 
 **Responsibilities:**
+
 - User behavior tracking
 - System performance metrics
 - Business intelligence
@@ -398,12 +445,14 @@ IngestionLog (Model)
 - A/B testing support
 
 **Services:**
+
 - `AnalyticsService` - Core analytics logic
 - `EventTrackingService` - Custom event tracking
 - `MetricsService` - System metrics collection
 - `ReportingService` - Analytics reporting
 
 **Key Classes:**
+
 ```php
 AnalyticsController
 AnalyticsService
@@ -418,6 +467,7 @@ AnalyticsEvent (Model)
 ## SHARED SERVICES & UTILITIES
 
 ### 1. **CORE SERVICES**
+
 **Location:** `app/Services/Core/`
 
 ```php
@@ -430,6 +480,7 @@ ValidationService     // Custom validation rules
 ```
 
 ### 2. **EXTERNAL INTEGRATIONS**
+
 **Location:** `app/Services/External/`
 
 ```php
@@ -441,6 +492,7 @@ OpenAIService        // AI content generation
 ```
 
 ### 3. **UTILITIES**
+
 **Location:** `app/Utils/`
 
 ```php
@@ -456,6 +508,7 @@ CountryHelper       // Country/locale utilities
 ## MIDDLEWARE STACK
 
 ### **Authentication Middleware**
+
 ```php
 app/Http/Middleware/JWTAuth.php           // JWT token validation
 app/Http/Middleware/RoleMiddleware.php    // Role-based access control
@@ -463,6 +516,7 @@ app/Http/Middleware/SubscriptionCheck.php // Premium feature checks
 ```
 
 ### **Rate Limiting Middleware**
+
 ```php
 app/Http/Middleware/RateLimit.php         // API rate limiting
 app/Http/Middleware/MatchingRateLimit.php // Matching-specific limits
@@ -470,6 +524,7 @@ app/Http/Middleware/GuestRateLimit.php    // Guest user limits
 ```
 
 ### **Validation Middleware**
+
 ```php
 app/Http/Middleware/ValidateJSON.php      // JSON format validation
 app/Http/Middleware/SanitizeInput.php     // Input sanitization
@@ -481,6 +536,7 @@ app/Http/Middleware/CORS.php              // Cross-origin requests
 ## JOB QUEUES & BACKGROUND PROCESSING
 
 ### **Queue Jobs**
+
 **Location:** `app/Jobs/`
 
 ```php
@@ -508,6 +564,7 @@ UpdateDashboardMetricsJob
 ```
 
 ### **Scheduled Tasks**
+
 **Location:** `app/Console/Commands/`
 
 ```php
@@ -533,6 +590,7 @@ ArchiveOldData
 ## EVENT SYSTEM
 
 ### **Domain Events**
+
 **Location:** `app/Events/`
 
 ```php
@@ -565,6 +623,7 @@ ReplyLiked
 ```
 
 ### **Event Listeners**
+
 **Location:** `app/Listeners/`
 
 ```php
@@ -589,6 +648,7 @@ LogRoadmapActivity
 ## DATA ACCESS PATTERNS
 
 ### **Repository Pattern**
+
 ```php
 interface RepositoryInterface {
     public function find($id);
@@ -606,6 +666,7 @@ ForumRepository
 ```
 
 ### **Query Builders**
+
 ```php
 class ScholarshipQueryBuilder {
     public function byLevel(string $level): self;
@@ -622,6 +683,7 @@ class ScholarshipQueryBuilder {
 ## CACHING STRATEGY
 
 ### **Cache Layers**
+
 ```php
 // Model Caching
 ScholarshipCache     // Popular scholarships
@@ -639,6 +701,7 @@ AuthenticatedCache // User-specific responses
 ```
 
 ### **Cache Keys Convention**
+
 ```php
 user:{user_id}:profile
 user:{user_id}:matches
@@ -653,6 +716,7 @@ statistics:dashboard:monthly
 ## ERROR HANDLING & LOGGING
 
 ### **Exception Handlers**
+
 ```php
 app/Exceptions/BusinessException.php      // Business logic errors
 app/Exceptions/ValidationException.php    // Validation errors
@@ -662,6 +726,7 @@ app/Exceptions/SubscriptionException.php  // Subscription errors
 ```
 
 ### **Logging Channels**
+
 ```php
 // config/logging.php
 'channels' => [
@@ -678,6 +743,7 @@ app/Exceptions/SubscriptionException.php  // Subscription errors
 ## TESTING ARCHITECTURE
 
 ### **Test Structure**
+
 ```php
 tests/
 ├── Feature/           # Integration tests
@@ -695,6 +761,7 @@ tests/
 ```
 
 ### **Test Utilities**
+
 ```php
 tests/TestCase.php           # Base test class
 tests/Factories/            # Model factories
