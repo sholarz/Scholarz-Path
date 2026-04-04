@@ -135,12 +135,20 @@ const fetchCurrentUser = async (token: string): Promise<ApiUserPayload> => {
     throw new Error(await readAuthError(response));
   }
 
-  const payload = (await response.json()) as AuthApiResponse;
-  if (!payload.data?.user) {
+  const payload = (await response.json()) as AuthApiResponse & {
+    data?: AuthApiResponse['data'] | ApiUserPayload;
+  };
+  const dataPayload = payload.data;
+  const userPayload =
+    dataPayload && 'user' in dataPayload
+      ? dataPayload.user
+      : (dataPayload as ApiUserPayload | undefined);
+
+  if (!userPayload) {
     throw new Error('Unable to load user profile after Google login');
   }
 
-  return payload.data.user;
+  return userPayload;
 };
 
 // Mock test accounts
