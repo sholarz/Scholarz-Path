@@ -164,6 +164,23 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     // Forum
     Route::prefix('forum')->group(function () {
+        Route::get('/posts', [ForumController::class, 'getPosts']);
+        Route::post('/posts', [ForumController::class, 'createPost']);
+        Route::get('/posts/pending', [ForumController::class, 'getPendingPosts'])->middleware('role:admin');
+        Route::get('/posts/{id}', [ForumController::class, 'getPost'])->whereUuid('id');
+        Route::put('/posts/{id}', [ForumController::class, 'updatePost'])->whereUuid('id');
+        Route::delete('/posts/{id}', [ForumController::class, 'deletePost'])->whereUuid('id');
+        Route::post('/posts/{id}/like', [ForumController::class, 'likePost'])->whereUuid('id');
+        Route::post('/posts/{id}/save', [ForumController::class, 'savePost'])->whereUuid('id');
+        Route::post('/posts/{id}/comments', [ForumController::class, 'addComment'])->whereUuid('id');
+        Route::post('/posts/{id}/report', [ForumController::class, 'reportPost'])->whereUuid('id');
+        Route::put('/posts/{id}/approve', [ForumController::class, 'approvePost'])->whereUuid('id')->middleware('role:admin');
+        Route::put('/posts/{id}/reject', [ForumController::class, 'rejectPost'])->whereUuid('id')->middleware('role:admin');
+        Route::get('/reports', [ForumController::class, 'getReports'])->middleware('role:admin');
+        Route::put('/reports/{id}/review', [ForumController::class, 'reviewReport'])->whereUuid('id')->middleware('role:admin');
+        Route::post('/comments/{id}/like', [ForumController::class, 'toggleCommentLike'])->whereUuid('id');
+        Route::post('/comments/{id}/replies', [ForumController::class, 'addReply'])->whereUuid('id');
+
         Route::get('/categories', [ForumController::class, 'getCategories']);
         Route::get('/categories/{slug}/topics', [ForumController::class, 'getTopicsByCategory']);
         Route::post('/categories/{slug}/topics', [ForumController::class, 'createTopic']);

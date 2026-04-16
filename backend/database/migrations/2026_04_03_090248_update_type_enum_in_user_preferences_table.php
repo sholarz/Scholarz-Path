@@ -7,6 +7,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         // PostgreSQL tidak bisa ALTER ENUM langsung,
         // jadi kita ganti constraint-nya
         DB::statement("
@@ -23,6 +27,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement("
             ALTER TABLE user_preferences
             DROP CONSTRAINT IF EXISTS user_preferences_type_check
