@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             LookupSeeder::class,
             AdminUserSeeder::class,
             AdminDemoSeeder::class,
+            ForumCategorySeeder::class,   // ← tambahan: seeder kategori forum
         ]);
     }
 }
