@@ -6,6 +6,7 @@ import { LandingPage } from "./components/LandingPage";
 import { LoginPage } from "./components/auth/LoginPage";
 import { SignupPage } from "./components/auth/SignupPage";
 import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
+import { GoogleCallbackPage } from "./components/auth/GoogleCallbackPage";
 import { DashboardPage } from "./components/dashboard/DashboardPage";
 import { ScholarshipsPage } from "./components/scholarships/ScholarshipsPage";
 import { ScholarshipDetailPage } from "./components/scholarships/ScholarshipDetailPage";
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
       { path: "login", Component: LoginPage },
       { path: "signup", Component: SignupPage },
       { path: "forgot-password", Component: ForgotPasswordPage },
+      { path: "auth/google/callback", Component: GoogleCallbackPage },
       { 
         path: "dashboard", 
         element: (
@@ -50,123 +52,158 @@ export const router = createBrowserRouter([
       },
       { path: "scholarships", Component: ScholarshipsPage },
       { path: "scholarships/:id", Component: ScholarshipDetailPage },
-      { 
-        path: "calendar", 
+      {
+        path: "calendar",
         element: (
           <ProtectedRoute>
             <CalendarPage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "bookmarks", 
+      {
+        path: "bookmarks",
         element: (
           <ProtectedRoute>
             <BookmarksPage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "timeline", 
+      {
+        path: "timeline",
         element: (
           <ProtectedRoute>
             <TimelinePage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "tests", 
+      {
+        path: "tests",
         element: (
           <ProtectedRoute>
             <TestSimulationsPage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "tests/:id", 
+      {
+        path: "tests/:id",
         element: (
           <ProtectedRoute>
             <TestExecutionPage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "profile", 
+      {
+        path: "profile",
         element: (
           <ProtectedRoute>
             <UserProfilePage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "forum", 
+      {
+        path: "forum",
         element: (
           <ProtectedRoute>
             <ForumPage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "forum/create", 
+      {
+        path: "forum/create",
         element: (
           <ProtectedRoute>
             <CreatePostPage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "forum/:id", 
+      {
+        path: "forum/:id",
         element: (
           <ProtectedRoute>
             <PostDetailPage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "forum/reports", 
+      {
+        path: "forum/reports",
         element: (
-          <ProtectedRoute>
+          <AdminRoute>
             <AdminReportsPage />
-          </ProtectedRoute>
+          </AdminRoute>
         )
       },
-      { 
-        path: "forum/pending", 
+      {
+        path: "forum/pending",
         element: (
-          <ProtectedRoute>
+          <AdminRoute>
             <AdminPendingPostsPage />
-          </ProtectedRoute>
+          </AdminRoute>
         )
       },
-      { 
-        path: "notifications", 
+      {
+        path: "notifications",
         element: (
           <ProtectedRoute>
             <NotificationsPage />
           </ProtectedRoute>
         )
       },
-      { 
-        path: "admin/payments", 
+      {
+        path: "admin/payments",
         element: (
-          <ProtectedRoute>
+          <AdminRoute>
             <AdminPaymentManagementPage />
-          </ProtectedRoute>
+          </AdminRoute>
         )
       },
-      { 
-        path: "admin/payment-verification", 
+      {
+        path: "admin/payment-verification",
         element: (
-          <ProtectedRoute>
+          <AdminRoute>
             <AdminPaymentPage />
-          </ProtectedRoute>
+          </AdminRoute>
         )
       },
-      { path: "admin/payment-verification-demo", Component: AdminPaymentVerificationDemo },
-      { path: "admin/dashboard", Component: AdminDashboardPage },
-      { path: "admin/users", Component: AdminUsersPage },
-      { path: "admin/settings", Component: AdminSettingsPage },
-      { path: "admin/scholarships", Component: AdminScholarshipsPage },
+      {
+        path: "admin/payment-verification-demo",
+        element: (
+          <AdminRoute>
+            <AdminPaymentVerificationDemo />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "admin/dashboard",
+        element: (
+          <AdminRoute>
+            <AdminDashboardPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "admin/users",
+        element: (
+          <AdminRoute>
+            <AdminUsersPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "admin/settings",
+        element: (
+          <AdminRoute>
+            <AdminSettingsPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "admin/scholarships",
+        element: (
+          <AdminRoute>
+            <AdminScholarshipsPage />
+          </AdminRoute>
+        ),
+      },
       { path: "subscription-snapshot-demo", Component: SubscriptionSnapshotDemo },
       { path: "*", Component: NotFoundPage },
     ],

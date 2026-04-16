@@ -13,7 +13,7 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login, loginWithGoogle, isLoading, user } = useAuth();
+  const { login, loginWithGoogle, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -36,24 +36,17 @@ export function LoginPage() {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError('Invalid email or password. Please try again.');
+      setError(err instanceof Error ? err.message : 'Invalid email or password. Please try again.');
     }
   };
 
   const handleGoogleLogin = async () => {
     setError('');
     try {
-      const loggedInUser = await loginWithGoogle();
-      toast.success('Welcome back!');
-      
-      // Redirect based on role
-      if (loggedInUser?.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
+      await loginWithGoogle();
+      toast.success('Redirecting to Google...');
     } catch (err) {
-      setError('Failed to login with Google. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to login with Google. Please try again.');
     }
   };
 
