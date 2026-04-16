@@ -126,9 +126,14 @@ class ProfileController extends Controller
                     'nationality' => $user->profile->nationality,
                     'current_country' => $user->profile->current_country,
                     'gpa' => $user->profile->gpa,
+                    'field_of_study' => $user->profile->field_of_study,
+                    'sub_field' => $user->profile->sub_field,
                     'major' => $user->profile->major,
                     'degree_level' => $user->profile->degree_level,
+                    'target_degree' => $user->profile->target_degree,
                     'graduation_year' => $user->profile->graduation_year,
+                    'expected_start_year' => $user->profile->expected_start_year,
+                    'application_status' => $user->profile->application_status,
                     'profile_completion_percentage' => $user->profile->profile_completion_percentage,
                 ] : null,
                 'languages' => $user->languages->map(fn ($lang) => [
@@ -177,6 +182,8 @@ class ProfileController extends Controller
      */
     private function persistProfile(User $user, array $data, string $message): JsonResponse
     {
+        $normalizedData = $this->normalizeAcademicPayload($data);
+
         $profile = $user->profile()->firstOrNew([
             'user_id' => $user->id,
         ]);
@@ -189,7 +196,7 @@ class ProfileController extends Controller
 
         $profile->fill(array_merge(
             Arr::only($profile->getAttributes(), UserProfile::PROFILE_FIELDS),
-            $data,
+            $normalizedData,
             ['user_id' => $user->id]
         ));
         $profile->refreshProfileProgress();
@@ -209,6 +216,29 @@ class ProfileController extends Controller
                 ],
             ],
         ]);
+    }
+
+    private function normalizeAcademicPayload(array $data): array
+    {
+        $fieldOfStudy = $data['field_of_study'] ?? null;
+        $major = $data['major'] ?? null;
+
+        if (!$fieldOfStudy && $major) {
+            $parts = explode(' | ', $major, 2);
+            $fieldOfStudy = trim($parts[0]);
+
+            if (!isset($data['sub_field']) && isset($parts[1])) {
+                $data['sub_field'] = trim($parts[1]);
+            }
+        }
+
+        if ($fieldOfStudy) {
+            // Keep major synchronized for backward compatibility with existing matching criteria.
+            $data['field_of_study'] = $fieldOfStudy;
+            $data['major'] = $fieldOfStudy;
+        }
+
+        return $data;
     }
 
     private function basicProfilePayload(User $user): array

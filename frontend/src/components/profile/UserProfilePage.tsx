@@ -100,6 +100,13 @@ const toBackendDegree = (v: string) =>
 const fromBackendDegree = (v: string | null | undefined) =>
   v === 'high_school' ? 'high-school' : v === 'doctorate' ? 'phd' : v ?? '';
 
+const fromBackendTestName = (v: string): LanguageTest['testType'] => {
+  if (v === 'ielts') return 'IELTS';
+  if (v === 'toefl_ibt') return 'TOEFL';
+  if (v === 'duolingo') return 'Duolingo';
+  return '';
+};
+
 export function UserProfilePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -151,9 +158,14 @@ export function UserProfilePage() {
             };
             academic: {
               gpa?: string | null;
+              field_of_study?: string | null;
+              sub_field?: string | null;
               major?: string | null;
               degree_level?: string | null;
+              target_degree?: string | null;
               graduation_year?: number | null;
+              expected_start_year?: number | null;
+              application_status?: string | null;
             };
           };
           languages: Array<{
@@ -202,7 +214,7 @@ export function UserProfilePage() {
         } catch { /* optional */ }
 
         const docMap = Object.fromEntries(docsArr.map(d => [d.document_type, d.is_ready]));
-        // Map major → fieldOfStudy + subField (stored as "Field | SubField" or just "Field")
+        // Backward compatibility: old records may only have major saved.
         const majorParts = (academic.major ?? '').split(' | ');
 
         setProfile(prev => ({
@@ -211,17 +223,20 @@ export function UserProfilePage() {
           nationality: basic.nationality ?? '',
           currentCountry: basic.current_country ?? '',
           currentDegree: fromBackendDegree(academic.degree_level),
+          targetDegree: fromBackendDegree(academic.target_degree),
           gpa: academic.gpa != null ? String(academic.gpa) : '',
-          fieldOfStudy: majorParts[0] ?? '',
-          subField: majorParts[1] ?? '',
+          fieldOfStudy: academic.field_of_study ?? majorParts[0] ?? '',
+          subField: academic.sub_field ?? majorParts[1] ?? '',
           preferredCountries: prefs.countries ?? [],
           preferredFields: prefs.fields_of_study ?? [],
           budgetPreference: prefs.budget_preference ?? '',
           preferredStartYear: prefs.preferred_start_year ? String(prefs.preferred_start_year) : '',
+          expectedStartYear: academic.expected_start_year ? String(academic.expected_start_year) : '',
+          applicationStatus: academic.application_status ?? '',
           languageTests: langTests.length > 0
             ? langTests.map(l => ({
                 id: l.id,
-                testType: l.test_name,  // 'ielts' | 'toefl_ibt' | 'duolingo'
+                testType: fromBackendTestName(l.test_name),
                 overallScore: String(l.overall_score),
                 showAdvanced: false,
               }))
@@ -323,6 +338,25 @@ export function UserProfilePage() {
   };
 
   const handleSave = async () => {
+    const fieldOfStudy = profile.fieldOfStudy.trim();
+    const subField = profile.subField.trim();
+    const gpaValue = profile.gpa ? parseFloat(profile.gpa) : NaN;
+
+    if (!profile.fullName.trim() || !profile.nationality || !profile.currentCountry) {
+      toast.error('Please complete all basic profile fields.');
+      return;
+    }
+
+    if (!profile.currentDegree || !profile.targetDegree || !fieldOfStudy) {
+      toast.error('Please complete all academic profile fields.');
+      return;
+    }
+
+    if (Number.isNaN(gpaValue) || gpaValue < 0 || gpaValue > 4) {
+      toast.error('GPA must be a number between 0.00 and 4.00.');
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -331,10 +365,8 @@ export function UserProfilePage() {
       const firstName = nameParts[0] ?? '';
       const lastName = nameParts.slice(1).join(' ') || firstName; // fallback to firstName if single word
 
-      // ── 2. Combine fieldOfStudy + subField into major ──────────────────
-      const major = profile.subField
-        ? `${profile.fieldOfStudy} | ${profile.subField}`
-        : profile.fieldOfStudy;
+      // ── 2. Persist canonical field_of_study and keep major for compatibility ──
+      const major = fieldOfStudy;
 
       // ── 3. Save core profile (basic + academic in one PUT) ─────────────
       await apiPut('/profile/', {
@@ -342,9 +374,14 @@ export function UserProfilePage() {
         last_name: lastName,
         nationality: profile.nationality || undefined,
         current_country: profile.currentCountry || undefined,
-        gpa: profile.gpa ? parseFloat(profile.gpa) : undefined,
+        gpa: gpaValue,
+        field_of_study: fieldOfStudy || undefined,
+        sub_field: subField || undefined,
         major: major || undefined,
         degree_level: profile.currentDegree ? toBackendDegree(profile.currentDegree) : undefined,
+        target_degree: profile.targetDegree ? toBackendDegree(profile.targetDegree) : undefined,
+        expected_start_year: profile.expectedStartYear ? parseInt(profile.expectedStartYear) : undefined,
+        application_status: profile.applicationStatus || undefined,
       });
 
       // ── 4. Save preferences ────────────────────────────────────────────
@@ -374,7 +411,7 @@ export function UserProfilePage() {
       // We store the LanguageTestCard's testType as a display name; map to backend enum
       const TEST_NAME_MAP: Record<string, string> = {
         'IELTS': 'ielts',
-        'TOEFL iBT': 'toefl_ibt',
+        'TOEFL': 'toefl_ibt',
         'Duolingo': 'duolingo',
         'ielts': 'ielts',
         'toefl_ibt': 'toefl_ibt',
@@ -663,7 +700,7 @@ export function UserProfilePage() {
                   <Label htmlFor="nationality">Nationality *</Label>
                   <Select
                     value={profile.nationality}
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, nationality: value }))}
+                    onValueChange={(value: string) => setProfile(prev => ({ ...prev, nationality: value }))}
                   >
                     <SelectTrigger id="nationality">
                       <SelectValue placeholder="Select nationality" />
@@ -680,7 +717,7 @@ export function UserProfilePage() {
                   <Label htmlFor="currentCountry">Current Country *</Label>
                   <Select
                     value={profile.currentCountry}
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, currentCountry: value }))}
+                    onValueChange={(value: string) => setProfile(prev => ({ ...prev, currentCountry: value }))}
                   >
                     <SelectTrigger id="currentCountry">
                       <SelectValue placeholder="Select country" />
@@ -711,7 +748,7 @@ export function UserProfilePage() {
                   <Label htmlFor="currentDegree">Current Degree *</Label>
                   <Select
                     value={profile.currentDegree}
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, currentDegree: value }))}
+                    onValueChange={(value: string) => setProfile(prev => ({ ...prev, currentDegree: value }))}
                   >
                     <SelectTrigger id="currentDegree">
                       <SelectValue placeholder="Select degree" />
@@ -729,7 +766,7 @@ export function UserProfilePage() {
                   <Label htmlFor="targetDegree">Target Degree *</Label>
                   <Select
                     value={profile.targetDegree}
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, targetDegree: value }))}
+                    onValueChange={(value: string) => setProfile(prev => ({ ...prev, targetDegree: value }))}
                   >
                     <SelectTrigger id="targetDegree">
                       <SelectValue placeholder="Select degree" />
@@ -748,7 +785,7 @@ export function UserProfilePage() {
                 <Label htmlFor="fieldOfStudy">Field of Study *</Label>
                 <Select
                   value={profile.fieldOfStudy}
-                  onValueChange={(value) => setProfile(prev => ({ ...prev, fieldOfStudy: value }))}
+                  onValueChange={(value: string) => setProfile(prev => ({ ...prev, fieldOfStudy: value }))}
                 >
                   <SelectTrigger id="fieldOfStudy">
                     <SelectValue placeholder="Select field of study" />
@@ -860,15 +897,15 @@ export function UserProfilePage() {
                   <Label htmlFor="budgetPreference">Budget Preference *</Label>
                   <Select
                     value={profile.budgetPreference}
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, budgetPreference: value }))}
+                    onValueChange={(value: string) => setProfile(prev => ({ ...prev, budgetPreference: value }))}
                   >
                     <SelectTrigger id="budgetPreference">
                       <SelectValue placeholder="Select budget" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="full">Full Scholarship</SelectItem>
-                      <SelectItem value="partial">Partial Scholarship</SelectItem>
-                      <SelectItem value="self-funded">Self-funded</SelectItem>
+                      <SelectItem value="full_scholarship">Full Scholarship</SelectItem>
+                      <SelectItem value="partial_scholarship">Partial Scholarship</SelectItem>
+                      <SelectItem value="self_funded">Self-funded</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -877,7 +914,7 @@ export function UserProfilePage() {
                   <Label htmlFor="preferredStartYear">Preferred Start Year *</Label>
                   <Select
                     value={profile.preferredStartYear}
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, preferredStartYear: value }))}
+                    onValueChange={(value: string) => setProfile(prev => ({ ...prev, preferredStartYear: value }))}
                   >
                     <SelectTrigger id="preferredStartYear">
                       <SelectValue placeholder="Select year" />
@@ -938,10 +975,10 @@ export function UserProfilePage() {
                   <Checkbox
                     id="cvUploaded"
                     checked={profile.documents.cvUploaded}
-                    onCheckedChange={(checked) =>
+                    onCheckedChange={(checked: boolean | 'indeterminate') =>
                       setProfile(prev => ({
                         ...prev,
-                        documents: { ...prev.documents, cvUploaded: checked as boolean }
+                        documents: { ...prev.documents, cvUploaded: checked === true }
                       }))
                     }
                   />
@@ -957,10 +994,10 @@ export function UserProfilePage() {
                   <Checkbox
                     id="motivationLetter"
                     checked={profile.documents.motivationLetter}
-                    onCheckedChange={(checked) =>
+                    onCheckedChange={(checked: boolean | 'indeterminate') =>
                       setProfile(prev => ({
                         ...prev,
-                        documents: { ...prev.documents, motivationLetter: checked as boolean }
+                        documents: { ...prev.documents, motivationLetter: checked === true }
                       }))
                     }
                   />
@@ -976,10 +1013,10 @@ export function UserProfilePage() {
                   <Checkbox
                     id="recommendationLetter"
                     checked={profile.documents.recommendationLetter}
-                    onCheckedChange={(checked) =>
+                    onCheckedChange={(checked: boolean | 'indeterminate') =>
                       setProfile(prev => ({
                         ...prev,
-                        documents: { ...prev.documents, recommendationLetter: checked as boolean }
+                        documents: { ...prev.documents, recommendationLetter: checked === true }
                       }))
                     }
                   />
@@ -995,10 +1032,10 @@ export function UserProfilePage() {
                   <Checkbox
                     id="transcript"
                     checked={profile.documents.transcript}
-                    onCheckedChange={(checked) =>
+                    onCheckedChange={(checked: boolean | 'indeterminate') =>
                       setProfile(prev => ({
                         ...prev,
-                        documents: { ...prev.documents, transcript: checked as boolean }
+                        documents: { ...prev.documents, transcript: checked === true }
                       }))
                     }
                   />
@@ -1014,10 +1051,10 @@ export function UserProfilePage() {
                   <Checkbox
                     id="passportReady"
                     checked={profile.documents.passportReady}
-                    onCheckedChange={(checked) =>
+                    onCheckedChange={(checked: boolean | 'indeterminate') =>
                       setProfile(prev => ({
                         ...prev,
-                        documents: { ...prev.documents, passportReady: checked as boolean }
+                        documents: { ...prev.documents, passportReady: checked === true }
                       }))
                     }
                   />
@@ -1046,7 +1083,7 @@ export function UserProfilePage() {
                   <Label htmlFor="expectedStartYear">Expected Start Year *</Label>
                   <Select
                     value={profile.expectedStartYear}
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, expectedStartYear: value }))}
+                    onValueChange={(value: string) => setProfile(prev => ({ ...prev, expectedStartYear: value }))}
                   >
                     <SelectTrigger id="expectedStartYear">
                       <SelectValue placeholder="Select year" />
@@ -1064,7 +1101,7 @@ export function UserProfilePage() {
                   <Label htmlFor="applicationStatus">Application Status *</Label>
                   <Select
                     value={profile.applicationStatus}
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, applicationStatus: value }))}
+                    onValueChange={(value: string) => setProfile(prev => ({ ...prev, applicationStatus: value }))}
                   >
                     <SelectTrigger id="applicationStatus">
                       <SelectValue placeholder="Select status" />

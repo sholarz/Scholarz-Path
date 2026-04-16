@@ -19,6 +19,7 @@ class MatchingController extends Controller
     {
         $validated = $request->validate([
             'gpa'           => 'sometimes|numeric|min:0|max:4',
+            'field_of_study' => 'sometimes|nullable|string|max:255',
             'major'         => 'sometimes|nullable|string|max:255',
             'degree_level'  => 'sometimes|nullable|string|in:high_school,bachelor,master,doctorate,postdoc',
             'nationality'   => 'sometimes|nullable|string|max:10',
@@ -32,7 +33,7 @@ class MatchingController extends Controller
         $profile = $user->profile;
         $criteria = [
             'gpa'             => $validated['gpa'] ?? (float) ($profile?->gpa ?? 0),
-            'major'           => $validated['major'] ?? $profile?->major,
+            'major'           => $validated['field_of_study'] ?? $validated['major'] ?? $profile?->field_of_study ?? $profile?->major,
             'degree_level'    => $validated['degree_level'] ?? $profile?->degree_level ?? 'bachelor',
             'nationality'     => $validated['nationality'] ?? $profile?->nationality,
             'current_country' => $validated['current_country'] ?? $profile?->current_country,

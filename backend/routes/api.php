@@ -37,34 +37,35 @@ use Illuminate\Support\Facades\Route;
 // PUBLIC ROUTES (No Authentication Required)
 // =====================================================
 
-// ── FORUM ─────────────────────────────────────────────────────────────
+// ── FORUM (Public — read-only) ────────────────────────────────────────
 Route::prefix('forum')->group(function () {
-
-    // 🔵 Backend A — Categories & Posts
     Route::get('/categories', [ForumCategoryController::class, 'index']);
+});
 
+// ── FORUM (Authenticated — all write + admin operations) ─────────────
+Route::middleware(['auth:sanctum'])->prefix('forum')->group(function () {
     Route::get('/posts',              [ForumPostController::class, 'index']);
     Route::post('/posts',             [ForumPostController::class, 'store']);
-    Route::get('/posts/pending',      [ForumPostController::class, 'pending']);   // admin
+    Route::get('/posts/pending',      [ForumPostController::class, 'pending'])->middleware('role:admin');
     Route::get('/posts/{id}',         [ForumPostController::class, 'show']);
     Route::put('/posts/{id}',         [ForumPostController::class, 'update']);
     Route::delete('/posts/{id}',      [ForumPostController::class, 'destroy']);
     Route::post('/posts/{id}/like',   [ForumPostController::class, 'toggleLike']);
     Route::post('/posts/{id}/save',   [ForumPostController::class, 'toggleSave']);
-    Route::put('/posts/{id}/approve', [ForumPostController::class, 'approve']);   // admin
-    Route::put('/posts/{id}/reject',  [ForumPostController::class, 'reject']);    // admin
+    Route::put('/posts/{id}/approve', [ForumPostController::class, 'approve'])->middleware('role:admin');
+    Route::put('/posts/{id}/reject',  [ForumPostController::class, 'reject'])->middleware('role:admin');
 
-    // 🔵 Backend B — Comments & Replies
+    // Comments & Replies
     Route::post('/posts/{id}/comments',       [ForumCommentController::class, 'store']);
     Route::post('/comments/{id}/like',        [ForumCommentController::class, 'toggleLike']);
     Route::post('/comments/{id}/replies',     [ForumCommentController::class, 'storeReply']);
     Route::delete('/comments/{id}',           [ForumCommentController::class, 'destroy']);
 
-    // 🔵 Backend B — Reports
+    // Reports
     Route::post('/posts/{id}/report',         [ForumReportController::class, 'reportPost']);
     Route::post('/comments/{id}/report',      [ForumReportController::class, 'reportComment']);
-    Route::get('/reports',                    [ForumReportController::class, 'index']);      // admin
-    Route::put('/reports/{id}/review',        [ForumReportController::class, 'review']);     // admin
+    Route::get('/reports',                    [ForumReportController::class, 'index'])->middleware('role:admin');
+    Route::put('/reports/{id}/review',        [ForumReportController::class, 'review'])->middleware('role:admin');
 });
 
 // Lookup endpoints (public — untuk dropdown di frontend)

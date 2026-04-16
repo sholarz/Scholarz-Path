@@ -1,7 +1,7 @@
 // Auth Context for managing user authentication state
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type UserRole = 'admin' | 'premium' | 'free';
+export type UserRole = 'admin' | 'premium' | 'free' | 'guest';
 
 export interface User {
   id: string;
@@ -22,7 +22,7 @@ interface AuthContextType {
   signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
   resetPassword: (email: string) => Promise<void>;
-  upgradeToPremium: () => void;
+  refreshUser: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -151,12 +151,7 @@ const fetchCurrentUser = async (token: string): Promise<ApiUserPayload> => {
   return userPayload;
 };
 
-// Mock test accounts
-const TEST_ACCOUNTS = {
-  'admin@scholarpath.com': { password: 'admin123', role: 'admin' as UserRole, name: 'Admin User' },
-  'premium@test.com': { password: 'premium123', role: 'premium' as UserRole, name: 'Premium User' },
-  'user@test.com': { password: 'user123', role: 'free' as UserRole, name: 'Free User' },
-};
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -204,7 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const payload = (await response.json()) as AuthApiResponse;
-      const apiUser = mapApiUser(payload.data?.user, email, TEST_ACCOUNTS[email.toLowerCase() as keyof typeof TEST_ACCOUNTS]?.name || email);
+      const apiUser = mapApiUser(payload.data?.user, email, email);
 
       persistSession(setUser, apiUser, payload.data?.token);
       return apiUser;
@@ -303,9 +298,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    // Revoke token on the backend (fire-and-forget)
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      fetch(`${API_BASE_URL}/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }).catch(() => { /* ignore network errors during logout */ });
+    }
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('bookmarks_cache');
   };
 
   const resetPassword = async (email: string) => {
@@ -331,11 +339,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const upgradeToPremium = () => {
-    if (user) {
-      const updatedUser = { ...user, role: 'premium' as UserRole };
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+  const refreshUser = async () => {
+    const token = localStorage.getItem('auth_token');
+    if (!token) return;
+    try {
+      const payloadUser = await fetchCurrentUser(token);
+      const refreshedUser = mapApiUser(payloadUser, payloadUser.email || user?.email || '', user?.name || '');
+      persistSession(setUser, refreshedUser);
+    } catch {
+      // If fetching fails, keep current state
     }
   };
 
@@ -356,7 +368,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signup,
         logout,
         resetPassword,
-        upgradeToPremium,
+        refreshUser,
         clearError,
       }}
     >

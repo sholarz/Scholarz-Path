@@ -6,7 +6,10 @@ use App\Models\DailyTask;
 use App\Models\Roadmap;
 use App\Models\Scholarship;
 use App\Models\User;
+use App\Models\UserDocument;
+use App\Models\UserLanguageTest;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 class RoadmapService
 {
@@ -16,6 +19,12 @@ class RoadmapService
      * deadline it should ideally be completed.
      */
     private const TASK_TEMPLATES = [
+        'complete_profile' => [
+            'title'               => 'Complete Core Profile Data',
+            'description'         => 'Fill missing profile data to improve scholarship matching quality and roadmap personalization.',
+            'days_before_deadline' => 95,
+            'urgency_days'        => 3,
+        ],
         'ielts_toefl' => [
             'title'               => 'Prepare & Take Language Proficiency Test (IELTS/TOEFL)',
             'description'         => 'Register and sit for IELTS or TOEFL. Allow time for score to arrive (2–4 weeks after test).',
@@ -109,51 +118,83 @@ class RoadmapService
     {
         $tasks   = [];
         $profile = $user->profile;
+        $documents = UserDocument::query()
+            ->where('user_id', $user->id)
+            ->get()
+            ->keyBy('document_type');
+
+        $profileCompletion = (int) ($profile?->profile_completion_percentage ?? 0);
+        if ($profileCompletion < 80) {
+            $tasks[] = 'complete_profile';
+        }
 
         // --- Language Test Gap ---
         $langReqs = $scholarship->language_requirements ?? [];
         $userLangs = $user->languages ?? collect();
+        $languageTests = UserLanguageTest::query()
+            ->where('user_id', $user->id)
+            ->where(function ($query) {
+                $query->whereNull('expiry_date')
+                    ->orWhereDate('expiry_date', '>=', Carbon::today());
+            })
+            ->get();
         $hasValidLanguageTest = false;
 
         if (!empty($langReqs)) {
+            $hasValidLanguageTest = true;
             foreach ($langReqs as $lang => $reqScore) {
                 $userLang = $userLangs->first(fn ($l) =>
                     strtolower($l->language ?? '') === strtolower($lang)
                 );
-                if ($userLang && isset($userLang->score) && $userLang->score >= $reqScore) {
-                    $hasValidLanguageTest = true;
-                } else {
+                $mappedTestName = $this->mapLanguageRequirementToTestName((string) $lang);
+                $userTest = $mappedTestName
+                    ? $languageTests->firstWhere('test_name', $mappedTestName)
+                    : null;
+
+                $languageProgressMet = $userLang && isset($userLang->score) && is_numeric($userLang->score) && (float) $userLang->score >= (float) $reqScore;
+                $testProgressMet = $userTest && (float) $userTest->overall_score >= (float) $reqScore;
+
+                if (!$languageProgressMet && !$testProgressMet) {
                     $hasValidLanguageTest = false;
+                    break;
                 }
             }
         } else {
-            // No specific language req — assume English needed unless user has a score on file
-            $hasValidLanguageTest = $userLangs->isNotEmpty();
+            // No specific language requirement in scholarship record.
+            $hasValidLanguageTest = $userLangs->isNotEmpty() || $languageTests->isNotEmpty();
         }
 
         if (!$hasValidLanguageTest && $daysLeft >= 14) {
             $tasks[] = 'ielts_toefl';
         }
 
-        // --- Transcripts (always needed) ---
-        $tasks[] = 'transcripts';
+        // --- Documents readiness gap analysis ---
+        if (!$this->isDocumentReady($documents, 'transcript')) {
+            $tasks[] = 'transcripts';
+        }
 
-        // --- Personal Statement (always needed unless ultra-short timeline) ---
-        if ($daysLeft >= 7) {
+        if ($daysLeft >= 7 && !$this->isDocumentReady($documents, 'motivation_letter')) {
             $tasks[] = 'personal_statement';
         }
 
-        // --- Recommendation Letters (for graduate or if sufficient time) ---
+        // --- Recommendation Letters (for graduate or if sufficient time and doc not ready) ---
         $level = $scholarship->level ?? '';
-        if (in_array($level, ['master', 'doctorate', 'postdoc']) && $daysLeft >= 14) {
+        if (in_array($level, ['master', 'doctorate', 'postdoc']) && $daysLeft >= 14 && !$this->isDocumentReady($documents, 'recommendation_letter')) {
             $tasks[] = 'recommendation_letters';
-        } elseif ($daysLeft >= 21) {
+        } elseif ($daysLeft >= 21 && !$this->isDocumentReady($documents, 'recommendation_letter')) {
             $tasks[] = 'recommendation_letters';
         }
 
         // --- CV ---
-        if ($daysLeft >= 10) {
+        if ($daysLeft >= 10 && !$this->isDocumentReady($documents, 'cv')) {
             $tasks[] = 'cv';
+        }
+
+        // --- Passport readiness (for international target countries) ---
+        $targetCountries = is_array($scholarship->target_countries) ? $scholarship->target_countries : [];
+        $isCrossCountryFlow = !empty($targetCountries) && !in_array($profile?->current_country, $targetCountries);
+        if ($isCrossCountryFlow && !$this->isDocumentReady($documents, 'passport') && $daysLeft >= 10) {
+            $tasks[] = 'financial_docs';
         }
 
         // --- Health Certificate (if requirements mention it) ---
@@ -175,6 +216,32 @@ class RoadmapService
         $tasks[] = 'review_submit';
 
         return array_unique($tasks);
+    }
+
+    private function isDocumentReady(Collection $documents, string $documentType): bool
+    {
+        $doc = $documents->get($documentType);
+
+        return (bool) $doc && $doc->status === 'ready';
+    }
+
+    private function mapLanguageRequirementToTestName(string $requirementKey): ?string
+    {
+        $key = strtolower($requirementKey);
+
+        if (str_contains($key, 'ielts')) {
+            return 'ielts';
+        }
+
+        if (str_contains($key, 'toefl')) {
+            return 'toefl_ibt';
+        }
+
+        if (str_contains($key, 'duolingo')) {
+            return 'duolingo';
+        }
+
+        return null;
     }
 
     /**
