@@ -13,7 +13,7 @@ class RoadmapController extends Controller
 {
     public function __construct(private RoadmapService $service) {}
 
-    // GET /api/roadmaps — ambil semua roadmap milik user
+    // GET /api/roadmaps — all roadmaps for current user
     public function index(Request $request): JsonResponse
     {
         $roadmaps = Roadmap::where('user_id', $request->user()->id)
@@ -21,10 +21,10 @@ class RoadmapController extends Controller
             ->latest()
             ->get();
 
-        return response()->json(['data' => $roadmaps]);
+        return response()->json(['success' => true, 'data' => $roadmaps]);
     }
 
-    // POST /api/roadmaps — generate roadmap dari scholarship
+    // POST /api/roadmaps — generate roadmap from scholarship
     public function create(Request $request): JsonResponse
     {
         $request->validate([
@@ -36,14 +36,18 @@ class RoadmapController extends Controller
             $request->user()->id
         );
 
-        return response()->json(['data' => $roadmap], 201);
+        return response()->json([
+            'success' => true,
+            'data'    => $roadmap,
+            'message' => 'Roadmap generated successfully.',
+        ], 201);
     }
 
-    // GET /api/tasks/daily — task hari ini
+    // GET /api/tasks/daily — today's tasks for user
     public function getDailyTasks(Request $request): JsonResponse
     {
         $tasks = $this->service->getDailyTasks($request->user()->id);
-        return response()->json(['data' => $tasks]);
+        return response()->json(['success' => true, 'data' => $tasks]);
     }
 
     // PUT /api/tasks/{id}/complete
@@ -55,13 +59,17 @@ class RoadmapController extends Controller
 
         $task->update(['status' => 'completed']);
 
-        // Update progress roadmap
+        // Update roadmap progress
         $roadmap = $task->roadmap;
         $total = $roadmap->dailyTasks()->count();
         $completed = $roadmap->dailyTasks()->where('status', 'completed')->count();
         $roadmap->update(['progress_percentage' => (int) (($completed / $total) * 100)]);
 
-        return response()->json(['data' => $task]);
+        return response()->json([
+            'success' => true,
+            'data'    => $task,
+            'message' => 'Task marked as completed.',
+        ]);
     }
 
     // PUT /api/tasks/{id}/skip
@@ -72,33 +80,55 @@ class RoadmapController extends Controller
         )->findOrFail($id);
 
         $task->update(['status' => 'skipped']);
-        return response()->json(['data' => $task]);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $task,
+            'message' => 'Task skipped.',
+        ]);
     }
 
-    // Stub methods yang sudah ada di routes
-    public function show(string $id): JsonResponse
+    // GET /api/roadmaps/{id}
+    public function show(Request $request, string $id): JsonResponse
     {
-        $roadmap = Roadmap::with('dailyTasks')->findOrFail($id);
-        return response()->json(['data' => $roadmap]);
+        $roadmap = Roadmap::with('dailyTasks')
+            ->where('user_id', $request->user()->id)
+            ->findOrFail($id);
+
+        return response()->json(['success' => true, 'data' => $roadmap]);
     }
 
+    // PUT /api/roadmaps/{id}
     public function update(Request $request, string $id): JsonResponse
     {
         $roadmap = Roadmap::where('user_id', $request->user()->id)->findOrFail($id);
         $roadmap->update($request->only('title', 'description'));
-        return response()->json(['data' => $roadmap]);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $roadmap,
+            'message' => 'Roadmap updated.',
+        ]);
     }
 
-    public function destroy(string $id): JsonResponse
+    // DELETE /api/roadmaps/{id}
+    public function destroy(Request $request, string $id): JsonResponse
     {
-        Roadmap::findOrFail($id)->delete();
-        return response()->json(['message' => 'Deleted']);
+        Roadmap::where('user_id', $request->user()->id)->findOrFail($id)->delete();
+
+        return response()->json([
+            'success' => true,
+            'data'    => null,
+            'message' => 'Roadmap deleted.',
+        ]);
     }
 
+    // PUT /api/roadmaps/{id}/progress
     public function updateProgress(Request $request, string $id): JsonResponse
     {
         $roadmap = Roadmap::where('user_id', $request->user()->id)->findOrFail($id);
         $roadmap->update(['progress_percentage' => $request->input('progress_percentage')]);
-        return response()->json(['data' => $roadmap]);
+
+        return response()->json(['success' => true, 'data' => $roadmap]);
     }
 }

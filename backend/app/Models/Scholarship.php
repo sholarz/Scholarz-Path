@@ -182,8 +182,8 @@ class Scholarship extends Model
     public function scopeSearch(Builder $query, string $search): Builder
     {
         return $query->where(function ($q) use ($search) {
-            $q->where('title', 'ILIKE', '%' . $search . '%')
-              ->orWhere('description', 'ILIKE', '%' . $search . '%');
+            $q->where('title', 'LIKE', '%' . $search . '%')
+              ->orWhere('description', 'LIKE', '%' . $search . '%');
         });
     }
 

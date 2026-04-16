@@ -118,14 +118,14 @@ docs/
 - Scholarship bookmarking
 - Email notifications
 
-### **💎 Premium Users ($19.99/month)**
+### **💎 Premium Users (Rp325000/tahun)**
 - **Unlimited scholarship matching**
 - **Unlimited roadmap generation** 
 - Advanced filtering and search
 - Priority support
 - Data export features
 - Enhanced analytics
-- **Test Simulations** - Practice exam preparation with mock tests, score tracking, and performance analytics (brand partnerships for real test integrations coming soon)
+- **Test Simulations** - Practice exam preparation with mock tests, score tracking, and performance analytics (brand partnerships for real test integrations coming soon) 
 
 ### **⚙️ Admin Users**
 - User management
@@ -133,6 +133,7 @@ docs/
 - Forum moderation  
 - System analytics & reporting
 - Content management
+-Payment checking
 
 ---
 

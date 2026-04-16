@@ -166,8 +166,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch {
+        localStorage.removeItem('user');
+      }
     }
+
+    // Global 401 handler — fired by api-client.ts when any API call returns 401
+    const handleUnauthorized = () => {
+      setUser(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('bookmarks_cache');
+    };
+
+    window.addEventListener('api:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('api:unauthorized', handleUnauthorized);
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -297,8 +312,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     setError(null);
 
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setIsLoading(false);
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({})) as { message?: string };
+        throw new Error(body.message ?? 'Failed to send password reset email.');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send password reset email.');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const upgradeToPremium = () => {

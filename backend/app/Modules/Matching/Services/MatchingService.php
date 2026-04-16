@@ -2,22 +2,14 @@
 
 namespace App\Modules\Matching\Services;
 
-use App\Models\User;
+use App\Models\MatchSearch;
 use App\Models\Scholarship;
 use App\Models\ScholarshipMatch;
-use App\Models\MatchSearch;
-use App\Modules\Matching\Engines\MatchingEngine;
-use App\Modules\Matching\Engines\ScoringEngine;
+use App\Models\User;
 use Illuminate\Support\Collection;
-use Illuminate\Pagination\LengthAwarePaginator;
 
 class MatchingService
 {
-    public function __construct(
-        private MatchingEngine $matchingEngine,
-        private ScoringEngine $scoringEngine
-    ) {}
-
     /**
      * Find matching scholarships for user with given criteria
      */

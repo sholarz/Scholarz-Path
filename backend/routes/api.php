@@ -3,6 +3,7 @@
 use App\Modules\Auth\Controllers\AuthController;
 use App\Modules\User\Controllers\UserController;
 use App\Modules\User\Controllers\ProfileController;
+use App\Modules\User\Controllers\DashboardController;
 use App\Modules\Scholarship\Controllers\ScholarshipController;
 use App\Modules\Matching\Controllers\MatchingController;
 use App\Modules\Roadmap\Controllers\RoadmapController;
@@ -79,6 +80,9 @@ Route::prefix('tests')->group(function () {
 
 Route::middleware(['auth:sanctum'])->group(function () {
     
+    // Dashboard (aggregated data for the user)
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+
     // Authentication (Authenticated)
     Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
