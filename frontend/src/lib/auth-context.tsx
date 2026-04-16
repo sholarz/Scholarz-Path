@@ -15,6 +15,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isAuthReady: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<User>;
   loginWithGoogle: () => Promise<void>;
@@ -121,6 +122,20 @@ const persistSession = (setUser: (user: User) => void, user: User, token?: strin
   }
 };
 
+const loadStoredUser = (): User | null => {
+  const savedUser = localStorage.getItem('user');
+  if (!savedUser) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(savedUser) as User;
+  } catch {
+    localStorage.removeItem('user');
+    return null;
+  }
+};
+
 const fetchCurrentUser = async (token: string): Promise<ApiUserPayload> => {
   const response = await fetch(`${API_BASE_URL}/user`, {
     method: 'GET',
@@ -154,20 +169,12 @@ const fetchCurrentUser = async (token: string): Promise<ApiUserPayload> => {
 
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => loadStoredUser());
+  const [isAuthReady, setIsAuthReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch {
-        localStorage.removeItem('user');
-      }
-    }
-
     // Global 401 handler — fired by api-client.ts when any API call returns 401
     const handleUnauthorized = () => {
       setUser(null);
@@ -177,6 +184,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     window.addEventListener('api:unauthorized', handleUnauthorized);
+    setIsAuthReady(true);
+
     return () => window.removeEventListener('api:unauthorized', handleUnauthorized);
   }, []);
 
@@ -361,6 +370,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isAuthenticated: !!user,
         isLoading,
+        isAuthReady,
         error,
         login,
         loginWithGoogle,

@@ -34,15 +34,23 @@ export function AdminPendingPostsPage() {
 
   const pendingPosts = posts.filter(p => p.status === 'pending');
 
-  const handleApprove = (postId: string) => {
-    approvePost(postId);
-    toast.success('Post approved successfully');
+  const handleApprove = async (postId: string) => {
+    try {
+      await approvePost(postId);
+      toast.success('Post approved successfully');
+    } catch {
+      toast.error('Gagal menyetujui post');
+    }
   };
 
-  const handleReject = (postId: string) => {
+  const handleReject = async (postId: string) => {
     if (confirm('Are you sure you want to reject this post?')) {
-      rejectPost(postId);
-      toast.success('Post rejected');
+      try {
+        await rejectPost(postId);
+        toast.success('Post rejected');
+      } catch {
+        toast.error('Gagal menolak post');
+      }
     }
   };
 
@@ -124,7 +132,7 @@ export function AdminPendingPostsPage() {
                       </Link>
                       <Button
                         size="sm"
-                        onClick={() => handleApprove(post.id)}
+                        onClick={() => void handleApprove(post.id)}
                         className="gap-2 bg-green-600 hover:bg-green-700"
                       >
                         <Check className="h-4 w-4" />
@@ -133,7 +141,7 @@ export function AdminPendingPostsPage() {
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => handleReject(post.id)}
+                        onClick={() => void handleReject(post.id)}
                         className="gap-2"
                       >
                         <X className="h-4 w-4" />

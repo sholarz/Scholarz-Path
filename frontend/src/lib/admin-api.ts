@@ -51,6 +51,8 @@ export type AdminScholarship = {
   title: string;
   status: 'active' | 'inactive' | 'expired' | 'draft';
   level: string;
+  target_level?: 'sma' | 's1' | 's2' | 's3';
+  degree_level?: 's1' | 's2' | 's3';
   application_deadline: string;
   is_featured: boolean;
   provider?: {
@@ -58,6 +60,45 @@ export type AdminScholarship = {
     name: string;
     country?: string;
   } | null;
+  description?: string;
+  type?: string;
+  minimum_gpa?: number | null;
+  fields_of_study?: string[] | null;
+  requirements?: string[] | null;
+  benefits?: string[] | null;
+  application_url?: string;
+  amount?: number | null;
+  currency?: string;
+  target_countries?: string[] | null;
+};
+
+export type AdminScholarshipPayload = {
+  provider_id?: string;
+  provider_name?: string;
+  provider_country?: string;
+  title: string;
+  description: string;
+  type: 'full' | 'partial' | 'merit' | 'need_based' | 'sports' | 'academic';
+  level: 'high_school' | 'bachelor' | 'master' | 'doctorate' | 'postdoc';
+  target_level: 'sma' | 's1' | 's2' | 's3';
+  degree_level: 's1' | 's2' | 's3';
+  application_deadline: string;
+  application_url: string;
+  amount?: number;
+  currency?: string;
+  target_countries?: string[];
+  eligible_nationalities?: string[];
+  fields_of_study?: string[];
+  minimum_gpa?: number;
+  language_requirements?: Record<string, number | string>;
+  start_date?: string;
+  duration_months?: number;
+  requirements?: string[];
+  benefits?: string[];
+  selection_criteria?: string[];
+  application_process?: string[];
+  status?: 'active' | 'inactive' | 'expired' | 'draft';
+  is_featured?: boolean;
 };
 
 const API_BASE_URL = ((import.meta as ImportMeta & {
@@ -151,6 +192,23 @@ export const updateAdminUserStatus = async (
 
 export const getAdminScholarships = async (perPage = 100): Promise<LaravelPaginator<AdminScholarship>> => {
   return requestJson<LaravelPaginator<AdminScholarship>>(`/admin/scholarships?per_page=${perPage}`);
+};
+
+export const createAdminScholarship = async (payload: AdminScholarshipPayload): Promise<AdminScholarship> => {
+  return requestJson<AdminScholarship>('/admin/scholarships', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateAdminScholarship = async (
+  scholarshipId: string,
+  payload: Partial<AdminScholarshipPayload>
+): Promise<AdminScholarship> => {
+  return requestJson<AdminScholarship>(`/admin/scholarships/${scholarshipId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
 };
 
 export const verifyAdminScholarship = async (scholarshipId: string): Promise<AdminScholarship> => {

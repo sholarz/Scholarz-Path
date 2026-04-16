@@ -17,7 +17,11 @@ interface AdminRouteProps {
  */
 
 export function AdminRoute({ children }: AdminRouteProps) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isAuthReady } = useAuth();
+
+  if (!isAuthReady) {
+    return null;
+  }
 
   // If not authenticated, redirect to login
   if (!isAuthenticated) {

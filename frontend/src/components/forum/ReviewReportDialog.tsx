@@ -45,20 +45,20 @@ export function ReviewReportDialog({ report, open, onClose }: ReviewReportDialog
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      if (selectedAction === 'remove-content' && report.targetType === 'post') {
+        await deletePost(report.targetId);
+      }
 
-    // Take action based on selection
-    if (selectedAction === 'remove-content' && report.targetType === 'post') {
-      deletePost(report.targetId);
+      await reviewReport(report.id, `${selectedAction}: ${actionNote}`, user.name);
+
+      toast.success('Laporan berhasil ditinjau');
+      onClose();
+    } catch {
+      toast.error('Gagal meninjau laporan');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Review the report
-    reviewReport(report.id, `${selectedAction}: ${actionNote}`, user.name);
-
-    toast.success('Laporan berhasil ditinjau');
-    setIsSubmitting(false);
-    onClose();
   };
 
   return (

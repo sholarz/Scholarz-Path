@@ -15,18 +15,6 @@ import {
   TableRow,
 } from '../ui/table';
 import {
-  Search,
-  Plus,
-  Edit,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  GraduationCap,
-  Star,
-  X,
-} from 'lucide-react';
-
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -40,897 +28,597 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
-import { Checkbox } from '../ui/checkbox';
-
-// API & Data Imports
-import type { Scholarship } from '../../lib/scholarship-data';
+import { Search, Plus, Edit, Trash2, CheckCircle, Star, Loader2, X } from 'lucide-react';
+import { toast } from 'sonner';
 import {
+  createAdminScholarship,
   deleteAdminScholarship,
   featureAdminScholarship,
   getAdminScholarships,
-  verifyAdminScholarship,
   type AdminScholarship,
+  type AdminScholarshipPayload,
+  updateAdminScholarship,
+  verifyAdminScholarship,
 } from '../../lib/admin-api';
-import { toast } from 'sonner';
+import { getScholarshipById } from '../../lib/scholarship-api';
 
-// Types
-type ScholarshipRow = {
-  id: string;
+type TargetLevel = 'sma' | 's1' | 's2' | 's3';
+type DegreeLevel = 's1' | 's2' | 's3';
+
+type ScholarshipFormState = {
   title: string;
-  provider: string;
-  country: string;
-  deadline: string;
-  educationLevel: string;
-  status: 'active' | 'inactive' | 'expired' | 'draft';
-  featured: boolean;
+  providerName: string;
+  providerCountry: string;
+  type: AdminScholarshipPayload['type'];
+  targetLevel: TargetLevel;
+  degreeLevel: DegreeLevel;
+  amount: string;
+  currency: string;
+  minimumGpa: string;
+  fieldsOfStudy: string[];
+  description: string;
+  requirements: string[];
+  benefits: string[];
+  applicationUrl: string;
+  applicationDeadline: string;
+  status: AdminScholarshipPayload['status'];
 };
+
+const DEFAULT_FORM: ScholarshipFormState = {
+  title: '',
+  providerName: '',
+  providerCountry: '',
+  type: 'full',
+  targetLevel: 'sma',
+  degreeLevel: 's1',
+  amount: '',
+  currency: 'USD',
+  minimumGpa: '',
+  fieldsOfStudy: [],
+  description: '',
+  requirements: [],
+  benefits: [],
+  applicationUrl: '',
+  applicationDeadline: '',
+  status: 'draft',
+};
+
+const TYPE_OPTIONS: Array<{ value: AdminScholarshipPayload['type']; label: string }> = [
+  { value: 'full', label: 'Full' },
+  { value: 'partial', label: 'Partial' },
+  { value: 'merit', label: 'Merit' },
+  { value: 'need_based', label: 'Need Based' },
+  { value: 'sports', label: 'Sports' },
+  { value: 'academic', label: 'Academic' },
+];
+
+const TARGET_LEVEL_OPTIONS: Array<{ value: TargetLevel; label: string }> = [
+  { value: 'sma', label: 'SMA' },
+  { value: 's1', label: 'S1' },
+  { value: 's2', label: 'S2' },
+  { value: 's3', label: 'S3' },
+];
+
+const DEGREE_LEVEL_OPTIONS: Array<{ value: DegreeLevel; label: string }> = [
+  { value: 's1', label: 'S1' },
+  { value: 's2', label: 'S2' },
+  { value: 's3', label: 'S3' },
+];
+
+const STATUS_OPTIONS: Array<{ value: NonNullable<AdminScholarshipPayload['status']>; label: string }> = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+  { value: 'expired', label: 'Expired' },
+];
+
+const mapDegreeToLegacyLevel = (degreeLevel: DegreeLevel): AdminScholarshipPayload['level'] => {
+  if (degreeLevel === 's1') return 'bachelor';
+  if (degreeLevel === 's2') return 'master';
+  return 'doctorate';
+};
+
+const mapLegacyLevelToDegree = (level?: string): DegreeLevel => {
+  if (level === 'master') return 's2';
+  if (level === 'doctorate' || level === 'postdoc') return 's3';
+  return 's1';
+};
+
+const ensureArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item));
+};
+
+const normalizeUrl = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  return `https://${trimmed}`;
+};
+
+const isValidHttpUrl = (value: string): boolean => {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 export function AdminScholarshipsPage() {
-  const [scholarships, setScholarships] = useState<ScholarshipRow[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [items, setItems] = useState<AdminScholarship[]>([]);
+  const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | null>(null);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<ScholarshipFormState>(DEFAULT_FORM);
+  const [fieldOfStudyInput, setFieldOfStudyInput] = useState('');
+  const [requirementInput, setRequirementInput] = useState('');
+  const [benefitInput, setBenefitInput] = useState('');
 
-  // Form state for new scholarship
-  const [newScholarship, setNewScholarship] = useState({
-    title: '',
-    provider: '',
-    country: '',
-    location: '',
-    amount: '',
-    deadline: '',
-    educationLevel: '',
-    fieldOfStudy: [] as string[],
-    type: '',
-    description: '',
-    requirements: [] as string[],
-    benefits: [] as string[],
-    applicationUrl: '',
-    verified: false,
-  });
-
-  const [currentRequirement, setCurrentRequirement] = useState('');
-  const [currentBenefit, setCurrentBenefit] = useState('');
-  const [currentFieldOfStudy, setCurrentFieldOfStudy] = useState('');
-
-  const toRow = (item: AdminScholarship): ScholarshipRow => {
-    return {
-      id: item.id,
-      title: item.title,
-      provider: item.provider?.name || 'Unknown Provider',
-      country: item.provider?.country || '-',
-      deadline: item.application_deadline,
-      educationLevel: item.level,
-      status: item.status,
-      featured: item.is_featured,
-    };
-  };
-
-  const loadScholarships = async () => {
+  const load = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      setError(null);
-      const payload = await getAdminScholarships();
-      setScholarships(payload.data.map(toRow));
+      const data = await getAdminScholarships(200);
+      setItems(data.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load scholarships');
+      toast.error(err instanceof Error ? err.message : 'Failed to load scholarships');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadScholarships();
+    load();
   }, []);
 
-  const filteredScholarships = useMemo(() => scholarships.filter((scholarship) => 
-    scholarship.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    scholarship.provider.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    scholarship.country.toLowerCase().includes(searchQuery.toLowerCase())
-  ), [scholarships, searchQuery]);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
 
-  const formatDeadline = (date: string | Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
+    return items.filter((item) =>
+      item.title.toLowerCase().includes(q) ||
+      (item.provider?.name ?? '').toLowerCase().includes(q) ||
+      (item.provider?.country ?? '').toLowerCase().includes(q)
+    );
+  }, [items, search]);
+
+  const openCreate = () => {
+    setEditingId(null);
+    setForm(DEFAULT_FORM);
+    setFieldOfStudyInput('');
+    setRequirementInput('');
+    setBenefitInput('');
+    setIsDialogOpen(true);
+  };
+
+  const openEdit = async (id: string) => {
+    try {
+      setActiveId(id);
+      const { scholarship } = await getScholarshipById(id);
+      setEditingId(id);
+      setForm({
+        title: scholarship.title,
+        providerName: scholarship.provider?.name ?? '',
+        providerCountry: scholarship.provider?.country ?? '',
+        type: (scholarship.type as AdminScholarshipPayload['type']) ?? 'full',
+        targetLevel: scholarship.targetLevel ?? 'sma',
+        degreeLevel: scholarship.degreeLevel ?? mapLegacyLevelToDegree(scholarship.level),
+        amount: scholarship.amount != null ? String(scholarship.amount) : '',
+        currency: scholarship.currency ?? 'USD',
+        minimumGpa: scholarship.minimumGpa != null ? String(scholarship.minimumGpa) : '',
+        fieldsOfStudy: ensureArray(scholarship.fieldsOfStudy),
+        description: scholarship.description ?? '',
+        requirements: ensureArray(scholarship.requirements),
+        benefits: ensureArray(scholarship.benefits),
+        applicationUrl: scholarship.applicationUrl ?? '',
+        applicationDeadline: scholarship.applicationDeadline?.slice(0, 10) ?? '',
+        status: scholarship.status,
+      });
+      setFieldOfStudyInput('');
+      setRequirementInput('');
+      setBenefitInput('');
+      setIsDialogOpen(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to load scholarship details');
+    } finally {
+      setActiveId(null);
+    }
+  };
+
+  const buildPayload = (): AdminScholarshipPayload => {
+    const normalizedUrl = normalizeUrl(form.applicationUrl);
+    const payload: AdminScholarshipPayload = {
+      provider_name: form.providerName.trim(),
+      provider_country: form.providerCountry.trim() || undefined,
+      title: form.title.trim(),
+      description: form.description.trim(),
+      type: form.type,
+      level: mapDegreeToLegacyLevel(form.degreeLevel),
+      target_level: form.targetLevel,
+      degree_level: form.degreeLevel,
+      application_deadline: form.applicationDeadline,
+      application_url: normalizedUrl,
+      currency: form.currency.trim() || 'USD',
+      fields_of_study: ensureArray(form.fieldsOfStudy),
+      minimum_gpa: form.minimumGpa ? parseFloat(form.minimumGpa) : undefined,
+      requirements: ensureArray(form.requirements),
+      benefits: ensureArray(form.benefits),
+      status: form.status,
+    };
+
+    if (form.amount) {
+      payload.amount = parseFloat(form.amount);
+    }
+
+    return payload;
+  };
+
+  const addArrayItem = (key: 'fieldsOfStudy' | 'requirements' | 'benefits', value: string) => {
+    const next = value.trim();
+    if (!next) return;
+
+    setForm((prev) => {
+      const list = ensureArray(prev[key]);
+
+      if (list.includes(next)) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [key]: [...list, next],
+      };
     });
   };
 
-  const handleVerify = async (scholarshipId: string) => {
-    try {
-      setIsUpdating(scholarshipId);
-      await verifyAdminScholarship(scholarshipId);
-      toast.success('Scholarship verified');
-      await loadScholarships();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to verify scholarship');
-    } finally {
-      setIsUpdating(null);
-    }
+  const removeArrayItem = (key: 'fieldsOfStudy' | 'requirements' | 'benefits', value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      [key]: ensureArray(prev[key]).filter((item) => item !== value),
+    }));
   };
 
-  const handleFeatureToggle = async (scholarshipId: string, featured: boolean) => {
-    try {
-      setIsUpdating(scholarshipId);
-      await featureAdminScholarship(scholarshipId, !featured);
-      toast.success(!featured ? 'Scholarship featured' : 'Scholarship unfeatured');
-      await loadScholarships();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update featured status');
-    } finally {
-      setIsUpdating(null);
-    }
-  };
+  const save = async () => {
+    const normalizedUrl = normalizeUrl(form.applicationUrl);
 
-  const handleDelete = async (scholarshipId: string) => {
-    if (!confirm('Delete this scholarship? This action cannot be undone.')) {
+    if (!form.title.trim() || !form.providerName.trim() || !form.description.trim() || !form.applicationDeadline || !normalizedUrl) {
+      toast.error('Please fill all required fields.');
       return;
     }
 
+    if (!isValidHttpUrl(normalizedUrl)) {
+      toast.error('Application URL must be a valid http/https URL.');
+      return;
+    }
+
+    if (form.amount && Number.isNaN(parseFloat(form.amount))) {
+      toast.error('Amount must be a valid number.');
+      return;
+    }
+
+    if (form.minimumGpa && Number.isNaN(parseFloat(form.minimumGpa))) {
+      toast.error('Minimum GPA must be a valid number.');
+      return;
+    }
+
+    setIsSaving(true);
     try {
-      setIsUpdating(scholarshipId);
-      await deleteAdminScholarship(scholarshipId);
+      const payload = buildPayload();
+      if (editingId) {
+        await updateAdminScholarship(editingId, payload);
+        toast.success('Scholarship updated');
+      } else {
+        await createAdminScholarship(payload);
+        toast.success('Scholarship created');
+      }
+      setIsDialogOpen(false);
+      setForm(DEFAULT_FORM);
+      setEditingId(null);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save scholarship');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const toggleFeature = async (id: string, isFeatured: boolean) => {
+    try {
+      setActiveId(id);
+      await featureAdminScholarship(id, !isFeatured);
+      toast.success(!isFeatured ? 'Scholarship featured' : 'Scholarship unfeatured');
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update featured status');
+    } finally {
+      setActiveId(null);
+    }
+  };
+
+  const verify = async (id: string) => {
+    try {
+      setActiveId(id);
+      await verifyAdminScholarship(id);
+      toast.success('Scholarship verified');
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to verify scholarship');
+    } finally {
+      setActiveId(null);
+    }
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm('Delete this scholarship?')) return;
+
+    try {
+      setActiveId(id);
+      await deleteAdminScholarship(id);
       toast.success('Scholarship deleted');
-      await loadScholarships();
+      await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete scholarship');
     } finally {
-      setIsUpdating(null);
+      setActiveId(null);
     }
   };
 
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Scholarship Data Management</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Manage and monitor all scholarship data in the system
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900">Scholarship Management</h1>
+            <p className="text-sm text-muted-foreground mt-1">Admin CRUD connected to backend APIs</p>
           </div>
-          <Button className="gap-2" onClick={() => setIsAddDialogOpen(true)}>
+          <Button className="gap-2" onClick={openCreate}>
             <Plus className="h-4 w-4" />
-            Add New Scholarship
+            Add Scholarship
           </Button>
         </div>
 
-        {error && (
-          <Card className="rounded-2xl border border-red-200 bg-red-50">
-            <CardContent className="pt-6 text-red-700">{error}</CardContent>
-          </Card>
-        )}
-
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Scholarships
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{scholarships.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Verified
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <div className="text-2xl font-bold text-green-600">
-                  {scholarships.filter(s => s.status === 'active').length}
-                </div>
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Unverified
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <div className="text-2xl font-bold text-yellow-600">
-                  {scholarships.filter(s => s.status === 'draft').length}
-                </div>
-                <XCircle className="h-5 w-5 text-yellow-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Active Deadlines
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {scholarships.filter(s => new Date(s.deadline) > new Date()).length}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Search and Filters */}
         <Card>
           <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by title, provider, or country..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Button variant="outline" disabled>
-                <GraduationCap className="h-4 w-4 mr-2" />
-                Filter by Level
-              </Button>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-10"
+                placeholder="Search by title/provider/country..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
           </CardContent>
         </Card>
 
-        {/* Scholarships Table */}
         <Card>
           <CardHeader>
-            <CardTitle>All Scholarships ({filteredScholarships.length})</CardTitle>
+            <CardTitle>Scholarships ({filtered.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="w-[250px]">Title</TableHead>
-                    <TableHead>Provider</TableHead>
-                    <TableHead>Country</TableHead>
-                    <TableHead>Deadline</TableHead>
-                    <TableHead>Education Level</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="text-center">Featured</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Provider</TableHead>
+                  <TableHead>Level</TableHead>
+                  <TableHead>Deadline</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Featured</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                      Loading scholarships...
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading && (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
-                        Loading scholarships...
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {!isLoading && filteredScholarships.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
-                        No scholarships found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredScholarships.map((scholarship) => (
-                      <TableRow key={scholarship.id} className="hover:bg-muted/30">
-                        <TableCell className="font-medium">
-                          <div className="max-w-[230px]">
-                            <p className="truncate">{scholarship.title}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="max-w-[180px]">
-                            <p className="truncate text-sm">{scholarship.provider}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="font-normal">
-                            {scholarship.country}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            {formatDeadline(scholarship.deadline)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="font-normal">
-                            {scholarship.educationLevel}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {scholarship.status === 'active' ? (
-                            <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Active
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-yellow-700 border-yellow-300">
-                              <XCircle className="h-3 w-3 mr-1" />
-                              {scholarship.status}
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant={scholarship.featured ? 'default' : 'outline'}>
-                            {scholarship.featured ? 'Yes' : 'No'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={isUpdating === scholarship.id}
-                              onClick={() => handleFeatureToggle(scholarship.id, scholarship.featured)}
-                            >
-                              <Star className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={isUpdating === scholarship.id}
-                              onClick={() => handleVerify(scholarship.id)}
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive hover:text-destructive"
-                              disabled={isUpdating === scholarship.id}
-                              onClick={() => handleDelete(scholarship.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                )}
+                {!isLoading && filtered.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                      No scholarships found.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!isLoading && filtered.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.title}</TableCell>
+                    <TableCell>{item.provider?.name ?? '-'}</TableCell>
+                    <TableCell>{item.level}</TableCell>
+                    <TableCell>{new Date(item.application_deadline).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Badge variant={item.status === 'active' ? 'default' : 'outline'}>{item.status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={item.is_featured ? 'default' : 'outline'}>
+                        {item.is_featured ? 'Yes' : 'No'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right space-x-1">
+                      <Button variant="ghost" size="sm" disabled={activeId === item.id} onClick={() => openEdit(item.id)}>
+                        {activeId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Edit className="h-4 w-4" />}
+                      </Button>
+                      <Button variant="ghost" size="sm" disabled={activeId === item.id} onClick={() => toggleFeature(item.id, item.is_featured)}>
+                        <Star className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" disabled={activeId === item.id} onClick={() => verify(item.id)}>
+                        <CheckCircle className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-destructive" disabled={activeId === item.id} onClick={() => remove(item.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
 
-        {/* Scholarship Details Dialog */}
-        <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{selectedScholarship?.title}</DialogTitle>
-              <DialogDescription>
-                View and edit detailed information about this scholarship
-              </DialogDescription>
+              <DialogTitle>{editingId ? 'Edit Scholarship' : 'Create Scholarship'}</DialogTitle>
+              <DialogDescription>Manage scholarship data used by user listing and matching engine.</DialogDescription>
             </DialogHeader>
 
-            {selectedScholarship && (
-              <div className="space-y-6">
-                {/* Basic Info */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Provider</p>
-                    <p className="mt-1">{selectedScholarship.provider}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Country</p>
-                    <p className="mt-1">{selectedScholarship.country}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Location</p>
-                    <p className="mt-1">{selectedScholarship.location}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Amount</p>
-                    <p className="mt-1">{selectedScholarship.amount}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Deadline</p>
-                    <p className="mt-1">{formatDeadline(selectedScholarship.deadline)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Education Level</p>
-                    <p className="mt-1">{selectedScholarship.educationLevel}</p>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Description</p>
-                  <p className="text-sm leading-relaxed">{selectedScholarship.description}</p>
-                </div>
-
-                {/* Field of Study */}
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Field of Study</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedScholarship.fieldOfStudy.map((field, index) => (
-                      <Badge key={index} variant="secondary">{field}</Badge>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Requirements */}
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Requirements</p>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    {selectedScholarship.requirements.map((req, index) => (
-                      <li key={index}>{req}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Benefits */}
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Benefits</p>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    {selectedScholarship.benefits.map((benefit, index) => (
-                      <li key={index}>{benefit}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Application URL */}
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Application URL</p>
-                  <a 
-                    href={selectedScholarship.applicationUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline break-all"
-                  >
-                    {selectedScholarship.applicationUrl}
-                  </a>
-                </div>
-
-                {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t">
-                  <Button variant="outline" onClick={() => setIsDetailsOpen(false)}>
-                    Close
-                  </Button>
-                  <Button variant="outline">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
-                  {!selectedScholarship.verified && (
-                    <Button>
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Verify
-                    </Button>
-                  )}
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <Label>Title *</Label>
+                <Input value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} />
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Add New Scholarship Dialog */}
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Add New Scholarship</DialogTitle>
-              <DialogDescription>
-                Enter the details of the new scholarship. All fields are required unless specified.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-6">
-              {/* Title (Full Width) */}
               <div>
-                <Label htmlFor="title" className="text-sm font-medium">
-                  Title <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="title"
-                  placeholder="e.g. Indonesian Government Scholarship (KNB)"
-                  value={newScholarship.title}
-                  onChange={(e) => setNewScholarship({ ...newScholarship, title: e.target.value })}
-                  className="mt-1.5"
-                />
+                <Label>Provider Name *</Label>
+                <Input value={form.providerName} onChange={(e) => setForm((prev) => ({ ...prev, providerName: e.target.value }))} />
               </div>
+              <div>
+                <Label>Provider Country</Label>
+                <Input value={form.providerCountry} onChange={(e) => setForm((prev) => ({ ...prev, providerCountry: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Type *</Label>
+                <Select value={form.type} onValueChange={(value: AdminScholarshipPayload['type']) => setForm((prev) => ({ ...prev, type: value }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TYPE_OPTIONS.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Target Level *</Label>
+                <Select value={form.targetLevel} onValueChange={(value: TargetLevel) => setForm((prev) => ({ ...prev, targetLevel: value }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TARGET_LEVEL_OPTIONS.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Degree Level *</Label>
+                <Select value={form.degreeLevel} onValueChange={(value: DegreeLevel) => setForm((prev) => ({ ...prev, degreeLevel: value }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {DEGREE_LEVEL_OPTIONS.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Amount</Label>
+                <Input type="number" value={form.amount} onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Currency</Label>
+                <Input value={form.currency} onChange={(e) => setForm((prev) => ({ ...prev, currency: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Minimum GPA</Label>
+                <Input type="number" step="0.01" min="0" max="4" value={form.minimumGpa} onChange={(e) => setForm((prev) => ({ ...prev, minimumGpa: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Application Deadline *</Label>
+                <Input type="date" value={form.applicationDeadline} onChange={(e) => setForm((prev) => ({ ...prev, applicationDeadline: e.target.value }))} />
+              </div>
+              <div className="md:col-span-2">
+                <Label>Application URL *</Label>
+                <Input value={form.applicationUrl} onChange={(e) => setForm((prev) => ({ ...prev, applicationUrl: e.target.value }))} />
+              </div>
+              <div className="md:col-span-2">
+                <Label>Fields of Study</Label>
+                <div className="flex gap-2">
+                  <Input value={fieldOfStudyInput} onChange={(e) => setFieldOfStudyInput(e.target.value)} placeholder="Tambah bidang studi" />
+                  <Button type="button" variant="outline" onClick={() => {
+                    addArrayItem('fieldsOfStudy', fieldOfStudyInput);
+                    setFieldOfStudyInput('');
+                  }}>
+                    Add
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {ensureArray(form.fieldsOfStudy).map((item) => (
+                    <Badge key={item} variant="outline" className="gap-1">
+                      {item}
+                      <button type="button" onClick={() => removeArrayItem('fieldsOfStudy', item)}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="md:col-span-2">
+                <Label>Description *</Label>
+                <Textarea rows={4} value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} />
+              </div>
+              <div className="md:col-span-2">
+                <Label>Requirements</Label>
+                <div className="flex gap-2">
+                  <Input value={requirementInput} onChange={(e) => setRequirementInput(e.target.value)} placeholder="Tambah persyaratan" />
+                  <Button type="button" variant="outline" onClick={() => {
+                    addArrayItem('requirements', requirementInput);
+                    setRequirementInput('');
+                  }}>
+                    Add
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {ensureArray(form.requirements).map((item) => (
+                    <Badge key={item} variant="outline" className="gap-1">
+                      {item}
+                      <button type="button" onClick={() => removeArrayItem('requirements', item)}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="md:col-span-2">
+                <Label>Benefits</Label>
+                <div className="flex gap-2">
+                  <Input value={benefitInput} onChange={(e) => setBenefitInput(e.target.value)} placeholder="Tambah manfaat" />
+                  <Button type="button" variant="outline" onClick={() => {
+                    addArrayItem('benefits', benefitInput);
+                    setBenefitInput('');
+                  }}>
+                    Add
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {ensureArray(form.benefits).map((item) => (
+                    <Badge key={item} variant="outline" className="gap-1">
+                      {item}
+                      <button type="button" onClick={() => removeArrayItem('benefits', item)}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={(value: ScholarshipFormState['status']) => setForm((prev) => ({ ...prev, status: value }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-              {/* Basic Information Section */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">Basic Information</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="provider" className="text-sm font-medium">
-                      Provider <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="provider"
-                      placeholder="e.g. Ministry of Education"
-                      value={newScholarship.provider}
-                      onChange={(e) => setNewScholarship({ ...newScholarship, provider: e.target.value })}
-                      className="mt-1.5"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="type" className="text-sm font-medium">
-                      Type <span className="text-destructive">*</span>
-                    </Label>
-                    <Select
-                      value={newScholarship.type}
-                      onValueChange={(value: string) => setNewScholarship({ ...newScholarship, type: value })}
-                    >
-                      <SelectTrigger id="type" className="mt-1.5">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Government">Government</SelectItem>
-                        <SelectItem value="University">University</SelectItem>
-                        <SelectItem value="Private">Private</SelectItem>
-                        <SelectItem value="Organization">Organization</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="country" className="text-sm font-medium">
-                      Country <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="country"
-                      placeholder="e.g. Indonesia"
-                      value={newScholarship.country}
-                      onChange={(e) => setNewScholarship({ ...newScholarship, country: e.target.value })}
-                      className="mt-1.5"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="location" className="text-sm font-medium">
-                      Location <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="location"
-                      placeholder="e.g. Jakarta, Java"
-                      value={newScholarship.location}
-                      onChange={(e) => setNewScholarship({ ...newScholarship, location: e.target.value })}
-                      className="mt-1.5"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="amount" className="text-sm font-medium">
-                      Amount <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="amount"
-                      placeholder="e.g. Full Tuition + IDR 2,500,000/month"
-                      value={newScholarship.amount}
-                      onChange={(e) => setNewScholarship({ ...newScholarship, amount: e.target.value })}
-                      className="mt-1.5"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="educationLevel" className="text-sm font-medium">
-                      Education Level <span className="text-destructive">*</span>
-                    </Label>
-                    <Select
-                      value={newScholarship.educationLevel}
-                      onValueChange={(value: string) => setNewScholarship({ ...newScholarship, educationLevel: value })}
-                    >
-                      <SelectTrigger id="educationLevel" className="mt-1.5">
-                        <SelectValue placeholder="Select level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Undergraduate">Undergraduate</SelectItem>
-                        <SelectItem value="Master's">Master's</SelectItem>
-                        <SelectItem value="Doctoral">Doctoral</SelectItem>
-                        <SelectItem value="High School">High School</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="deadline" className="text-sm font-medium">
-                    Application Deadline <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="deadline"
-                    type="date"
-                    value={newScholarship.deadline}
-                    onChange={(e) => setNewScholarship({ ...newScholarship, deadline: e.target.value })}
-                    className="mt-1.5"
-                  />
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">Description</h3>
-                <div>
-                  <Label htmlFor="description" className="text-sm font-medium">
-                    Scholarship Description <span className="text-destructive">*</span>
-                  </Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Provide a detailed description of the scholarship program..."
-                    value={newScholarship.description}
-                    onChange={(e) => setNewScholarship({ ...newScholarship, description: e.target.value })}
-                    rows={4}
-                    className="mt-1.5"
-                  />
-                </div>
-              </div>
-
-              {/* Field of Study */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">Field of Study</h3>
-                <div>
-                  <Label className="text-sm font-medium">
-                    Available Fields <span className="text-destructive">*</span>
-                  </Label>
-                  {newScholarship.fieldOfStudy.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {newScholarship.fieldOfStudy.map((field, index) => (
-                        <Badge key={index} variant="secondary" className="gap-1">
-                          {field}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setNewScholarship({
-                                ...newScholarship,
-                                fieldOfStudy: newScholarship.fieldOfStudy.filter((_, i) => i !== index)
-                              });
-                            }}
-                            className="ml-1 hover:bg-gray-300 rounded-full"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 mt-2">
-                    <Input
-                      placeholder="e.g. Computer Science, Engineering"
-                      value={currentFieldOfStudy}
-                      onChange={(e) => setCurrentFieldOfStudy(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && currentFieldOfStudy) {
-                          e.preventDefault();
-                          setNewScholarship({
-                            ...newScholarship,
-                            fieldOfStudy: [...newScholarship.fieldOfStudy, currentFieldOfStudy]
-                          });
-                          setCurrentFieldOfStudy('');
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (currentFieldOfStudy) {
-                          setNewScholarship({
-                            ...newScholarship,
-                            fieldOfStudy: [...newScholarship.fieldOfStudy, currentFieldOfStudy]
-                          });
-                          setCurrentFieldOfStudy('');
-                        }
-                      }}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Requirements */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">Requirements</h3>
-                <div>
-                  <Label className="text-sm font-medium">
-                    Eligibility Requirements <span className="text-destructive">*</span>
-                  </Label>
-                  {newScholarship.requirements.length > 0 && (
-                    <ul className="list-disc list-inside space-y-1 text-sm mt-2 bg-gray-50 p-3 rounded-md">
-                      {newScholarship.requirements.map((req, index) => (
-                        <li key={index} className="flex items-start justify-between">
-                          <span>{req}</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setNewScholarship({
-                                ...newScholarship,
-                                requirements: newScholarship.requirements.filter((_, i) => i !== index)
-                              });
-                            }}
-                            className="text-destructive hover:text-destructive/80"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <div className="flex items-center gap-2 mt-2">
-                    <Input
-                      placeholder="e.g. Bachelor's degree with min. GPA 3.0"
-                      value={currentRequirement}
-                      onChange={(e) => setCurrentRequirement(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && currentRequirement) {
-                          e.preventDefault();
-                          setNewScholarship({
-                            ...newScholarship,
-                            requirements: [...newScholarship.requirements, currentRequirement]
-                          });
-                          setCurrentRequirement('');
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (currentRequirement) {
-                          setNewScholarship({
-                            ...newScholarship,
-                            requirements: [...newScholarship.requirements, currentRequirement]
-                          });
-                          setCurrentRequirement('');
-                        }
-                      }}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Benefits */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">Benefits</h3>
-                <div>
-                  <Label className="text-sm font-medium">
-                    Scholarship Benefits <span className="text-destructive">*</span>
-                  </Label>
-                  {newScholarship.benefits.length > 0 && (
-                    <ul className="list-disc list-inside space-y-1 text-sm mt-2 bg-gray-50 p-3 rounded-md">
-                      {newScholarship.benefits.map((benefit, index) => (
-                        <li key={index} className="flex items-start justify-between">
-                          <span>{benefit}</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setNewScholarship({
-                                ...newScholarship,
-                                benefits: newScholarship.benefits.filter((_, i) => i !== index)
-                              });
-                            }}
-                            className="text-destructive hover:text-destructive/80"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <div className="flex items-center gap-2 mt-2">
-                    <Input
-                      placeholder="e.g. Full tuition coverage"
-                      value={currentBenefit}
-                      onChange={(e) => setCurrentBenefit(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && currentBenefit) {
-                          e.preventDefault();
-                          setNewScholarship({
-                            ...newScholarship,
-                            benefits: [...newScholarship.benefits, currentBenefit]
-                          });
-                          setCurrentBenefit('');
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (currentBenefit) {
-                          setNewScholarship({
-                            ...newScholarship,
-                            benefits: [...newScholarship.benefits, currentBenefit]
-                          });
-                          setCurrentBenefit('');
-                        }
-                      }}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Application URL & Verification */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">Additional Information</h3>
-                <div>
-                  <Label htmlFor="applicationUrl" className="text-sm font-medium">
-                    Application URL <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="applicationUrl"
-                    type="url"
-                    placeholder="https://example.com/apply"
-                    value={newScholarship.applicationUrl}
-                    onChange={(e) => setNewScholarship({ ...newScholarship, applicationUrl: e.target.value })}
-                    className="mt-1.5"
-                  />
-                </div>
-                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-md">
-                  <Checkbox
-                    id="verified"
-                    checked={newScholarship.verified}
-                    onCheckedChange={(checked: boolean | 'indeterminate') =>
-                      setNewScholarship({ ...newScholarship, verified: checked === true })
-                    }
-                  />
-                  <Label
-                    htmlFor="verified"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                  >
-                    Mark as verified scholarship
-                  </Label>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setIsAddDialogOpen(false);
-                    // Reset form
-                    setNewScholarship({
-                      title: '',
-                      provider: '',
-                      country: '',
-                      location: '',
-                      amount: '',
-                      deadline: '',
-                      educationLevel: '',
-                      fieldOfStudy: [],
-                      type: '',
-                      description: '',
-                      requirements: [],
-                      benefits: [],
-                      applicationUrl: '',
-                      verified: false,
-                    });
-                    setCurrentRequirement('');
-                    setCurrentBenefit('');
-                    setCurrentFieldOfStudy('');
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    // TODO: Add save functionality
-                    console.log('New Scholarship:', newScholarship);
-                    alert('Scholarship added successfully! (Demo)');
-                    setIsAddDialogOpen(false);
-                  }}
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Save Scholarship
-                </Button>
-              </div>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Cancel</Button>
+              <Button onClick={save} disabled={isSaving}>
+                {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                {editingId ? 'Update Scholarship' : 'Create Scholarship'}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

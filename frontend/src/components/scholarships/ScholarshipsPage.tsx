@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type MouseEvent } from 'react';
 import { Link } from 'react-router';
 import { Header } from '../Header';
 import { useBookmarks } from '../../lib/bookmark-context';
@@ -117,7 +117,7 @@ export function ScholarshipsPage() {
               </div>
 
               <div className="grid md:grid-cols-3 gap-4">
-                <Select value={levelFilter} onValueChange={(v) => setLevelFilter(v)}>
+                <Select value={levelFilter} onValueChange={(v: string) => setLevelFilter(v)}>
                   <SelectTrigger id="level-filter">
                     <SelectValue placeholder="Education Level" />
                   </SelectTrigger>
@@ -190,7 +190,7 @@ export function ScholarshipsPage() {
                         variant="ghost"
                         size="icon"
                         className="shrink-0"
-                        onClick={e => {
+                        onClick={(e: MouseEvent<HTMLButtonElement>) => {
                           e.preventDefault();
                           toggleBookmark(scholarship.id);
                         }}
@@ -209,7 +209,7 @@ export function ScholarshipsPage() {
 
                   <CardContent className="flex-1 space-y-3">
                     <div className="space-y-2 text-sm">
-                      {scholarship.targetCountries && scholarship.targetCountries.length > 0 && (
+                      {Array.isArray(scholarship.targetCountries) && scholarship.targetCountries.length > 0 && (
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <MapPin className="w-4 h-4 shrink-0" />
                           <span className="truncate">

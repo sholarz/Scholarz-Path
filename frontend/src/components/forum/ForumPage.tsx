@@ -7,7 +7,7 @@ import { Badge } from '../ui/badge';
 import { Card, CardContent, CardHeader } from '../ui/card';
 import { useForum } from '../../lib/forum-context';
 import { useAuth } from '../../lib/auth-context';
-import { Plus, Search, MessageSquare, Heart, Flag } from 'lucide-react';
+import { Plus, Search, MessageSquare, Heart, Flag, Loader2, AlertCircle } from 'lucide-react';
 import { RoleBadge } from '../RoleBadge';
 import { formatDistanceToNow } from 'date-fns';
 import { Header } from '../Header';
@@ -24,7 +24,7 @@ const CATEGORIES = [
 
 export function ForumPage() {
   const { user } = useAuth();
-  const { posts } = useForum();
+  const { posts, isLoadingPosts, postsError, refreshPosts } = useForum();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState<'recent' | 'popular'>('recent');
@@ -33,8 +33,8 @@ export function ForumPage() {
   const visiblePosts = posts.filter(post => {
     // Admins see all posts including pending
     if (user?.role === 'admin') return true;
-    // Users only see approved posts
-    return post.status === 'approved';
+    // Users only see published posts
+    return post.status === 'published';
   });
 
   // Apply filters
@@ -125,7 +125,25 @@ export function ForumPage() {
 
               {/* Posts List */}
               <div className="space-y-4">
-                {sortedPosts.length === 0 ? (
+                {isLoadingPosts ? (
+                  <Card>
+                    <CardContent className="py-12 text-center text-muted-foreground">
+                      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3" />
+                      Memuat post forum...
+                    </CardContent>
+                  </Card>
+                ) : postsError ? (
+                  <Card className="border-destructive/40">
+                    <CardContent className="py-10 text-center">
+                      <AlertCircle className="h-8 w-8 mx-auto mb-3 text-destructive" />
+                      <p className="font-medium text-destructive mb-1">Gagal memuat data forum</p>
+                      <p className="text-sm text-muted-foreground mb-4">{postsError}</p>
+                      <Button variant="outline" onClick={() => void refreshPosts()}>
+                        Coba Lagi
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : sortedPosts.length === 0 ? (
                   <Card>
                     <CardContent className="py-12 text-center text-muted-foreground">
                       No posts found
@@ -179,7 +197,7 @@ export function ForumPage() {
                               </div>
                               <div className="flex items-center gap-1">
                                 <MessageSquare className="h-4 w-4" />
-                                <span>{post.comments.length}</span>
+                                <span>{post.commentCount}</span>
                               </div>
                               <span>
                                 {formatDistanceToNow(post.createdAt, { 

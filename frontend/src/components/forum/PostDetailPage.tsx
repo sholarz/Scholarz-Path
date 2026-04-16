@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
@@ -31,19 +31,78 @@ import { formatDistanceToNow } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { ReportDialog } from './ReportDialog';
+import { ApiError } from '../../lib/api-client';
+import { getForumPostById, mapBackendPostToFrontend } from '../../lib/forum-api';
+
+function resolveForumErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof ApiError) {
+    if (error.status === 404) {
+      return 'Post atau data forum tidak ditemukan';
+    }
+    if (error.status === 403) {
+      return 'Anda tidak punya akses untuk melakukan aksi ini';
+    }
+    return error.message || fallback;
+  }
+
+  return fallback;
+}
 
 export function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { posts, toggleLike, toggleSave, addComment, addReply, toggleCommentLike, deletePost } = useForum();
+  const [detailPost, setDetailPost] = useState<typeof posts[number] | null>(null);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(true);
   
   const [commentContent, setCommentContent] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
-  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{
+    targetType: 'post' | 'comment';
+    targetId: string;
+    targetContent: string;
+    targetAuthor: string;
+  } | null>(null);
 
-  const post = posts.find(p => p.id === id);
+  const post = detailPost ?? posts.find(p => p.id === id);
+
+  useEffect(() => {
+    if (!id) {
+      setIsLoadingDetail(false);
+      return;
+    }
+
+    const loadDetail = async () => {
+      setIsLoadingDetail(true);
+      try {
+        const backendPost = await getForumPostById(id);
+        setDetailPost(mapBackendPostToFrontend(backendPost, user?.id));
+      } catch {
+        // Keep fallback from context list when detail fetch fails.
+      } finally {
+        setIsLoadingDetail(false);
+      }
+    };
+
+    void loadDetail();
+  }, [id, user?.id]);
+
+  useEffect(() => {
+    if (!post) return;
+    setDetailPost(post);
+  }, [post?.id, post?.comments.length]);
+
+  if (isLoadingDetail && !post) {
+    return (
+      <div className="min-h-screen bg-background py-8">
+        <div className="container mx-auto px-4 max-w-4xl text-center">
+          <h1 className="text-2xl font-bold mb-4">Memuat post...</h1>
+        </div>
+      </div>
+    );
+  }
 
   if (!post) {
     return (
@@ -60,13 +119,15 @@ export function PostDetailPage() {
   const hasSaved = user ? post.isSavedBy.includes(user.id) : false;
   const isAuthor = user?.id === post.authorId;
   const isAdmin = user?.role === 'admin';
+  const displayAuthorName = post.authorName?.trim() || 'Unknown User';
+  const displayAuthorInitial = displayAuthorName.charAt(0).toUpperCase();
 
   const handleLike = () => {
     if (!user) {
       toast.error('Silakan login terlebih dahulu');
       return;
     }
-    toggleLike(post.id, user.id);
+    void toggleLike(post.id, user.id);
   };
 
   const handleSave = () => {
@@ -74,7 +135,7 @@ export function PostDetailPage() {
       toast.error('Silakan login terlebih dahulu');
       return;
     }
-    toggleSave(post.id, user.id);
+    void toggleSave(post.id, user.id);
     toast.success(hasSaved ? 'Post dihapus dari bookmark' : 'Post disimpan ke bookmark');
   };
 
@@ -87,48 +148,52 @@ export function PostDetailPage() {
     }
   };
 
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     if (!user) {
       toast.error('Silakan login terlebih dahulu');
       return;
     }
     if (!commentContent.trim()) return;
 
-    addComment(post.id, {
-      postId: post.id,
-      authorId: user.id,
-      authorName: user.name,
-      authorRole: user.role,
-      content: commentContent,
-    });
-    setCommentContent('');
-    toast.success('Komentar berhasil ditambahkan');
+    try {
+      await addComment(post.id, {
+        content: commentContent,
+      });
+      setCommentContent('');
+      toast.success('Komentar berhasil ditambahkan');
+    } catch (error) {
+      toast.error(resolveForumErrorMessage(error, 'Gagal menambahkan komentar'));
+    }
   };
 
-  const handleAddReply = (commentId: string) => {
+  const handleAddReply = async (commentId: string) => {
     if (!user) {
       toast.error('Silakan login terlebih dahulu');
       return;
     }
     if (!replyContent.trim()) return;
 
-    addReply(post.id, commentId, {
-      commentId,
-      authorId: user.id,
-      authorName: user.name,
-      authorRole: user.role,
-      content: replyContent,
-    });
-    setReplyContent('');
-    setReplyingTo(null);
-    toast.success('Balasan berhasil ditambahkan');
+    try {
+      await addReply(post.id, commentId, {
+        content: replyContent,
+      });
+      setReplyContent('');
+      setReplyingTo(null);
+      toast.success('Balasan berhasil ditambahkan');
+    } catch (error) {
+      toast.error(resolveForumErrorMessage(error, 'Gagal menambahkan balasan'));
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (confirm('Apakah Anda yakin ingin menghapus post ini?')) {
-      deletePost(post.id);
-      toast.success('Post berhasil dihapus');
-      navigate('/forum');
+      try {
+        await deletePost(post.id);
+        toast.success('Post berhasil dihapus');
+        navigate('/forum');
+      } catch (error) {
+        toast.error(resolveForumErrorMessage(error, 'Gagal menghapus post'));
+      }
     }
   };
 
@@ -151,12 +216,12 @@ export function PostDetailPage() {
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3 flex-1">
                 <Avatar>
-                  <AvatarFallback>{post.authorName.charAt(0).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback>{displayAuthorInitial}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Link to={`/forum/user/${post.authorId}`} className="font-semibold hover:underline">
-                      {post.authorName}
+                      {displayAuthorName}
                     </Link>
                     <RoleBadge role={post.authorRole} size="sm" />
                     <span className="text-sm text-muted-foreground">
@@ -241,7 +306,12 @@ export function PostDetailPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowReportDialog(true)}
+                  onClick={() => setReportTarget({
+                    targetType: 'post',
+                    targetId: post.id,
+                    targetContent: post.title,
+                    targetAuthor: displayAuthorName,
+                  })}
                   className="gap-2 ml-auto text-destructive hover:text-destructive"
                 >
                   <Flag className="h-4 w-4" />
@@ -319,19 +389,35 @@ export function PostDetailPage() {
                         {/* Comment Actions */}
                         <div className="flex items-center gap-3 text-sm">
                           <button
-                            onClick={() => user && toggleCommentLike(post.id, comment.id, user.id)}
+                            onClick={() => user && void toggleCommentLike(post.id, comment.id, user.id)}
                             className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
                           >
                             <Heart className={`h-3 w-3 ${user && comment.likedBy.includes(user.id) ? 'fill-current text-primary' : ''}`} />
                             <span>{comment.likes}</span>
                           </button>
                           {user && (
-                            <button
-                              onClick={() => setReplyingTo(comment.id)}
-                              className="text-muted-foreground hover:text-primary transition-colors"
-                            >
-                              Balas
-                            </button>
+                            <>
+                              <button
+                                onClick={() => setReplyingTo(comment.id)}
+                                className="text-muted-foreground hover:text-primary transition-colors"
+                              >
+                                Balas
+                              </button>
+                              {user.id !== comment.authorId && (
+                                <button
+                                  onClick={() => setReportTarget({
+                                    targetType: 'comment',
+                                    targetId: comment.id,
+                                    targetContent: comment.content,
+                                    targetAuthor: comment.authorName,
+                                  })}
+                                  className="flex items-center gap-1 text-muted-foreground hover:text-destructive transition-colors"
+                                >
+                                  <Flag className="h-3 w-3" />
+                                  Laporkan
+                                </button>
+                              )}
+                            </>
                           )}
                         </div>
 
@@ -348,7 +434,7 @@ export function PostDetailPage() {
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
-                                onClick={() => handleAddReply(comment.id)}
+                                onClick={() => void handleAddReply(comment.id)}
                                 disabled={!replyContent.trim()}
                               >
                                 Kirim
@@ -406,14 +492,14 @@ export function PostDetailPage() {
       </div>
 
       {/* Report Dialog */}
-      {showReportDialog && (
+      {reportTarget && (
         <ReportDialog
-          open={showReportDialog}
-          onClose={() => setShowReportDialog(false)}
-          targetType="post"
-          targetId={post.id}
-          targetContent={post.title}
-          targetAuthor={post.authorName}
+          open={!!reportTarget}
+          onClose={() => setReportTarget(null)}
+          targetType={reportTarget.targetType}
+          targetId={reportTarget.targetId}
+          targetContent={reportTarget.targetContent}
+          targetAuthor={reportTarget.targetAuthor}
         />
       )}
     </div>
