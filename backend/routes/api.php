@@ -8,6 +8,10 @@ use App\Modules\Scholarship\Controllers\ScholarshipController;
 use App\Modules\Matching\Controllers\MatchingController;
 use App\Modules\Roadmap\Controllers\RoadmapController;
 use App\Modules\Forum\Controllers\ForumController;
+use App\Modules\Forum\Controllers\ForumPostController;
+use App\Modules\Forum\Controllers\ForumCategoryController;
+use App\Modules\Forum\Controllers\ForumCommentController;
+use App\Modules\Forum\Controllers\ForumReportController;
 use App\Modules\Subscription\Controllers\SubscriptionController;
 use App\Modules\Test\Controllers\TestController;
 use App\Modules\Admin\Controllers\AdminDashboardController;
@@ -32,6 +36,36 @@ use Illuminate\Support\Facades\Route;
 // =====================================================
 // PUBLIC ROUTES (No Authentication Required)
 // =====================================================
+
+// ── FORUM ─────────────────────────────────────────────────────────────
+Route::prefix('forum')->group(function () {
+
+    // 🔵 Backend A — Categories & Posts
+    Route::get('/categories', [ForumCategoryController::class, 'index']);
+
+    Route::get('/posts',              [ForumPostController::class, 'index']);
+    Route::post('/posts',             [ForumPostController::class, 'store']);
+    Route::get('/posts/pending',      [ForumPostController::class, 'pending']);   // admin
+    Route::get('/posts/{id}',         [ForumPostController::class, 'show']);
+    Route::put('/posts/{id}',         [ForumPostController::class, 'update']);
+    Route::delete('/posts/{id}',      [ForumPostController::class, 'destroy']);
+    Route::post('/posts/{id}/like',   [ForumPostController::class, 'toggleLike']);
+    Route::post('/posts/{id}/save',   [ForumPostController::class, 'toggleSave']);
+    Route::put('/posts/{id}/approve', [ForumPostController::class, 'approve']);   // admin
+    Route::put('/posts/{id}/reject',  [ForumPostController::class, 'reject']);    // admin
+
+    // 🔵 Backend B — Comments & Replies
+    Route::post('/posts/{id}/comments',       [ForumCommentController::class, 'store']);
+    Route::post('/comments/{id}/like',        [ForumCommentController::class, 'toggleLike']);
+    Route::post('/comments/{id}/replies',     [ForumCommentController::class, 'storeReply']);
+    Route::delete('/comments/{id}',           [ForumCommentController::class, 'destroy']);
+
+    // 🔵 Backend B — Reports
+    Route::post('/posts/{id}/report',         [ForumReportController::class, 'reportPost']);
+    Route::post('/comments/{id}/report',      [ForumReportController::class, 'reportComment']);
+    Route::get('/reports',                    [ForumReportController::class, 'index']);      // admin
+    Route::put('/reports/{id}/review',        [ForumReportController::class, 'review']);     // admin
+});
 
 // Lookup endpoints (public — untuk dropdown di frontend)
 Route::prefix('lookups')->group(function () {
