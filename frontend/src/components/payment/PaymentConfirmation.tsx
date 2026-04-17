@@ -1,8 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '../ui/button';
 import { Building2, Wallet, CreditCard, Check, Loader2 } from 'lucide-react';
 import { usePayment, formatCurrency, PREMIUM_PRICE_IDR } from '../../lib/payment-context';
 import { UserSubscriptionSnapshot } from './UserSubscriptionSnapshot';
+import { toast } from 'sonner';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
 
 interface PaymentConfirmationProps {
   paymentDetails: any;
@@ -14,20 +18,48 @@ interface PaymentConfirmationProps {
 export function PaymentConfirmation({ paymentDetails, onConfirm, onBack, onSuccess }: PaymentConfirmationProps) {
   const { selectedMethod, processPayment } = usePayment();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentProofUrl, setPaymentProofUrl] = useState('');
+  const [paymentReference, setPaymentReference] = useState('');
+  const [paymentNote, setPaymentNote] = useState('');
 
   const handleConfirm = async () => {
+    if (!paymentProofUrl.trim()) {
+      toast.error('Silakan isi URL bukti pembayaran terlebih dahulu.');
+      return;
+    }
+
+    try {
+      // Validate URL format before submit to avoid backend 422.
+      new URL(paymentProofUrl);
+    } catch {
+      toast.error('Format URL bukti pembayaran tidak valid.');
+      return;
+    }
+
     setIsProcessing(true);
     onConfirm();
 
     try {
+      const payload = {
+        ...paymentDetails,
+        paymentProofUrl: paymentProofUrl.trim(),
+        paymentReference: paymentReference.trim() || undefined,
+        paymentNote: paymentNote.trim() || undefined,
+      };
+
       // Pass scholarship ID 'SCH001' for demo purposes
       // In production, this would come from props or context
-      const success = await processPayment(paymentDetails, 'SCH001');
-      if (success) {
+      const result = await processPayment(payload, 'SCH001');
+      if (result.success) {
         onSuccess();
+        return;
       }
+
+      toast.error(result.message || 'Gagal mengirim pembayaran. Silakan coba lagi.');
+      setIsProcessing(false);
     } catch (error) {
       console.error('Payment failed:', error);
+      toast.error('Gagal mengirim pembayaran. Silakan coba lagi.');
       setIsProcessing(false);
     }
   };
@@ -156,10 +188,52 @@ export function PaymentConfirmation({ paymentDetails, onConfirm, onBack, onSucce
         </div>
       </div>
 
+      <div className="bg-card border rounded-lg p-4 space-y-4">
+        <h4 className="font-medium">Bukti Pembayaran</h4>
+
+        <div className="space-y-2">
+          <Label htmlFor="paymentProofUrl">URL Bukti Pembayaran *</Label>
+          <Input
+            id="paymentProofUrl"
+            type="url"
+            placeholder="https://contoh.com/bukti-transfer.jpg"
+            value={paymentProofUrl}
+            onChange={(e) => setPaymentProofUrl(e.target.value)}
+            disabled={isProcessing}
+          />
+          <p className="text-xs text-muted-foreground">
+            Upload bukti pembayaran Anda ke cloud storage, lalu tempel URL publiknya di sini.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="paymentReference">Nomor Referensi (Opsional)</Label>
+          <Input
+            id="paymentReference"
+            placeholder="Contoh: TRX-123456"
+            value={paymentReference}
+            onChange={(e) => setPaymentReference(e.target.value)}
+            disabled={isProcessing}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="paymentNote">Catatan Admin (Opsional)</Label>
+          <Textarea
+            id="paymentNote"
+            rows={3}
+            placeholder="Tambahkan catatan jika diperlukan"
+            value={paymentNote}
+            onChange={(e) => setPaymentNote(e.target.value)}
+            disabled={isProcessing}
+          />
+        </div>
+      </div>
+
       <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg">
         <p className="text-sm text-blue-900 dark:text-blue-100">
           By confirming this payment, you agree to our terms of service. 
-          Your premium access will be activated immediately upon successful payment verification.
+          Your submission will be reviewed by admin first. Premium access is activated only after admin confirmation.
         </p>
       </div>
 

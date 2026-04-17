@@ -127,7 +127,7 @@
 #### System Already Implements Required Flow:
 
 **✅ 1. Payment Queue (Main Admin Page)**
-Located at: `/admin/payment-verification-demo`
+Located at: `/admin/payments`
 
 Features:
 - Table with columns:
@@ -364,7 +364,7 @@ Each card includes:
 ### Admin Routes:
 ```
 /admin/dashboard                    - Main admin dashboard ✨ NEW
-/admin/payment-verification-demo    - Payment verification
+/admin/payments    - Payment verification
 /admin/users                        - User management ✨ NEW
 /admin/settings                     - Platform settings ✨ NEW
 /forum/reports                      - Content reports (admin)
@@ -439,7 +439,7 @@ Each card includes:
 6. Click "Pending Posts" - verify back button goes to dashboard
 
 ### Test Payment Flow:
-1. Navigate to `/admin/payment-verification-demo`
+1. Navigate to `/admin/payments`
 2. View payment queue table
 3. Use filters (status, method, date)
 4. Search for a transaction
@@ -544,3 +544,5 @@ Each card includes:
 ---
 
 **ScholarPath** - Empowering students in Java, Indonesia to achieve their scholarship dreams 🎓
+
+

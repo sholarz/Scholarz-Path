@@ -160,7 +160,7 @@ class SubscriptionController extends Controller
 
         UserSubscription::query()
             ->where('user_id', $request->user()->id)
-            ->whereIn('status', ['active', 'confirmed', 'pending'])
+            ->where('status', 'pending')
             ->update(['status' => 'cancelled']);
 
         $startedAt = Carbon::now();
@@ -180,9 +180,7 @@ class SubscriptionController extends Controller
             'expires_at' => $expiresAt,
         ]);
 
-        if ($request->user()->role !== 'admin') {
-            $request->user()->update(['role' => 'free']);
-        }
+        $this->syncUserRole($request->user());
 
         return response()->json([
             'success' => true,
@@ -285,6 +283,7 @@ class SubscriptionController extends Controller
         $validated = $request->validate([
             'decision' => 'required|in:confirmed,rejected',
             'admin_note' => 'nullable|string|max:1000',
+            'duration' => 'nullable|string',
         ]);
 
         $subscription = UserSubscription::query()->with(['plan', 'user'])->findOrFail($id);
@@ -299,13 +298,30 @@ class SubscriptionController extends Controller
         DB::transaction(function () use ($request, $validated, $subscription): void {
             $decision = $validated['decision'];
 
-            $subscription->update([
+            $updateData = [
                 'status' => $decision,
                 'reviewed_by' => $request->user()->id,
                 'reviewed_at' => now(),
                 'admin_note' => $validated['admin_note'] ?? null,
-                'started_at' => $decision === 'confirmed' ? now() : $subscription->started_at,
-            ]);
+            ];
+
+            if ($decision === 'confirmed') {
+                $startedAt = now();
+                $months = 1;
+                
+                if (!empty($validated['duration'])) {
+                    if (preg_match('/^(\d+)-month/', $validated['duration'], $matches)) {
+                        $months = (int) $matches[1];
+                    }
+                } elseif ($subscription->plan && $subscription->plan->billing_period === 'yearly') {
+                    $months = 12;
+                }
+
+                $updateData['started_at'] = $startedAt;
+                $updateData['expires_at'] = $startedAt->copy()->addMonths($months);
+            }
+
+            $subscription->update($updateData);
 
             $this->syncUserRole($subscription->user);
             $this->notifyPaymentReview($subscription, $decision, $validated['admin_note'] ?? null, $request);

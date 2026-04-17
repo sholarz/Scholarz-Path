@@ -56,14 +56,14 @@ export function PaymentFlow() {
             {currentStep === 'details' && 'Payment Details'}
             {currentStep === 'confirmation' && 'Confirm Payment'}
             {currentStep === 'processing' && 'Processing Payment...'}
-            {currentStep === 'success' && 'Payment Successful!'}
+            {currentStep === 'success' && 'Payment Submitted'}
           </DialogTitle>
           <DialogDescription>
             {currentStep === 'method' && 'Choose your preferred payment method to upgrade to Premium.'}
             {currentStep === 'details' && 'Enter your payment details to complete the transaction.'}
             {currentStep === 'confirmation' && 'Review your payment details before confirming.'}
             {currentStep === 'processing' && 'Please wait while we process your payment.'}
-            {currentStep === 'success' && 'Thank you for upgrading to Premium!'}
+            {currentStep === 'success' && 'Your payment is waiting for admin confirmation.'}
           </DialogDescription>
         </DialogHeader>
 

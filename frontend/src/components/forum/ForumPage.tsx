@@ -253,12 +253,6 @@ export function ForumPage() {
                         Reports ({posts.filter(p => p.isReported).length})
                       </Button>
                     </Link>
-                    <Link to="/forum/pending">
-                      <Button variant="outline" className="w-full justify-start" size="sm">
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Pending Posts ({posts.filter(p => p.status === 'pending').length})
-                      </Button>
-                    </Link>
                   </CardContent>
                 </Card>
               )}

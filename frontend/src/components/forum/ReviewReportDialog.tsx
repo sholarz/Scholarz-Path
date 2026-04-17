@@ -30,6 +30,14 @@ export function ReviewReportDialog({ report, open, onClose }: ReviewReportDialog
   const [actionNote, setActionNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const isWarnAction = selectedAction === 'warn-user';
+  const isRemoveAction = selectedAction === 'remove-content';
+  const noteLabel = isWarnAction ? 'Pesan Peringatan ke User *' : 'Catatan Tindakan *';
+  const notePlaceholder = isWarnAction
+    ? 'Tulis pesan peringatan yang akan dilihat oleh user...'
+    : 'Jelaskan alasan tindakan yang diambil...';
+  const submitLabel = isWarnAction ? 'Kirim Peringatan' : 'Konfirmasi Tindakan';
+
   const handleSubmit = async () => {
     if (!selectedAction) {
       toast.error('Silakan pilih tindakan');
@@ -46,7 +54,7 @@ export function ReviewReportDialog({ report, open, onClose }: ReviewReportDialog
     setIsSubmitting(true);
 
     try {
-      if (selectedAction === 'remove-content' && report.targetType === 'post') {
+      if (isRemoveAction && report.targetType === 'post') {
         await deletePost(report.targetId);
       }
 
@@ -127,10 +135,10 @@ export function ReviewReportDialog({ report, open, onClose }: ReviewReportDialog
 
           {/* Action Note */}
           <div className="space-y-2">
-            <Label htmlFor="actionNote">Catatan Tindakan *</Label>
+            <Label htmlFor="actionNote">{noteLabel}</Label>
             <Textarea
               id="actionNote"
-              placeholder="Jelaskan alasan tindakan yang diambil..."
+              placeholder={notePlaceholder}
               value={actionNote}
               onChange={(e) => setActionNote(e.target.value)}
               rows={4}
@@ -141,13 +149,25 @@ export function ReviewReportDialog({ report, open, onClose }: ReviewReportDialog
           </div>
 
           {/* Warning */}
-          {selectedAction === 'remove-content' && (
+          {isRemoveAction && (
             <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-destructive mt-0.5" />
               <div className="text-sm">
                 <p className="font-medium text-destructive">Peringatan</p>
                 <p className="text-muted-foreground">
                   Konten akan dihapus secara permanen dan tidak dapat dikembalikan.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {isWarnAction && (
+            <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-yellow-700 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-yellow-800">Peringatan ke User</p>
+                <p className="text-yellow-700">
+                  Konten tetap tampil, tetapi user akan menerima peringatan resmi dari admin.
                 </p>
               </div>
             </div>
@@ -161,9 +181,9 @@ export function ReviewReportDialog({ report, open, onClose }: ReviewReportDialog
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || !selectedAction || !actionNote.trim()}
-            variant={selectedAction === 'remove-content' ? 'destructive' : 'default'}
+            variant={isRemoveAction ? 'destructive' : 'default'}
           >
-            {isSubmitting ? 'Memproses...' : 'Konfirmasi Tindakan'}
+            {isSubmitting ? 'Memproses...' : submitLabel}
           </Button>
         </div>
       </DialogContent>

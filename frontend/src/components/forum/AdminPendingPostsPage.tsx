@@ -10,6 +10,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { RoleBadge } from '../RoleBadge';
 import { toast } from 'sonner';
+import { AdminLayout } from '../admin/AdminLayout';
 
 export function AdminPendingPostsPage() {
   const { user } = useAuth();
@@ -55,8 +56,8 @@ export function AdminPendingPostsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background py-8">
-      <div className="container mx-auto px-4 max-w-6xl">
+    <AdminLayout>
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -155,6 +156,6 @@ export function AdminPendingPostsPage() {
           )}
         </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { 
+import {
   Users, 
   FileText, 
   MessageSquare, 
@@ -8,7 +8,8 @@ import {
   TrendingUp,
   Calendar,
   Award,
-  Activity
+  Activity,
+  ArrowLeft
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';
@@ -36,7 +37,7 @@ const QUICK_ACTIONS: QuickAction[] = [
     title: 'Payment Verification',
     description: 'Review pending payment submissions',
     icon: CreditCard,
-    href: '/admin/payment-verification-demo',
+    href: '/admin/payments',
     badge: 12,
   },
   {
@@ -116,7 +117,7 @@ export function AdminDashboard() {
       title: 'Payment Verification',
       description: 'Review pending payment submissions',
       icon: CreditCard,
-      href: '/admin/payment-verification-demo',
+      href: '/admin/payments',
       badge: stats?.reports.open ?? undefined,
     },
     {
@@ -143,13 +144,21 @@ export function AdminDashboard() {
   return (
     <div className="space-y-8">
       {/* Welcome Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-[#2f4156]">
-          Welcome back, {user?.name || 'Admin'}
-        </h1>
-        <p className="text-gray-600 mt-2">
-          Here's what's happening with ScholarPath today
-        </p>
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-[#2f4156]">
+            Welcome back, {user?.name || 'Admin'}
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Here's what's happening with ScholarPath today
+          </p>
+        </div>
+        <Link to="/dashboard">
+          <Button variant="outline" className="gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Ke Tampilan Biasa
+          </Button>
+        </Link>
       </div>
 
       {error && (

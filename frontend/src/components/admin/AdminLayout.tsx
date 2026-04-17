@@ -40,7 +40,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Scholarships', href: '/admin/scholarships', icon: GraduationCap },
-  { label: 'Payment Verification', href: '/admin/payment-verification-demo', icon: CreditCard, badge: 12 },
+  { label: 'Payment Verification', href: '/admin/payments', icon: CreditCard, badge: 12 },
   { label: 'User Reports', href: '/forum/reports', icon: FileText, badge: 8 },
   { label: 'Pending Posts', href: '/forum/pending', icon: FileText, badge: 5 },
   { label: 'Users', href: '/admin/users', icon: Users },

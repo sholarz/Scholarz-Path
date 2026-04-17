@@ -9,6 +9,7 @@ export interface PaymentDetails {
   amount: number;
   currency: string;
   timestamp: string;
+  status: 'pending' | 'confirmed' | 'rejected';
   scholarshipId?: string; // Track which scholarship this payment is for
   methodDetails?: string; // E.g., "BCA Virtual Account", "GoPay", etc.
 }
@@ -41,7 +42,7 @@ interface PaymentContextType {
   isPaymentFlowOpen: boolean;
   openPaymentFlow: () => void;
   closePaymentFlow: () => void;
-  processPayment: (details: any, scholarshipId?: string) => Promise<boolean>;
+  processPayment: (details: any, scholarshipId?: string) => Promise<{ success: boolean; message?: string }>;
   paymentHistory: PaymentDetails[];
   hasPaidForScholarship: (scholarshipId: string) => boolean;
 }
@@ -66,7 +67,7 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
     setSelectedMethod(null);
   };
 
-  const processPayment = async (details: any, scholarshipId?: string): Promise<boolean> => {
+  const processPayment = async (details: any, scholarshipId?: string): Promise<{ success: boolean; message?: string }> => {
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(
@@ -80,13 +81,30 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
           },
           body: JSON.stringify({
             payment_method: selectedMethod,
+            payment_reference: details?.paymentReference,
+            payment_proof_url: details?.paymentProofUrl,
+            payment_note: details?.paymentNote,
           }),
         }
       );
 
       if (!response.ok) {
-        console.error('Subscription API error:', response.status);
-        return false;
+        let errorMessage = `Subscription API error: ${response.status}`;
+        try {
+          const errorPayload = await response.json();
+          errorMessage = errorPayload?.message || errorPayload?.error?.message || errorMessage;
+        } catch {
+          // Keep default message if response body is not JSON.
+        }
+        console.error(errorMessage);
+        return { success: false, message: errorMessage };
+      }
+
+      const payload = await response.json();
+      const subscriptionStatus = payload?.data?.subscription?.status;
+      if (subscriptionStatus !== 'pending') {
+        console.error('Unexpected subscription status:', subscriptionStatus);
+        return { success: false, message: 'Status subscription tidak valid setelah submit pembayaran.' };
       }
 
       // Determine payment method details for local history
@@ -108,19 +126,20 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
         amount: PREMIUM_PRICE,
         currency: 'IDR',
         timestamp: new Date().toISOString(),
+        status: 'pending',
         scholarshipId,
         methodDetails,
       };
 
       setPaymentHistory(prev => [...prev, payment]);
 
-      // Re-fetch user from backend to get the updated role
+      // Refresh user so frontend stays in sync with backend role (should remain free until admin confirms).
       await refreshUser();
 
-      return true;
+      return { success: true };
     } catch (err) {
       console.error('Payment processing error:', err);
-      return false;
+      return { success: false, message: 'Terjadi kesalahan saat memproses pembayaran.' };
     }
   };
 
