@@ -21,7 +21,7 @@ class MatchingController extends Controller
             'gpa'           => 'sometimes|numeric|min:0|max:4',
             'field_of_study' => 'sometimes|nullable|string|max:255',
             'major'         => 'sometimes|nullable|string|max:255',
-            'degree_level'  => 'sometimes|nullable|string|in:high_school,bachelor,master,doctorate,postdoc',
+            'degree_level'  => 'sometimes|nullable|string|in:sma,s1,s2,s3,high_school,bachelor,master,doctorate,postdoc',
             'nationality'   => 'sometimes|nullable|string|max:10',
             'current_country' => 'sometimes|nullable|string|max:10',
             'languages'     => 'sometimes|nullable|array',

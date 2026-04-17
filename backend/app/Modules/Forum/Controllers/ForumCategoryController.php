@@ -12,8 +12,8 @@ class ForumCategoryController extends Controller
     public function index(): JsonResponse
     {
         $categories = ForumCategory::where('is_active', true)
-            ->orderBy('order_index')
-            ->withCount(['posts' => fn($q) => $q->where('status', 'approved')])
+            ->orderBy('sort_order')
+            ->withCount(['posts' => fn($q) => $q->where('status', 'published')])
             ->get(['id', 'name', 'slug', 'description']);
 
         return response()->json(['data' => $categories]);

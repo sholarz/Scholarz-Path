@@ -7,7 +7,6 @@ use App\Modules\User\Controllers\DashboardController;
 use App\Modules\Scholarship\Controllers\ScholarshipController;
 use App\Modules\Matching\Controllers\MatchingController;
 use App\Modules\Roadmap\Controllers\RoadmapController;
-use App\Modules\Forum\Controllers\ForumController;
 use App\Modules\Forum\Controllers\ForumPostController;
 use App\Modules\Forum\Controllers\ForumCategoryController;
 use App\Modules\Forum\Controllers\ForumCommentController;
@@ -46,14 +45,11 @@ Route::prefix('forum')->group(function () {
 Route::middleware(['auth:sanctum'])->prefix('forum')->group(function () {
     Route::get('/posts',              [ForumPostController::class, 'index']);
     Route::post('/posts',             [ForumPostController::class, 'store']);
-    Route::get('/posts/pending',      [ForumPostController::class, 'pending'])->middleware('role:admin');
     Route::get('/posts/{id}',         [ForumPostController::class, 'show']);
     Route::put('/posts/{id}',         [ForumPostController::class, 'update']);
     Route::delete('/posts/{id}',      [ForumPostController::class, 'destroy']);
     Route::post('/posts/{id}/like',   [ForumPostController::class, 'toggleLike']);
     Route::post('/posts/{id}/save',   [ForumPostController::class, 'toggleSave']);
-    Route::put('/posts/{id}/approve', [ForumPostController::class, 'approve'])->middleware('role:admin');
-    Route::put('/posts/{id}/reject',  [ForumPostController::class, 'reject'])->middleware('role:admin');
 
     // Comments & Replies
     Route::post('/posts/{id}/comments',       [ForumCommentController::class, 'store']);
@@ -62,10 +58,12 @@ Route::middleware(['auth:sanctum'])->prefix('forum')->group(function () {
     Route::delete('/comments/{id}',           [ForumCommentController::class, 'destroy']);
 
     // Reports
-    Route::post('/posts/{id}/report',         [ForumReportController::class, 'reportPost']);
+    Route::post('/posts/{id}/report',         [ForumPostController::class, 'report']);
     Route::post('/comments/{id}/report',      [ForumReportController::class, 'reportComment']);
     Route::get('/reports',                    [ForumReportController::class, 'index'])->middleware('role:admin');
     Route::put('/reports/{id}/review',        [ForumReportController::class, 'review'])->middleware('role:admin');
+    Route::get('/moderation/reported-posts',  [ForumReportController::class, 'reportedPosts'])->middleware('role:admin');
+    Route::post('/moderation/posts/{id}/action', [ForumReportController::class, 'moderatePost'])->middleware('role:admin');
 });
 
 // Lookup endpoints (public — untuk dropdown di frontend)
@@ -201,36 +199,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/{id}/submit', [TestController::class, 'submit']);
     });
     
-    // Forum
-    Route::prefix('forum')->group(function () {
-        Route::get('/posts', [ForumController::class, 'getPosts']);
-        Route::post('/posts', [ForumController::class, 'createPost']);
-        Route::get('/posts/pending', [ForumController::class, 'getPendingPosts'])->middleware('role:admin');
-        Route::get('/posts/{id}', [ForumController::class, 'getPost'])->whereUuid('id');
-        Route::put('/posts/{id}', [ForumController::class, 'updatePost'])->whereUuid('id');
-        Route::delete('/posts/{id}', [ForumController::class, 'deletePost'])->whereUuid('id');
-        Route::post('/posts/{id}/like', [ForumController::class, 'likePost'])->whereUuid('id');
-        Route::post('/posts/{id}/save', [ForumController::class, 'savePost'])->whereUuid('id');
-        Route::post('/posts/{id}/comments', [ForumController::class, 'addComment'])->whereUuid('id');
-        Route::post('/posts/{id}/report', [ForumController::class, 'reportPost'])->whereUuid('id');
-        Route::put('/posts/{id}/approve', [ForumController::class, 'approvePost'])->whereUuid('id')->middleware('role:admin');
-        Route::put('/posts/{id}/reject', [ForumController::class, 'rejectPost'])->whereUuid('id')->middleware('role:admin');
-        Route::get('/reports', [ForumController::class, 'getReports'])->middleware('role:admin');
-        Route::put('/reports/{id}/review', [ForumController::class, 'reviewReport'])->whereUuid('id')->middleware('role:admin');
-        Route::post('/comments/{id}/like', [ForumController::class, 'toggleCommentLike'])->whereUuid('id');
-        Route::post('/comments/{id}/replies', [ForumController::class, 'addReply'])->whereUuid('id');
-
-        Route::get('/categories', [ForumController::class, 'getCategories']);
-        Route::get('/categories/{slug}/topics', [ForumController::class, 'getTopicsByCategory']);
-        Route::post('/categories/{slug}/topics', [ForumController::class, 'createTopic']);
-        Route::get('/topics/{id}', [ForumController::class, 'getTopic']);
-        Route::post('/topics/{id}/replies', [ForumController::class, 'createReply']);
-        Route::put('/replies/{id}/like', [ForumController::class, 'likeReply']);
-        Route::put('/replies/{id}/solution', [ForumController::class, 'markAsSolution']);
-        Route::get('/my-topics', [ForumController::class, 'getUserTopics']);
-        Route::get('/my-replies', [ForumController::class, 'getUserReplies']);
-    });
-    
     // Subscriptions
     Route::prefix('subscriptions')->group(function () {
         Route::get('/current', [SubscriptionController::class, 'getCurrentSubscription']);
@@ -278,6 +246,12 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
         Route::delete('/{id}', [AdminDashboardController::class, 'deleteScholarship']);
         Route::put('/{id}/verify', [AdminDashboardController::class, 'verifyScholarship']);
         Route::put('/{id}/feature', [AdminDashboardController::class, 'featureScholarship']);
+    });
+
+    // Payment Management
+    Route::prefix('payments')->group(function () {
+        Route::get('/', [SubscriptionController::class, 'getPaymentSubmissions']);
+        Route::put('/{id}/review', [SubscriptionController::class, 'reviewPayment']);
     });
     
     // Forum Moderation

@@ -7,6 +7,7 @@ use App\Models\AdminAuditLog;
 use App\Models\AdminReport;
 use App\Models\ForumModerationAction;
 use App\Models\Scholarship;
+use App\Models\ScholarshipProvider;
 use App\Models\User;
 use App\Models\UserForumBan;
 use Illuminate\Http\JsonResponse;
@@ -128,11 +129,14 @@ class AdminDashboardController extends Controller
     public function createScholarship(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'provider_id' => ['required', 'uuid', Rule::exists('scholarship_providers', 'id')],
+            'provider_id' => ['nullable', 'uuid', Rule::exists('scholarship_providers', 'id')],
+            'provider_name' => ['required_without:provider_id', 'string', 'max:200'],
+            'provider_country' => ['nullable', 'string', 'max:100'],
             'title' => ['required', 'string', 'max:300'],
             'description' => ['required', 'string'],
             'type' => ['required', Rule::in(['full', 'partial', 'merit', 'need_based', 'sports', 'academic'])],
-            'level' => ['required', Rule::in(['high_school', 'bachelor', 'master', 'doctorate', 'postdoc'])],
+            'target_level' => ['required', Rule::in(['sma', 's1', 's2', 's3'])],
+            'degree_level' => ['required', Rule::in(['s1', 's2', 's3'])],
             'application_deadline' => ['required', 'date'],
             'application_url' => ['required', 'url', 'max:1000'],
             'amount' => ['nullable', 'numeric'],
@@ -144,20 +148,22 @@ class AdminDashboardController extends Controller
             'language_requirements' => ['nullable', 'array'],
             'start_date' => ['nullable', 'date'],
             'duration_months' => ['nullable', 'integer', 'min:1'],
-            'requirements' => ['nullable', 'string'],
-            'benefits' => ['nullable', 'string'],
-            'selection_criteria' => ['nullable', 'string'],
-            'application_process' => ['nullable', 'string'],
+            'requirements' => ['nullable', 'array'],
+            'benefits' => ['nullable', 'array'],
+            'selection_criteria' => ['nullable', 'array'],
+            'application_process' => ['nullable', 'array'],
             'status' => ['nullable', Rule::in(['active', 'inactive', 'expired', 'draft'])],
             'is_featured' => ['nullable', 'boolean'],
         ]);
 
-        $scholarship = Scholarship::create($validated);
-        $this->logAction($request, 'create_scholarship', Scholarship::class, $scholarship->id, $validated);
+        $payload = $this->normalizeScholarshipPayload($validated);
+
+        $scholarship = Scholarship::create($payload);
+        $this->logAction($request, 'create_scholarship', Scholarship::class, $scholarship->id, $payload);
 
         return response()->json([
             'success' => true,
-            'data' => $scholarship,
+            'data' => $scholarship->load('provider'),
             'message' => 'Scholarship created successfully.',
         ], 201);
     }
@@ -166,10 +172,13 @@ class AdminDashboardController extends Controller
     {
         $validated = $request->validate([
             'provider_id' => ['sometimes', 'uuid', Rule::exists('scholarship_providers', 'id')],
+            'provider_name' => ['sometimes', 'string', 'max:200'],
+            'provider_country' => ['sometimes', 'nullable', 'string', 'max:100'],
             'title' => ['sometimes', 'string', 'max:300'],
             'description' => ['sometimes', 'string'],
             'type' => ['sometimes', Rule::in(['full', 'partial', 'merit', 'need_based', 'sports', 'academic'])],
-            'level' => ['sometimes', Rule::in(['high_school', 'bachelor', 'master', 'doctorate', 'postdoc'])],
+            'target_level' => ['sometimes', Rule::in(['sma', 's1', 's2', 's3'])],
+            'degree_level' => ['sometimes', Rule::in(['s1', 's2', 's3'])],
             'application_deadline' => ['sometimes', 'date'],
             'application_url' => ['sometimes', 'url', 'max:1000'],
             'amount' => ['sometimes', 'nullable', 'numeric'],
@@ -181,20 +190,21 @@ class AdminDashboardController extends Controller
             'language_requirements' => ['sometimes', 'array'],
             'start_date' => ['sometimes', 'nullable', 'date'],
             'duration_months' => ['sometimes', 'nullable', 'integer', 'min:1'],
-            'requirements' => ['sometimes', 'nullable', 'string'],
-            'benefits' => ['sometimes', 'nullable', 'string'],
-            'selection_criteria' => ['sometimes', 'nullable', 'string'],
-            'application_process' => ['sometimes', 'nullable', 'string'],
+            'requirements' => ['sometimes', 'nullable', 'array'],
+            'benefits' => ['sometimes', 'nullable', 'array'],
+            'selection_criteria' => ['sometimes', 'nullable', 'array'],
+            'application_process' => ['sometimes', 'nullable', 'array'],
             'status' => ['sometimes', Rule::in(['active', 'inactive', 'expired', 'draft'])],
             'is_featured' => ['sometimes', 'boolean'],
         ]);
 
         $scholarship = Scholarship::findOrFail($id);
-        $scholarship->update($validated);
+        $payload = $this->normalizeScholarshipPayload($validated, false);
+        $scholarship->update($payload);
 
-        $this->logAction($request, 'update_scholarship', Scholarship::class, $scholarship->id, $validated);
+        $this->logAction($request, 'update_scholarship', Scholarship::class, $scholarship->id, $payload);
 
-        return $this->success($scholarship, 'Scholarship updated successfully.');
+        return $this->success($scholarship->fresh()->load('provider'), 'Scholarship updated successfully.');
     }
 
     public function deleteScholarship(Request $request, string $id): JsonResponse
@@ -455,12 +465,14 @@ class AdminDashboardController extends Controller
             return;
         }
 
+        $encodedMetadata = json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_PARTIAL_OUTPUT_ON_ERROR);
+
         AdminAuditLog::create([
             'admin_id' => $actor->id,
             'action' => $action,
             'target_type' => $targetType,
             'target_id' => $targetId,
-            'metadata' => $metadata,
+            'metadata' => $encodedMetadata === false ? '{}' : $encodedMetadata,
         ]);
     }
 
@@ -471,5 +483,60 @@ class AdminDashboardController extends Controller
             'data' => $data,
             'message' => $message,
         ]);
+    }
+
+    private function normalizeScholarshipPayload(array $data, bool $creating = true): array
+    {
+        if (isset($data['degree_level'])) {
+            $data['level'] = match ($data['degree_level']) {
+                's1' => 'bachelor',
+                's2' => 'master',
+                's3' => 'doctorate',
+                default => 'bachelor',
+            };
+        }
+
+        if (isset($data['provider_name']) && !isset($data['provider_id'])) {
+            $provider = ScholarshipProvider::query()->firstOrCreate(
+                [
+                    'name' => $data['provider_name'],
+                    'country' => $data['provider_country'] ?? null,
+                ],
+                [
+                    'is_verified' => true,
+                ]
+            );
+
+            $data['provider_id'] = $provider->id;
+        }
+
+        unset($data['provider_name'], $data['provider_country']);
+
+        foreach (['fields_of_study', 'requirements', 'benefits', 'selection_criteria', 'application_process'] as $field) {
+            if (array_key_exists($field, $data) && is_array($data[$field])) {
+                $data[$field] = array_values(array_filter($data[$field], fn ($value) => $value !== null && $value !== ''));
+            }
+        }
+
+        foreach ([
+            'target_countries',
+            'eligible_nationalities',
+            'fields_of_study',
+            'language_requirements',
+            'requirements',
+            'benefits',
+            'selection_criteria',
+            'application_process',
+        ] as $jsonField) {
+            if (array_key_exists($jsonField, $data) && is_array($data[$jsonField])) {
+                $data[$jsonField] = json_encode($data[$jsonField], JSON_UNESCAPED_UNICODE);
+            }
+        }
+
+        if ($creating && !isset($data['status'])) {
+            $data['status'] = 'draft';
+        }
+
+        return $data;
     }
 }

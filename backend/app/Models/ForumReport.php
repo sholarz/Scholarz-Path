@@ -12,6 +12,8 @@ class ForumReport extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
+        'post_id',
+        'user_id',
         'reporter_user_id',
         'target_type',
         'target_id',

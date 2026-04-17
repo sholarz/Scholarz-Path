@@ -74,7 +74,7 @@ class User extends Authenticatable
     public function subscription(): HasOne
     {
         return $this->hasOne(UserSubscription::class)
-                    ->where('status', 'active');
+                    ->whereIn('status', ['active', 'confirmed']);
     }
 
     /**
