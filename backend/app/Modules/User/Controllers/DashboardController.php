@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DailyTask;
 use App\Models\Roadmap;
 use App\Models\ScholarshipMatch;
+use App\Models\UserNotification;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -88,6 +89,12 @@ class DashboardController extends Controller
                 'days_until_deadline' => now()->diffInDays($r->deadline, false),
             ]);
 
+        // --- Active Notifications (unread count) ---
+        $activeNotificationsCount = UserNotification::query()
+            ->where('user_id', $user->id)
+            ->where('is_read', false)
+            ->count();
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -97,6 +104,7 @@ class DashboardController extends Controller
                 'active_tasks'       => $activeTasks,
                 'active_roadmaps'    => $activeRoadmaps,
                 'active_roadmap_count' => $activeRoadmaps->count(),
+                'active_notifications_count' => $activeNotificationsCount,
             ],
         ]);
     }

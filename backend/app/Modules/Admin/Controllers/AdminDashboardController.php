@@ -5,19 +5,94 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\AdminAuditLog;
 use App\Models\AdminReport;
+use App\Models\ForumPost;
 use App\Models\ForumModerationAction;
 use App\Models\Scholarship;
 use App\Models\ScholarshipProvider;
 use App\Models\User;
 use App\Models\UserForumBan;
+use App\Models\UserSubscription;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
 class AdminDashboardController extends Controller
 {
     public function getDashboardStats(): JsonResponse
     {
+        $recentActivity = collect()
+            ->merge(
+                User::query()
+                    ->latest('created_at')
+                    ->limit(3)
+                    ->get(['email', 'role', 'created_at'])
+                    ->map(function (User $user): array {
+                        return [
+                            'type' => 'user',
+                            'title' => 'New user registration',
+                            'description' => $user->email . ' joined as ' . ucfirst((string) $user->role) . ' user',
+                            'timestamp' => optional($user->created_at)?->toIso8601String(),
+                        ];
+                    })
+            )
+            ->merge(
+                UserSubscription::query()
+                    ->with('user:id,email')
+                    ->latest('created_at')
+                    ->limit(3)
+                    ->get(['user_id', 'status', 'payment_method', 'created_at'])
+                    ->map(function (UserSubscription $subscription): array {
+                        return [
+                            'type' => 'payment',
+                            'title' => 'Payment submitted',
+                            'description' => ($subscription->user?->email ?? 'Unknown user')
+                                . ' submitted payment via '
+                                . ($subscription->payment_method ?: 'unknown method')
+                                . ' (' . strtoupper((string) $subscription->status) . ')',
+                            'timestamp' => optional($subscription->created_at)?->toIso8601String(),
+                        ];
+                    })
+            )
+            ->merge(
+                ForumPost::query()
+                    ->with('author:id,email')
+                    ->latest('created_at')
+                    ->limit(3)
+                    ->get(['author_id', 'title', 'created_at'])
+                    ->map(function (ForumPost $post): array {
+                        return [
+                            'type' => 'forum',
+                            'title' => 'New forum post',
+                            'description' => ($post->author?->email ?? 'Unknown user') . ' created: ' . $post->title,
+                            'timestamp' => optional($post->created_at)?->toIso8601String(),
+                        ];
+                    })
+            )
+            ->merge(
+                AdminReport::query()
+                    ->with('reporter:id,email')
+                    ->latest('created_at')
+                    ->limit(3)
+                    ->get(['reporter_user_id', 'reason', 'status', 'created_at'])
+                    ->map(function (AdminReport $report): array {
+                        return [
+                            'type' => 'report',
+                            'title' => 'Content reported',
+                            'description' => ($report->reporter?->email ?? 'Unknown user')
+                                . ' reported content (' . strtoupper((string) $report->status) . ')',
+                            'timestamp' => optional($report->created_at)?->toIso8601String(),
+                        ];
+                    })
+            )
+            ->filter(fn (array $entry): bool => !empty($entry['timestamp']))
+            ->sortByDesc(function (array $entry) {
+                return Carbon::parse((string) $entry['timestamp'])->timestamp;
+            })
+            ->values()
+            ->take(8)
+            ->all();
+
         return $this->success([
             'users' => [
                 'total' => User::count(),
@@ -35,6 +110,7 @@ class AdminDashboardController extends Controller
                 'open' => AdminReport::where('status', 'open')->count(),
                 'resolved' => AdminReport::where('status', 'resolved')->count(),
             ],
+            'recent_activity' => $recentActivity,
         ], 'Dashboard stats fetched successfully.');
     }
 

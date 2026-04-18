@@ -104,7 +104,7 @@ Route::get('/health', function () {
 // Public Test Simulations
 Route::prefix('tests')->group(function () {
     Route::get('/', [TestController::class, 'index']);
-    Route::get('/{id}', [TestController::class, 'show']);
+    Route::get('/{id}', [TestController::class, 'show'])->whereUuid('id');
 });
 
 // =====================================================
@@ -196,6 +196,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Test submissions
     Route::prefix('tests')->group(function () {
+        Route::get('/history', [TestController::class, 'history']);
         Route::post('/{id}/submit', [TestController::class, 'submit']);
     });
     

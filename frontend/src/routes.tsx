@@ -185,6 +185,7 @@ export const router = createBrowserRouter([
           </AdminRoute>
         ),
       },
+      { path: "subscription-snapshot", Component: SubscriptionSnapshotDemo },
       { path: "subscription-snapshot-demo", Component: SubscriptionSnapshotDemo },
       { path: "*", Component: NotFoundPage },
     ],

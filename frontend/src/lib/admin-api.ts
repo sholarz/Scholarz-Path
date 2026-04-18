@@ -32,6 +32,12 @@ export type AdminDashboardStats = {
     open: number;
     resolved: number;
   };
+  recent_activity?: Array<{
+    type: 'user' | 'payment' | 'forum' | 'report' | string;
+    title: string;
+    description: string;
+    timestamp: string;
+  }>;
 };
 
 export type AdminUser = {

@@ -174,6 +174,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const syncSessionUser = async () => {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      return;
+    }
+
+    try {
+      const payloadUser = await fetchCurrentUser(token);
+      const storedUser = loadStoredUser();
+      const refreshedUser = mapApiUser(
+        payloadUser,
+        payloadUser.email || storedUser?.email || '',
+        storedUser?.name || payloadUser.email || ''
+      );
+      persistSession(setUser, refreshedUser);
+    } catch {
+      // Keep current state if sync fails (e.g. temporary network issue).
+    }
+  };
+
   useEffect(() => {
     // Global 401 handler — fired by api-client.ts when any API call returns 401
     const handleUnauthorized = () => {
@@ -183,10 +203,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('bookmarks_cache');
     };
 
+    const handleWindowFocus = () => {
+      void syncSessionUser();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void syncSessionUser();
+      }
+    };
+
+    // Initial sync so role updates from backend are reflected after reload.
+    void syncSessionUser();
+
+    const syncInterval = window.setInterval(() => {
+      void syncSessionUser();
+    }, 30000);
+
     window.addEventListener('api:unauthorized', handleUnauthorized);
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     setIsAuthReady(true);
 
-    return () => window.removeEventListener('api:unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('api:unauthorized', handleUnauthorized);
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.clearInterval(syncInterval);
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -349,15 +393,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshUser = async () => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) return;
-    try {
-      const payloadUser = await fetchCurrentUser(token);
-      const refreshedUser = mapApiUser(payloadUser, payloadUser.email || user?.email || '', user?.name || '');
-      persistSession(setUser, refreshedUser);
-    } catch {
-      // If fetching fails, keep current state
-    }
+    await syncSessionUser();
   };
 
   const clearError = () => {

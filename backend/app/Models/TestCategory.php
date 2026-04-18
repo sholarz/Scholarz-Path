@@ -12,7 +12,7 @@ class TestCategory extends Model
 
     protected $fillable = [
     'created_by', 'name', 'slug', 'description',
-    'test_type', 'section', 'difficulty',
+        'test_type', 'category', 'section', 'difficulty',
     'time_limit_minutes', 'total_questions',
     'passing_score_percentage', 'access_level', 'is_active',
 ];
