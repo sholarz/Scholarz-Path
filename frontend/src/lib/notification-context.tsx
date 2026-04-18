@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { useAuth } from './auth-context';
+import { ApiError, apiDelete, apiGet, apiPut } from './api-client';
 
 export type NotificationType = 
   | 'post_like'
@@ -48,6 +50,19 @@ interface NotificationContextType {
   markCalendarAdded: (scholarshipId: string) => void;
 }
 
+type BackendNotification = {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  link?: string | null;
+  action_by?: string | null;
+  metadata?: Record<string, any> | null;
+};
+
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 const MOCK_NOTIFICATIONS: Notification[] = [
@@ -96,10 +111,47 @@ const MOCK_NOTIFICATIONS: Notification[] = [
 ];
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [preferences, setPreferences] = useState<NotificationPreference[]>([]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  const mapBackendNotification = (row: BackendNotification): Notification => ({
+    id: row.id,
+    userId: row.user_id,
+    type: row.type,
+    title: row.title,
+    message: row.message,
+    read: Boolean(row.is_read),
+    createdAt: new Date(row.created_at),
+    link: row.link || undefined,
+    actionBy: row.action_by || undefined,
+    metadata: row.metadata || undefined,
+  });
+
+  useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+      return;
+    }
+
+    const loadNotifications = async () => {
+      try {
+        const rows = await apiGet<BackendNotification[]>(`/notifications`);
+        setNotifications(rows.map(mapBackendNotification));
+      } catch (error) {
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          setNotifications([]);
+          return;
+        }
+
+        setNotifications([]);
+      }
+    };
+
+    void loadNotifications();
+  }, [user?.id]);
 
   const addNotification = (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
     const newNotification: Notification = {
@@ -115,16 +167,34 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setNotifications(prev =>
       prev.map(n => (n.id === id ? { ...n, read: true } : n))
     );
+
+    if (user) {
+      void apiPut(`/notifications/${id}/read`).catch(() => {
+        // Keep optimistic UI state.
+      });
+    }
   };
 
   const markAllAsRead = () => {
     setNotifications(prev =>
       prev.map(n => ({ ...n, read: true }))
     );
+
+    if (user) {
+      void apiPut('/notifications/mark-all-read').catch(() => {
+        // Keep optimistic UI state.
+      });
+    }
   };
 
   const deleteNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
+
+    if (user) {
+      void apiDelete(`/notifications/${id}`).catch(() => {
+        // Keep optimistic UI state.
+      });
+    }
   };
 
   const clearAll = () => {

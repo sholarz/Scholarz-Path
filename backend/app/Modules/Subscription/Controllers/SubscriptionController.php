@@ -3,15 +3,77 @@
 namespace App\Modules\Subscription\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminAuditLog;
 use App\Models\SubscriptionPlan;
+use App\Models\User;
+use App\Models\UserNotification;
 use App\Models\UserSubscription;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class SubscriptionController extends Controller
 {
+    private function syncUserRole(User $user): void
+    {
+        $hasConfirmedSubscription = UserSubscription::query()
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['active', 'confirmed'])
+            ->where(function ($query) {
+                $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->exists();
+
+        $nextRole = $hasConfirmedSubscription ? 'premium' : 'free';
+
+        if ($user->role !== 'admin' && $user->role !== $nextRole) {
+            $user->update(['role' => $nextRole]);
+        }
+    }
+
+    private function logPaymentAudit(Request $request, string $action, UserSubscription $subscription, array $metadata = []): void
+    {
+        if (! $request->user()) {
+            return;
+        }
+
+        AdminAuditLog::create([
+            'admin_id' => $request->user()->id,
+            'action' => $action,
+            'target_type' => 'user_subscription',
+            'target_id' => $subscription->id,
+            'metadata' => json_encode($metadata, JSON_UNESCAPED_UNICODE),
+        ]);
+    }
+
+    private function notifyPaymentReview(UserSubscription $subscription, string $decision, ?string $adminNote, Request $request): void
+    {
+        if (!Schema::hasTable('notifications')) {
+            return;
+        }
+
+        $actionBy = (string) ($request->user()?->email ?? 'admin');
+        $isConfirmed = $decision === 'confirmed';
+
+        UserNotification::create([
+            'user_id' => $subscription->user_id,
+            'type' => $isConfirmed ? 'payment_approved' : 'payment_rejected',
+            'title' => $isConfirmed ? 'Pembayaran Premium Disetujui' : 'Pembayaran Premium Ditolak',
+            'message' => $isConfirmed
+                ? 'Pembayaran Anda telah diverifikasi admin. Akun Anda sekarang Premium.'
+                : ('Pembayaran Anda ditolak admin. ' . ($adminNote ?: 'Silakan kirim ulang bukti pembayaran yang valid.')),
+            'is_read' => false,
+            'link' => '/subscription-snapshot',
+            'action_by' => $actionBy,
+            'metadata' => json_encode([
+                'subscription_id' => $subscription->id,
+                'decision' => $decision,
+            ], JSON_UNESCAPED_UNICODE),
+        ]);
+    }
+
     public function getPlans(): JsonResponse
     {
         if (!Schema::hasTable('subscription_plans')) {
@@ -58,7 +120,7 @@ class SubscriptionController extends Controller
         $subscription = UserSubscription::query()
             ->with('plan')
             ->where('user_id', $request->user()->id)
-            ->where('status', 'active')
+            ->whereIn('status', ['pending', 'confirmed', 'active', 'rejected', 'cancelled'])
             ->latest('started_at')
             ->first();
 
@@ -73,6 +135,9 @@ class SubscriptionController extends Controller
         $request->validate([
             'plan_id' => 'nullable|uuid|exists:subscription_plans,id',
             'payment_method' => 'nullable|string|max:50',
+            'payment_reference' => 'nullable|string|max:100',
+            'payment_proof_url' => 'nullable|url|max:500',
+            'payment_note' => 'nullable|string|max:1000',
         ]);
 
         if (!Schema::hasTable('user_subscriptions') || !Schema::hasTable('subscription_plans')) {
@@ -95,7 +160,7 @@ class SubscriptionController extends Controller
 
         UserSubscription::query()
             ->where('user_id', $request->user()->id)
-            ->where('status', 'active')
+            ->where('status', 'pending')
             ->update(['status' => 'cancelled']);
 
         $startedAt = Carbon::now();
@@ -106,16 +171,20 @@ class SubscriptionController extends Controller
         $subscription = UserSubscription::create([
             'user_id' => $request->user()->id,
             'plan_id' => $plan->id,
-            'status' => 'active',
+            'status' => 'pending',
+            'payment_method' => $request->payment_method,
+            'payment_reference' => $request->payment_reference,
+            'payment_proof_url' => $request->payment_proof_url,
+            'payment_note' => $request->payment_note,
             'started_at' => $startedAt,
             'expires_at' => $expiresAt,
         ]);
 
-        $request->user()->update(['role' => 'premium']);
+        $this->syncUserRole($request->user());
 
         return response()->json([
             'success' => true,
-            'message' => 'Subscription activated successfully.',
+            'message' => 'Payment submitted. Waiting for admin confirmation.',
             'data' => [
                 'subscription' => $subscription->load('plan'),
             ],
@@ -126,7 +195,7 @@ class SubscriptionController extends Controller
     {
         $subscription = UserSubscription::query()
             ->where('user_id', $request->user()->id)
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'confirmed'])
             ->latest('started_at')
             ->first();
 
@@ -138,7 +207,7 @@ class SubscriptionController extends Controller
         }
 
         $subscription->update(['status' => 'cancelled']);
-        $request->user()->update(['role' => 'free']);
+        $this->syncUserRole($request->user());
 
         return response()->json([
             'success' => true,
@@ -163,17 +232,115 @@ class SubscriptionController extends Controller
         }
 
         $subscription->update([
-            'status' => 'active',
+            'status' => 'pending',
             'started_at' => Carbon::now(),
             'expires_at' => Carbon::now()->addMonth(),
+            'reviewed_by' => null,
+            'reviewed_at' => null,
+            'admin_note' => null,
         ]);
 
-        $request->user()->update(['role' => 'premium']);
+        $this->syncUserRole($request->user());
 
         return response()->json([
             'success' => true,
-            'message' => 'Subscription resumed.',
+            'message' => 'Subscription resumed and pending admin confirmation.',
             'data' => ['subscription' => $subscription->fresh()->load('plan')],
+        ]);
+    }
+
+    public function getPaymentSubmissions(Request $request): JsonResponse
+    {
+        if ($request->user()->role !== 'admin') {
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+        }
+
+        $status = $request->query('status');
+
+        $query = UserSubscription::query()
+            ->with([
+                'user:id,email,role',
+                'user.profile:user_id,first_name,last_name',
+                'plan:id,name,code,price,currency,billing_period',
+            ])
+            ->when($status, fn ($builder) => $builder->where('status', $status))
+            ->latest('created_at');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'payments' => $query->paginate(20),
+            ],
+        ]);
+    }
+
+    public function reviewPayment(Request $request, string $id): JsonResponse
+    {
+        if ($request->user()->role !== 'admin') {
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+        }
+
+        $validated = $request->validate([
+            'decision' => 'required|in:confirmed,rejected',
+            'admin_note' => 'nullable|string|max:1000',
+            'duration' => 'nullable|string',
+        ]);
+
+        $subscription = UserSubscription::query()->with(['plan', 'user'])->findOrFail($id);
+
+        if ($subscription->status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment is not pending review.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($request, $validated, $subscription): void {
+            $decision = $validated['decision'];
+
+            $updateData = [
+                'status' => $decision,
+                'reviewed_by' => $request->user()->id,
+                'reviewed_at' => now(),
+                'admin_note' => $validated['admin_note'] ?? null,
+            ];
+
+            if ($decision === 'confirmed') {
+                $startedAt = now();
+                $months = 1;
+                
+                if (!empty($validated['duration'])) {
+                    if (preg_match('/^(\d+)-month/', $validated['duration'], $matches)) {
+                        $months = (int) $matches[1];
+                    }
+                } elseif ($subscription->plan && $subscription->plan->billing_period === 'yearly') {
+                    $months = 12;
+                }
+
+                $updateData['started_at'] = $startedAt;
+                $updateData['expires_at'] = $startedAt->copy()->addMonths($months);
+            }
+
+            $subscription->update($updateData);
+
+            $this->syncUserRole($subscription->user);
+            $this->notifyPaymentReview($subscription, $decision, $validated['admin_note'] ?? null, $request);
+            $this->logPaymentAudit($request, 'review_payment_submission', $subscription, [
+                'decision' => $decision,
+                'admin_note' => $validated['admin_note'] ?? null,
+                'user_id' => $subscription->user_id,
+                'plan_id' => $subscription->plan_id,
+            ]);
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => $validated['decision'] === 'confirmed'
+                ? 'Payment confirmed and user upgraded.'
+                : 'Payment rejected.',
+            'data' => [
+                'subscription' => $subscription->fresh()->load(['user', 'plan']),
+            ],
         ]);
     }
 

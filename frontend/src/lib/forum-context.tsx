@@ -1,320 +1,286 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { ApiError } from './api-client';
+import { useAuth } from './auth-context';
+import {
+  addForumComment,
+  addForumReply,
+  approveForumPost,
+  createForumPost,
+  deleteForumPost,
+  getForumPostById,
+  getForumPosts,
+  getForumReports,
+  likeForumComment,
+  likeForumPost,
+  mapBackendPostToFrontend,
+  reportComment as reportForumComment,
+  reportPost as reportForumPost,
+  reviewForumReport,
+  saveForumPost,
+  updateForumPost,
+  rejectForumPost,
+  type FrontendPost,
+  type FrontendComment,
+  type FrontendReply,
+  type FrontendReport,
+} from './forum-api';
 
-export interface Post {
-  id: string;
-  authorId: string;
-  authorName: string;
-  authorRole: 'admin' | 'free' | 'premium';
-  title: string;
-  content: string;
-  category: string;
-  tags: string[];
-  likes: number;
-  likedBy: string[];
-  comments: Comment[];
-  createdAt: Date;
-  updatedAt: Date;
-  status: 'pending' | 'approved' | 'rejected';
-  isReported: boolean;
-  reportCount: number;
-  isSavedBy: string[];
-}
+export type Post = FrontendPost;
 
-export interface Comment {
-  id: string;
-  postId: string;
-  authorId: string;
-  authorName: string;
-  authorRole: 'admin' | 'free' | 'premium';
-  content: string;
-  likes: number;
-  likedBy: string[];
-  replies: Reply[];
-  createdAt: Date;
-  isReported: boolean;
-}
+export type Comment = FrontendComment;
 
-export interface Reply {
-  id: string;
-  commentId: string;
-  authorId: string;
-  authorName: string;
-  authorRole: 'admin' | 'free' | 'premium';
-  content: string;
-  likes: number;
-  likedBy: string[];
-  createdAt: Date;
-}
+export type Reply = FrontendReply;
 
-export interface Report {
-  id: string;
-  reporterId: string;
-  reporterName: string;
-  targetType: 'post' | 'comment';
-  targetId: string;
-  targetContent: string;
-  targetAuthor: string;
-  reason: string;
-  description: string;
-  status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
-  reviewedBy?: string;
-  reviewedAt?: Date;
-  action?: string;
-  createdAt: Date;
-}
+export type Report = FrontendReport;
 
 interface ForumContextType {
   posts: Post[];
   reports: Report[];
-  createPost: (post: Omit<Post, 'id' | 'createdAt' | 'updatedAt' | 'likes' | 'likedBy' | 'comments' | 'isReported' | 'reportCount' | 'isSavedBy'>) => void;
-  updatePost: (id: string, updates: Partial<Post>) => void;
-  deletePost: (id: string) => void;
-  toggleLike: (postId: string, userId: string) => void;
-  toggleSave: (postId: string, userId: string) => void;
-  addComment: (postId: string, comment: Omit<Comment, 'id' | 'createdAt' | 'likes' | 'likedBy' | 'replies' | 'isReported'>) => void;
-  addReply: (postId: string, commentId: string, reply: Omit<Reply, 'id' | 'createdAt' | 'likes' | 'likedBy'>) => void;
-  toggleCommentLike: (postId: string, commentId: string, userId: string) => void;
-  reportPost: (report: Omit<Report, 'id' | 'createdAt' | 'status'>) => void;
-  reviewReport: (reportId: string, action: string, reviewedBy: string) => void;
-  approvePost: (postId: string) => void;
-  rejectPost: (postId: string) => void;
+  isLoadingPosts: boolean;
+  postsError: string | null;
+  createPost: (post: { title: string; content: string; categoryId: string; tags: string[] }) => Promise<void>;
+  updatePost: (id: string, updates: { title?: string; content?: string; tags?: string[] }) => Promise<void>;
+  deletePost: (id: string) => Promise<void>;
+  toggleLike: (postId: string, userId: string) => Promise<void>;
+  toggleSave: (postId: string, userId: string) => Promise<void>;
+  addComment: (postId: string, comment: { content: string }) => Promise<void>;
+  addReply: (postId: string, commentId: string, reply: { content: string }) => Promise<void>;
+  toggleCommentLike: (postId: string, commentId: string, userId: string) => Promise<void>;
+  reportPost: (postId: string, reason: string) => Promise<void>;
+  reportComment: (commentId: string, reason: string, description?: string) => Promise<void>;
+  reviewReport: (reportId: string, action: string, reviewedBy: string) => Promise<void>;
+  approvePost: (postId: string) => Promise<void>;
+  rejectPost: (postId: string) => Promise<void>;
+  refreshPosts: () => Promise<void>;
+  refreshReports: () => Promise<void>;
 }
 
 const ForumContext = createContext<ForumContextType | undefined>(undefined);
 
-const MOCK_POSTS: Post[] = [
-  {
-    id: '1',
-    authorId: 'user1',
-    authorName: 'Andi Wijaya',
-    authorRole: 'premium',
-    title: 'Tips for Getting Accepted into LPDP 2026',
-    content: 'Hello everyone! I would like to share my experience of getting accepted into the LPDP scholarship this year. Here are some important tips that I think are crucial...',
-    category: 'Tips & Experience',
-    tags: ['LPDP', 'Tips', 'Masters Scholarship'],
-    likes: 24,
-    likedBy: ['user2', 'user3'],
-    comments: [
-      {
-        id: 'c1',
-        postId: '1',
-        authorId: 'user2',
-        authorName: 'Budi Santoso',
-        authorRole: 'free',
-        content: 'Thank you for sharing! Very helpful',
-        likes: 5,
-        likedBy: ['user1'],
-        replies: [],
-        createdAt: new Date('2026-04-02'),
-        isReported: false,
-      }
-    ],
-    createdAt: new Date('2026-04-01'),
-    updatedAt: new Date('2026-04-01'),
-    status: 'approved',
-    isReported: false,
-    reportCount: 0,
-    isSavedBy: ['user2'],
-  },
-  {
-    id: '2',
-    authorId: 'admin1',
-    authorName: 'ScholarPath Team',
-    authorRole: 'admin',
-    title: 'Announcement: New Scholarship Opened!',
-    content: 'We would like to inform you that a new scholarship has been added to the ScholarPath database. This is a great opportunity for students in Java, Indonesia...',
-    category: 'Announcements',
-    tags: ['Announcement', 'New Scholarship'],
-    likes: 45,
-    likedBy: [],
-    comments: [],
-    createdAt: new Date('2026-04-02'),
-    updatedAt: new Date('2026-04-02'),
-    status: 'approved',
-    isReported: false,
-    reportCount: 0,
-    isSavedBy: [],
-  },
-];
-
 export function ForumProvider({ children }: { children: ReactNode }) {
-  const [posts, setPosts] = useState<Post[]>(MOCK_POSTS);
+  const { user, isAuthenticated, isAuthReady } = useAuth();
+  const [posts, setPosts] = useState<Post[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+  const [postsError, setPostsError] = useState<string | null>(null);
 
-  const createPost = (post: Omit<Post, 'id' | 'createdAt' | 'updatedAt' | 'likes' | 'likedBy' | 'comments' | 'isReported' | 'reportCount' | 'isSavedBy'>) => {
-    const newPost: Post = {
-      ...post,
-      id: Date.now().toString(),
-      likes: 0,
-      likedBy: [],
-      comments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      isReported: false,
-      reportCount: 0,
-      isSavedBy: [],
-    };
-    setPosts(prev => [newPost, ...prev]);
-  };
+  const mapPost = (post: any) => mapBackendPostToFrontend(post, user?.id);
 
-  const updatePost = (id: string, updates: Partial<Post>) => {
-    setPosts(prev => prev.map(post =>
-      post.id === id ? { ...post, ...updates, updatedAt: new Date() } : post
-    ));
-  };
+  const refreshPosts = async () => {
+    if (!isAuthenticated) {
+      setPosts([]);
+      setPostsError(null);
+      setIsLoadingPosts(false);
+      return;
+    }
 
-  const deletePost = (id: string) => {
-    setPosts(prev => prev.filter(post => post.id !== id));
-  };
-
-  const toggleLike = (postId: string, userId: string) => {
-    setPosts(prev => prev.map(post => {
-      if (post.id === postId) {
-        const hasLiked = post.likedBy.includes(userId);
-        return {
-          ...post,
-          likes: hasLiked ? post.likes - 1 : post.likes + 1,
-          likedBy: hasLiked
-            ? post.likedBy.filter(id => id !== userId)
-            : [...post.likedBy, userId],
-        };
-      }
-      return post;
-    }));
-  };
-
-  const toggleSave = (postId: string, userId: string) => {
-    setPosts(prev => prev.map(post => {
-      if (post.id === postId) {
-        const hasSaved = post.isSavedBy.includes(userId);
-        return {
-          ...post,
-          isSavedBy: hasSaved
-            ? post.isSavedBy.filter(id => id !== userId)
-            : [...post.isSavedBy, userId],
-        };
-      }
-      return post;
-    }));
-  };
-
-  const addComment = (postId: string, comment: Omit<Comment, 'id' | 'createdAt' | 'likes' | 'likedBy' | 'replies' | 'isReported'>) => {
-    setPosts(prev => prev.map(post => {
-      if (post.id === postId) {
-        const newComment: Comment = {
-          ...comment,
-          id: Date.now().toString(),
-          likes: 0,
-          likedBy: [],
-          replies: [],
-          createdAt: new Date(),
-          isReported: false,
-        };
-        return {
-          ...post,
-          comments: [...post.comments, newComment],
-        };
-      }
-      return post;
-    }));
-  };
-
-  const addReply = (postId: string, commentId: string, reply: Omit<Reply, 'id' | 'createdAt' | 'likes' | 'likedBy'>) => {
-    setPosts(prev => prev.map(post => {
-      if (post.id === postId) {
-        return {
-          ...post,
-          comments: post.comments.map(comment => {
-            if (comment.id === commentId) {
-              const newReply: Reply = {
-                ...reply,
-                id: Date.now().toString(),
-                likes: 0,
-                likedBy: [],
-                createdAt: new Date(),
-              };
-              return {
-                ...comment,
-                replies: [...comment.replies, newReply],
-              };
-            }
-            return comment;
-          }),
-        };
-      }
-      return post;
-    }));
-  };
-
-  const toggleCommentLike = (postId: string, commentId: string, userId: string) => {
-    setPosts(prev => prev.map(post => {
-      if (post.id === postId) {
-        return {
-          ...post,
-          comments: post.comments.map(comment => {
-            if (comment.id === commentId) {
-              const hasLiked = comment.likedBy.includes(userId);
-              return {
-                ...comment,
-                likes: hasLiked ? comment.likes - 1 : comment.likes + 1,
-                likedBy: hasLiked
-                  ? comment.likedBy.filter(id => id !== userId)
-                  : [...comment.likedBy, userId],
-              };
-            }
-            return comment;
-          }),
-        };
-      }
-      return post;
-    }));
-  };
-
-  const reportPost = (report: Omit<Report, 'id' | 'createdAt' | 'status'>) => {
-    const newReport: Report = {
-      ...report,
-      id: Date.now().toString(),
-      status: 'pending',
-      createdAt: new Date(),
-    };
-    setReports(prev => [newReport, ...prev]);
-
-    // Update post/comment reported status
-    if (report.targetType === 'post') {
-      setPosts(prev => prev.map(post => {
-        if (post.id === report.targetId) {
-          return {
-            ...post,
-            isReported: true,
-            reportCount: post.reportCount + 1,
-          };
-        }
-        return post;
-      }));
+    setIsLoadingPosts(true);
+    setPostsError(null);
+    try {
+      const backendPosts = await getForumPosts();
+      setPosts(backendPosts.map(mapPost));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Gagal memuat data forum.';
+      setPostsError(message);
+    } finally {
+      setIsLoadingPosts(false);
     }
   };
 
-  const reviewReport = (reportId: string, action: string, reviewedBy: string) => {
-    setReports(prev => prev.map(report => {
-      if (report.id === reportId) {
+  const refreshReports = async () => {
+    if (!isAuthenticated || user?.role !== 'admin') {
+      setReports([]);
+      return;
+    }
+
+    try {
+      const loadedReports = await getForumReports();
+      setReports(loadedReports);
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        setReports([]);
+        return;
+      }
+      throw error;
+    }
+  };
+
+  const refreshSinglePost = async (postId: string) => {
+    const backendPost = await getForumPostById(postId);
+    const mapped = mapPost(backendPost);
+    setPosts((prev) => {
+      const index = prev.findIndex((post) => post.id === postId);
+      if (index === -1) {
+        return [mapped, ...prev];
+      }
+      const updated = [...prev];
+      updated[index] = mapped;
+      return updated;
+    });
+  };
+
+  useEffect(() => {
+    if (!isAuthReady) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setPosts([]);
+      setReports([]);
+      setPostsError(null);
+      setIsLoadingPosts(false);
+      return;
+    }
+
+    void refreshPosts();
+    void refreshReports();
+  }, [isAuthReady, isAuthenticated, user?.id]);
+
+  const createPost = async (post: { title: string; content: string; categoryId: string; tags: string[] }) => {
+    const backendPost = await createForumPost({
+      title: post.title,
+      content: post.content,
+      category_id: post.categoryId,
+      tags: post.tags,
+    });
+    setPosts(prev => [mapPost(backendPost), ...prev]);
+  };
+
+  const updatePost = async (id: string, updates: { title?: string; content?: string; tags?: string[] }) => {
+    const backendPost = await updateForumPost(id, updates);
+    const mapped = mapPost(backendPost);
+    setPosts(prev => prev.map(post => (post.id === id ? mapped : post)));
+  };
+
+  const deletePost = async (id: string) => {
+    await deleteForumPost(id);
+    setPosts(prev => prev.filter(post => post.id !== id));
+  };
+
+  const toggleLike = async (postId: string, userId: string) => {
+    const result = await likeForumPost(postId);
+    setPosts(prev => prev.map(post => {
+      if (post.id === postId) {
+        const hasLiked = result.liked;
         return {
-          ...report,
-          status: 'reviewed',
-          action,
-          reviewedBy,
-          reviewedAt: new Date(),
+          ...post,
+          likes: result.likes_count,
+          likedBy: hasLiked
+            ? [userId]
+            : [],
         };
       }
-      return report;
+      return post;
     }));
   };
 
-  const approvePost = (postId: string) => {
-    updatePost(postId, { status: 'approved' });
+  const toggleSave = async (postId: string, userId: string) => {
+    const result = await saveForumPost(postId);
+    setPosts(prev => prev.map(post => {
+      if (post.id === postId) {
+        const hasSaved = result.saved;
+        return {
+          ...post,
+          isSavedBy: hasSaved
+            ? [userId]
+            : [],
+        };
+      }
+      return post;
+    }));
   };
 
-  const rejectPost = (postId: string) => {
-    updatePost(postId, { status: 'rejected' });
+  const addComment = async (postId: string, comment: { content: string }) => {
+    await addForumComment(postId, comment.content);
+    await refreshSinglePost(postId);
+  };
+
+  const addReply = async (postId: string, commentId: string, reply: { content: string }) => {
+    await addForumReply(commentId, reply.content);
+    await refreshSinglePost(postId);
+  };
+
+  const toggleCommentLike = async (postId: string, commentId: string, userId: string) => {
+    const result = await likeForumComment(commentId);
+
+    setPosts(prev => prev.map(post => {
+      if (post.id === postId) {
+        return {
+          ...post,
+          comments: post.comments.map(comment => {
+            if (comment.id === commentId) {
+              const hasLiked = result.liked;
+              return {
+                ...comment,
+                likes: result.likes_count,
+                likedBy: hasLiked
+                  ? [userId]
+                  : [],
+              };
+            }
+            return comment;
+          }),
+        };
+      }
+      return post;
+    }));
+  };
+
+  const reportPost = async (postId: string, reason: string) => {
+    const result = await reportForumPost(postId, reason);
+    const data = result?.data;
+
+    setPosts(prev => {
+      const next = prev.map(post => {
+        if (post.id !== postId) {
+          return post;
+        }
+
+        return {
+          ...post,
+          isReported: true,
+          reportCount: Number(data?.report_count ?? post.reportCount + 1),
+          status: (data?.status as Post['status']) || post.status,
+        };
+      });
+
+      return next.filter((post) => post.status !== 'archived');
+    });
+
+    await refreshReports();
+  };
+
+  const reportComment = async (commentId: string, reason: string, description?: string) => {
+    await reportForumComment(commentId, reason, description);
+
+    setPosts(prev => prev.map((post) => ({
+      ...post,
+      comments: post.comments.map((comment) => (
+        comment.id === commentId
+          ? { ...comment, isReported: true }
+          : comment
+      )),
+    })));
+
+    await refreshReports();
+  };
+
+  const reviewReport = async (reportId: string, action: string, reviewedBy: string) => {
+    const status: 'reviewed' | 'resolved' | 'dismissed' = action.includes('dismiss') ? 'dismissed' : 'resolved';
+    await reviewForumReport(reportId, status, `${action} | by: ${reviewedBy}`);
+    await refreshReports();
+  };
+
+  const approvePost = async (postId: string) => {
+    const backendPost = await approveForumPost(postId);
+    const mapped = mapPost(backendPost);
+    setPosts(prev => prev.map(post => (post.id === postId ? mapped : post)));
+  };
+
+  const rejectPost = async (postId: string) => {
+    const backendPost = await rejectForumPost(postId);
+    const mapped = mapPost(backendPost);
+    setPosts(prev => prev.map(post => (post.id === postId ? mapped : post)));
   };
 
   return (
@@ -322,6 +288,8 @@ export function ForumProvider({ children }: { children: ReactNode }) {
       value={{
         posts,
         reports,
+        isLoadingPosts,
+        postsError,
         createPost,
         updatePost,
         deletePost,
@@ -331,9 +299,12 @@ export function ForumProvider({ children }: { children: ReactNode }) {
         addReply,
         toggleCommentLike,
         reportPost,
+        reportComment,
         reviewReport,
         approvePost,
         rejectPost,
+        refreshPosts,
+        refreshReports,
       }}
     >
       {children}

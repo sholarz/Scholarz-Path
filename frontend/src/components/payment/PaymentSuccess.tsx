@@ -1,4 +1,4 @@
-import { CheckCircle, Crown, Sparkles } from 'lucide-react';
+import { CheckCircle, Clock } from 'lucide-react';
 import { Button } from '../ui/button';
 import { motion } from 'motion/react';
 
@@ -26,7 +26,7 @@ export function PaymentSuccess({ onClose }: PaymentSuccessProps) {
             className="absolute -top-2 -right-2"
           >
             <div className="bg-yellow-400 p-2 rounded-full">
-              <Crown className="w-6 h-6 text-yellow-900" />
+              <Clock className="w-6 h-6 text-yellow-900" />
             </div>
           </motion.div>
         </div>
@@ -39,7 +39,7 @@ export function PaymentSuccess({ onClose }: PaymentSuccessProps) {
           transition={{ delay: 0.2 }}
           className="text-2xl font-bold"
         >
-          Welcome to Premium! 🎉
+          Payment Submitted
         </motion.h3>
         <motion.p
           initial={{ opacity: 0, y: 10 }}
@@ -47,7 +47,7 @@ export function PaymentSuccess({ onClose }: PaymentSuccessProps) {
           transition={{ delay: 0.3 }}
           className="text-muted-foreground"
         >
-          Your payment was successful and your premium features are now active!
+          Pembayaran Anda berhasil dikirim dan sedang menunggu konfirmasi admin.
         </motion.p>
       </div>
 
@@ -58,27 +58,27 @@ export function PaymentSuccess({ onClose }: PaymentSuccessProps) {
         className="bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950/20 dark:to-amber-950/20 p-6 rounded-lg border border-yellow-200"
       >
         <div className="flex items-center gap-2 justify-center mb-4">
-          <Sparkles className="w-5 h-5 text-yellow-600" />
+          <Clock className="w-5 h-5 text-yellow-600" />
           <h4 className="font-semibold text-yellow-900 dark:text-yellow-100">
-            Premium Benefits Unlocked
+            Status Saat Ini: Pending Confirmation
           </h4>
         </div>
         <ul className="space-y-2 text-sm text-yellow-800 dark:text-yellow-200">
           <li className="flex items-center gap-2 justify-center">
             <CheckCircle className="w-4 h-4 shrink-0" />
-            Unlimited scholarship bookmarks
+            Menunggu verifikasi admin
           </li>
           <li className="flex items-center gap-2 justify-center">
             <CheckCircle className="w-4 h-4 shrink-0" />
-            Full access to preparation timeline
+            Role belum berubah ke premium sebelum disetujui
           </li>
           <li className="flex items-center gap-2 justify-center">
             <CheckCircle className="w-4 h-4 shrink-0" />
-            All test simulations unlocked
+            Anda akan menerima notifikasi saat diproses
           </li>
           <li className="flex items-center gap-2 justify-center">
             <CheckCircle className="w-4 h-4 shrink-0" />
-            Priority support
+            Jika ditolak, admin memberi alasan
           </li>
         </ul>
       </motion.div>
@@ -89,13 +89,12 @@ export function PaymentSuccess({ onClose }: PaymentSuccessProps) {
         transition={{ delay: 0.5 }}
       >
         <Button onClick={onClose} size="lg" className="w-full gap-2">
-          <Crown className="w-5 h-5" />
-          Start Exploring Premium Features
+          Kembali
         </Button>
       </motion.div>
 
       <p className="text-xs text-muted-foreground">
-        A confirmation email has been sent to your registered email address
+        Status pembayaran dapat dipantau di halaman notifikasi dan subscription.
       </p>
     </div>
   );

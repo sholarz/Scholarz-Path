@@ -21,24 +21,24 @@ class ForumCommentController extends Controller
             'content' => 'required|string|max:2000',
         ]);
 
-        $post = ForumPost::where('status', 'approved')->findOrFail($postId);
+        $post = ForumPost::where('status', 'published')->findOrFail($postId);
 
         $comment = ForumComment::create([
             'post_id' => $post->id,
-            'user_id' => $request->user()->id,
-            'content' => $request->text,
+            'author_id' => $request->user()->id,
+            'content' => $request->content,
         ]);
 
         // Update counter di post
         $post->increment('comments_count');
 
         // Load author info
-        $comment->load(['user:id,email,role', 'user.profile:user_id,first_name,last_name']);
-        $profile = $comment->user->profile;
+        $comment->load(['author:id,email,role', 'author.profile:user_id,first_name,last_name']);
+        $profile = $comment->author->profile;
         $comment->author_name = $profile
             ? $profile->first_name . ' ' . $profile->last_name
-            : explode('@', $comment->user->email)[0];
-        $comment->author_role = $comment->user->role;
+            : explode('@', $comment->author->email)[0];
+        $comment->author_role = $comment->author->role;
 
         return response()->json([
             'message' => 'Komentar berhasil ditambahkan.',
@@ -54,14 +54,14 @@ class ForumCommentController extends Controller
     {
         $comment  = ForumComment::findOrFail($commentId);
         $userId   = $request->user()->id;
-        $hasLiked = $comment->likedBy()->where('user_id', $userId)->exists();
+        $hasLiked = $comment->likes()->where('user_id', $userId)->exists();
 
         if ($hasLiked) {
-            $comment->likedBy()->detach($userId);
+            $comment->likes()->where('user_id', $userId)->delete();
             $comment->decrement('likes_count');
             $message = 'Like komentar dihapus.';
         } else {
-            $comment->likedBy()->attach($userId);
+            $comment->likes()->create(['user_id' => $userId]);
             $comment->increment('likes_count');
             $message = 'Komentar disukai.';
         }
@@ -87,21 +87,44 @@ class ForumCommentController extends Controller
 
         $reply = ForumReply::create([
             'comment_id' => $comment->id,
-            'user_id'    => $request->user()->id,
-            'content'    => $request->text,
+            'author_id'  => $request->user()->id,
+            'content'    => $request->content,
         ]);
 
-        $reply->load(['user:id,email,role', 'user.profile:user_id,first_name,last_name']);
-        $profile = $reply->user->profile;
+        $reply->load(['author:id,email,role', 'author.profile:user_id,first_name,last_name']);
+        $profile = $reply->author->profile;
         $reply->author_name = $profile
             ? $profile->first_name . ' ' . $profile->last_name
-            : explode('@', $reply->user->email)[0];
-        $reply->author_role = $reply->user->role;
+            : explode('@', $reply->author->email)[0];
+        $reply->author_role = $reply->author->role;
 
         return response()->json([
             'message' => 'Balasan berhasil ditambahkan.',
             'data'    => $reply,
         ], 201);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // DELETE /api/forum/comments/{id}
+    // Hapus komentar — hanya author atau admin
+    // ─────────────────────────────────────────────────────────────────────
+    public function destroy(Request $request, string $commentId): JsonResponse
+    {
+        $comment = ForumComment::findOrFail($commentId);
+        $user = $request->user();
+
+        if ($comment->author_id !== $user->id && $user->role !== 'admin') {
+            return response()->json(['message' => 'Tidak diizinkan.'], 403);
+        }
+
+        $post = $comment->post;
+        $comment->delete();
+
+        if ($post) {
+            $post->decrement('comments_count');
+        }
+
+        return response()->json(['message' => 'Komentar berhasil dihapus.']);
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -112,7 +135,7 @@ public function destroyReply(Request $request, string $replyId): JsonResponse
     $reply = ForumReply::findOrFail($replyId);
     $user  = $request->user();
 
-    if ($reply->user_id !== $user->id && $user->role !== 'admin') {
+    if ($reply->author_id !== $user->id && $user->role !== 'admin') {
         return response()->json(['message' => 'Tidak diizinkan.'], 403);
     }
 

@@ -10,7 +10,7 @@ Complete admin dashboard for reviewing and verifying user payment submissions.
 ├── PaymentVerificationPage.tsx       # Main verification page with stats
 ├── PaymentQueueTable.tsx              # Payment table with filters
 ├── PaymentDetailDrawer.tsx            # Payment review drawer
-└── AdminPaymentVerificationDemo.tsx   # Demo page component
+└── AdminPaymentManagementPage.tsx   # Demo page component
 ```
 
 ## 🎨 Color Palette
@@ -310,7 +310,7 @@ const handleReject = async (paymentId: string, reason: string) => {
 
 ## 🎯 Demo Access
 
-Visit the demo page at: `/admin/payment-verification-demo`
+Visit the demo page at: `/admin/payments`
 
 This page demonstrates:
 - ✅ Complete admin layout with sidebar and header
@@ -460,3 +460,5 @@ When integrating with Supabase:
 
 **Created for ScholarPath Platform**  
 All components are production-ready and follow the platform's design system.
+
+

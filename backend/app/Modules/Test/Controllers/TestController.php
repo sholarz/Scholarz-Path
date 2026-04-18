@@ -111,6 +111,7 @@ class TestController extends Controller
     {
         $request->validate([
             'answers' => 'required|array',
+            'answers.*' => 'nullable|integer|min:0|max:3',
             'time_taken_seconds' => 'nullable|integer',
         ]);
 
@@ -153,8 +154,9 @@ class TestController extends Controller
             $maxPoints += $question->points;
 
             $submittedIndex = $answers[$question->id] ?? null;
-            $chosenLetter = is_int($submittedIndex)
-                ? ($indexToLetter[$submittedIndex] ?? null)
+            $normalizedIndex = is_numeric($submittedIndex) ? (int) $submittedIndex : null;
+            $chosenLetter = $normalizedIndex !== null
+                ? ($indexToLetter[$normalizedIndex] ?? null)
                 : null;
 
             $isCorrect = $chosenLetter === $question->correct_answer;
@@ -186,7 +188,7 @@ class TestController extends Controller
                     $question->option_c,
                     $question->option_d,
                 ],
-                'yourAnswer' => $submittedIndex,
+                'yourAnswer' => $normalizedIndex,
                 'correctAnswer' => array_search($question->correct_answer, $indexToLetter, true),
                 'isCorrect' => $isCorrect,
                 'explanation' => $question->explanation,
@@ -195,7 +197,7 @@ class TestController extends Controller
             ];
         }
 
-        $score = $maxPoints > 0 ? round(($totalPoints / $maxPoints) * 100, 2) : 0;
+        $score = $maxPoints > 0 ? (int) round(($totalPoints / $maxPoints) * 100) : 0;
         $isPassed = $score >= $category->passing_score_percentage;
 
         $session->update([
@@ -214,6 +216,52 @@ class TestController extends Controller
                 'passed' => $isPassed,
                 'passingScore' => $category->passing_score_percentage,
                 'reviewAnswers' => $reviewData,
+            ],
+        ]);
+    }
+
+    public function history(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $sessions = TestSession::query()
+            ->with('category:id,name,category,difficulty,access_level')
+            ->where('user_id', $user->id)
+            ->where('status', 'completed')
+            ->orderByDesc('submitted_at')
+            ->limit(20)
+            ->get();
+
+        $attempts = $sessions->map(function (TestSession $session): array {
+            return [
+                'session_id' => $session->id,
+                'test_id' => $session->category_id,
+                'test_title' => $session->category?->name,
+                'category' => $session->category?->category,
+                'difficulty' => $session->category?->difficulty,
+                'access_level' => $session->category?->access_level,
+                'score' => $session->score,
+                'passed' => (bool) $session->is_passed,
+                'correct_answers' => $session->correct_count,
+                'total_questions' => $session->total_questions,
+                'time_taken_seconds' => $session->time_taken_seconds,
+                'submitted_at' => optional($session->submitted_at)->toIso8601String(),
+            ];
+        })->values();
+
+        $summary = [
+            'total_attempts' => $sessions->count(),
+            'passed_attempts' => $sessions->where('is_passed', true)->count(),
+            'best_score' => $sessions->max('score') ?? 0,
+            'last_score' => $sessions->first()?->score,
+            'last_submitted_at' => optional($sessions->first()?->submitted_at)->toIso8601String(),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'summary' => $summary,
+                'attempts' => $attempts,
             ],
         ]);
     }

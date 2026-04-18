@@ -2,22 +2,14 @@
 
 namespace App\Modules\Matching\Services;
 
-use App\Models\User;
+use App\Models\MatchSearch;
 use App\Models\Scholarship;
 use App\Models\ScholarshipMatch;
-use App\Models\MatchSearch;
-use App\Modules\Matching\Engines\MatchingEngine;
-use App\Modules\Matching\Engines\ScoringEngine;
+use App\Models\User;
 use Illuminate\Support\Collection;
-use Illuminate\Pagination\LengthAwarePaginator;
 
 class MatchingService
 {
-    public function __construct(
-        private MatchingEngine $matchingEngine,
-        private ScoringEngine $scoringEngine
-    ) {}
-
     /**
      * Find matching scholarships for user with given criteria
      */
@@ -80,11 +72,14 @@ class MatchingService
 
         // GPA Matching (20 points)
         $maxPoints += 20;
-        if (!$scholarship->minimum_gpa || $criteria['gpa'] >= $scholarship->minimum_gpa) {
+        $minimumGpa = $scholarship->minimum_gpa;
+        $gpaMeetsMinimum = !$minimumGpa || $criteria['gpa'] >= $minimumGpa;
+
+        if ($gpaMeetsMinimum) {
             $score += 20;
-            $criteriaMet[] = "GPA requirement (" . ($scholarship->minimum_gpa ?? 'No minimum') . ")";
+            $criteriaMet[] = "GPA requirement met";
         } else {
-            $criteriaMissing[] = "GPA requirement (need " . $scholarship->minimum_gpa . ", have " . $criteria['gpa'] . ")";
+            $criteriaMissing[] = "GPA requirement not met";
         }
 
         // Field of Study Matching (25 points)
@@ -98,11 +93,15 @@ class MatchingService
 
         // Degree Level Matching (20 points)
         $maxPoints += 20;
-        if ($this->matchesDegreeLevel($criteria['degree_level'], $scholarship->level)) {
+        if ($this->matchesAcademicTrack(
+            $criteria['degree_level'] ?? 'bachelor',
+            $scholarship->target_level,
+            $scholarship->degree_level
+        )) {
             $score += 20;
-            $criteriaMet[] = "Degree level match";
+            $criteriaMet[] = "Academic level pathway match";
         } else {
-            $criteriaMissing[] = "Degree level mismatch";
+            $criteriaMissing[] = "Academic level pathway mismatch";
         }
 
         // Country/Nationality Matching (15 points)
@@ -173,17 +172,36 @@ class MatchingService
     /**
      * Check degree level compatibility
      */
-    private function matchesDegreeLevel(string $userLevel, string $scholarshipLevel): bool
+    private function matchesAcademicTrack(string $userLevel, ?string $targetLevel, ?string $degreeLevel): bool
     {
-        $levelHierarchy = [
-            'high_school' => 1,
-            'bachelor' => 2,
-            'master' => 3,
-            'doctorate' => 4,
-            'postdoc' => 5
+        $normalizedUserLevel = $this->normalizeAcademicLevel($userLevel);
+        if (!$normalizedUserLevel || !$targetLevel || !$degreeLevel) {
+            return false;
+        }
+
+        $levelRank = [
+            'sma' => 1,
+            's1' => 2,
+            's2' => 3,
+            's3' => 4,
         ];
 
-        return $levelHierarchy[$userLevel] === $levelHierarchy[$scholarshipLevel];
+        if (!isset($levelRank[$normalizedUserLevel], $levelRank[$targetLevel], $levelRank[$degreeLevel])) {
+            return false;
+        }
+
+        return $normalizedUserLevel === $targetLevel && $levelRank[$degreeLevel] > $levelRank[$targetLevel];
+    }
+
+    private function normalizeAcademicLevel(string $value): ?string
+    {
+        return match ($value) {
+            'sma', 'high_school' => 'sma',
+            's1', 'bachelor' => 's1',
+            's2', 'master' => 's2',
+            's3', 'doctorate', 'postdoc' => 's3',
+            default => null,
+        };
     }
 
     /**

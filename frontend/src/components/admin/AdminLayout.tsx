@@ -40,9 +40,8 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Scholarships', href: '/admin/scholarships', icon: GraduationCap },
-  { label: 'Payment Verification', href: '/admin/payment-verification-demo', icon: CreditCard, badge: 12 },
+  { label: 'Payment Verification', href: '/admin/payments', icon: CreditCard, badge: 12 },
   { label: 'User Reports', href: '/forum/reports', icon: FileText, badge: 8 },
-  { label: 'Pending Posts', href: '/forum/pending', icon: FileText, badge: 5 },
   { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'Settings', href: '/admin/settings', icon: Settings },
 ];
@@ -132,16 +131,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                       8 new user reports to review
                     </span>
                     <span className="text-xs text-muted-foreground pl-4">15 minutes ago</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex flex-col items-start gap-1 py-3">
-                    <div className="flex items-center gap-2 w-full">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="font-medium text-sm">Pending Posts</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground pl-4">
-                      5 forum posts awaiting moderation
-                    </span>
-                    <span className="text-xs text-muted-foreground pl-4">1 hour ago</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="flex flex-col items-start gap-1 py-3">
                     <div className="flex items-center gap-2 w-full">

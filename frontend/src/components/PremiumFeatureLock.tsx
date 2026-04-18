@@ -1,6 +1,7 @@
 import { Lock, Crown } from 'lucide-react';
 import { ReactNode } from 'react';
 import { useAuth } from '../lib/auth-context';
+import { usePayment } from '../lib/payment-context';
 import {
   Dialog,
   DialogContent,
@@ -30,7 +31,8 @@ export function PremiumFeatureLock({
   showLockIcon = true,
   allowAdmin = true
 }: PremiumFeatureLockProps) {
-  const { user, upgradeToPremium } = useAuth();
+  const { user } = useAuth();
+  const { openPaymentFlow } = usePayment();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   
   const isPremium = user?.role === 'premium';
@@ -46,8 +48,8 @@ export function PremiumFeatureLock({
   };
 
   const handleUpgrade = () => {
-    upgradeToPremium();
     setShowUpgradeModal(false);
+    openPaymentFlow();
   };
 
   return (

@@ -1,21 +1,28 @@
 import { Link, useNavigate } from 'react-router';
 import { Header } from '../Header';
 import { useAuth } from '../../lib/auth-context';
+import { usePayment } from '../../lib/payment-context';
 import { useBookmarks } from '../../lib/bookmark-context';
-import { useNotifications, isDeadlineApproaching, isDeadlineOverdue, getDaysUntilDeadline } from '../../lib/notification-context';
-import { scholarships } from '../../lib/scholarship-data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Calendar, Bookmark, Clock, TrendingUp, ArrowRight, Crown, Lock, Bell, AlertTriangle } from 'lucide-react';
 import { Badge } from '../ui/badge';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { PremiumBadge } from '../PremiumFeatureLock';
+import { getTestHistory, type TestHistorySummary } from '../../lib/test-prep-api';
+import { getDashboardData, type DashboardData } from '../../lib/dashboard-api';
+import { getBookmarks, type BookmarkedScholarship } from '../../lib/scholarship-api';
 
 export function DashboardPage() {
-  const { user, isAuthenticated, upgradeToPremium } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const { openPaymentFlow } = usePayment();
   const { bookmarks, bookmarkLimit, canAddMore } = useBookmarks();
-  const { preferences } = useNotifications();
   const navigate = useNavigate();
+  const [testSummary, setTestSummary] = useState<TestHistorySummary | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [bookmarkedScholarships, setBookmarkedScholarships] = useState<BookmarkedScholarship[]>([]);
+  const [bookmarkTotal, setBookmarkTotal] = useState<number>(0);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -23,41 +30,55 @@ export function DashboardPage() {
     }
   }, [isAuthenticated, navigate]);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const loadDashboardData = async () => {
+      setDashboardLoading(true);
+
+      try {
+        const [testPayload, dashboardPayload, bookmarksPayload] = await Promise.all([
+          getTestHistory(),
+          getDashboardData(),
+          getBookmarks(),
+        ]);
+
+        setTestSummary(testPayload.summary);
+        setDashboardData(dashboardPayload);
+        setBookmarkedScholarships(bookmarksPayload.scholarships);
+        setBookmarkTotal(bookmarksPayload.pagination.total);
+      } catch {
+        setTestSummary(null);
+        setDashboardData(null);
+        setBookmarkedScholarships([]);
+        setBookmarkTotal(0);
+      } finally {
+        setDashboardLoading(false);
+      }
+    };
+
+    void loadDashboardData();
+  }, [isAuthenticated]);
+
   if (!isAuthenticated) {
     return null;
   }
 
-  const bookmarkedScholarships = scholarships.filter(s => bookmarks.includes(s.id));
-  
-  // Get approaching deadlines from bookmarked scholarships
-  const approachingDeadlines = bookmarkedScholarships
-    .filter(s => {
-      const days = getDaysUntilDeadline(s.deadline);
-      return days >= 0 && days <= 7; // Within 7 days
-    })
-    .sort((a, b) => a.deadline.getTime() - b.deadline.getTime());
+  const approachingDeadlines = (dashboardData?.upcomingDeadlines ?? []).filter(item => item.daysUntilDeadline <= 7);
 
-  const overdueBookmarks = bookmarkedScholarships
-    .filter(s => isDeadlineOverdue(s.deadline));
-
-  const upcomingDeadlines = scholarships
-    .filter(s => s.deadline > new Date())
-    .sort((a, b) => a.deadline.getTime() - b.deadline.getTime())
-    .slice(0, 5);
-
-  const activeNotifications = preferences?.filter(p => p.emailEnabled).length || 0;
+  const displayedBookmarkCount = bookmarkTotal || bookmarks.length;
 
   const stats = [
     {
-      title: 'Total Scholarships',
-      value: scholarships.length,
+      title: 'Top Matches',
+      value: dashboardData?.topMatches.length ?? 0,
       icon: TrendingUp,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
     },
     {
       title: 'Bookmarked',
-      value: bookmarkLimit ? `${bookmarks.length}/${bookmarkLimit}` : bookmarks.length,
+      value: bookmarkLimit ? `${displayedBookmarkCount}/${bookmarkLimit}` : displayedBookmarkCount,
       icon: Bookmark,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
@@ -65,14 +86,14 @@ export function DashboardPage() {
     },
     {
       title: 'Upcoming Deadlines',
-      value: upcomingDeadlines.length,
+      value: dashboardData?.upcomingDeadlines.length ?? 0,
       icon: Calendar,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
     },
     {
       title: 'Active Notifications',
-      value: activeNotifications,
+      value: dashboardData?.activeNotificationsCount ?? 0,
       icon: Bell,
       color: 'text-yellow-600',
       bgColor: 'bg-yellow-100',
@@ -101,83 +122,46 @@ export function DashboardPage() {
         </div>
 
         {/* Urgent Deadline Alerts */}
-        {(approachingDeadlines.length > 0 || overdueBookmarks.length > 0) && (
+        {approachingDeadlines.length > 0 && (
           <div className="mb-6 space-y-4">
-            {overdueBookmarks.length > 0 && (
-              <Card className="border-red-200 bg-red-50/50">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-red-600" />
-                    <CardTitle className="text-red-900">Overdue Deadlines</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-red-700 mb-3">
-                    {overdueBookmarks.length} bookmarked scholarship{overdueBookmarks.length !== 1 ? 's have' : ' has'} passed the deadline
-                  </p>
-                  <div className="space-y-2">
-                    {overdueBookmarks.slice(0, 3).map(scholarship => (
-                      <Link 
-                        key={scholarship.id} 
-                        to={`/scholarships/${scholarship.id}`}
-                        className="block"
-                      >
-                        <div className="text-sm p-2 rounded bg-white hover:bg-red-100 transition-colors">
-                          <p className="font-medium text-red-900">{scholarship.title}</p>
-                          <p className="text-red-600 text-xs">
-                            Deadline was {scholarship.deadline.toLocaleDateString()}
-                          </p>
+            <Card className="border-yellow-200 bg-yellow-50/50">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Bell className="w-5 h-5 text-yellow-600" />
+                  <CardTitle className="text-yellow-900">Upcoming Deadlines</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-yellow-700 mb-3">
+                  {approachingDeadlines.length} bookmarked scholarship{approachingDeadlines.length !== 1 ? 's have' : ' has'} deadlines within 7 days
+                </p>
+                <div className="space-y-2">
+                  {approachingDeadlines.map((deadline) => (
+                    <Link
+                      key={deadline.scholarshipId}
+                      to={`/scholarships/${deadline.scholarshipId}`}
+                      className="block"
+                    >
+                      <div className="text-sm p-2 rounded bg-white hover:bg-yellow-100 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium text-yellow-900">{deadline.title}</p>
+                          <Badge className="bg-yellow-500 text-white">
+                            {deadline.daysUntilDeadline} day{deadline.daysUntilDeadline !== 1 ? 's' : ''}
+                          </Badge>
                         </div>
-                      </Link>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {approachingDeadlines.length > 0 && (
-              <Card className="border-yellow-200 bg-yellow-50/50">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-2">
-                    <Bell className="w-5 h-5 text-yellow-600" />
-                    <CardTitle className="text-yellow-900">Upcoming Deadlines</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-yellow-700 mb-3">
-                    {approachingDeadlines.length} bookmarked scholarship{approachingDeadlines.length !== 1 ? 's have' : ' has'} deadlines within 7 days
-                  </p>
-                  <div className="space-y-2">
-                    {approachingDeadlines.map(scholarship => {
-                      const days = getDaysUntilDeadline(scholarship.deadline);
-                      return (
-                        <Link 
-                          key={scholarship.id} 
-                          to={`/scholarships/${scholarship.id}`}
-                          className="block"
-                        >
-                          <div className="text-sm p-2 rounded bg-white hover:bg-yellow-100 transition-colors">
-                            <div className="flex items-center justify-between">
-                              <p className="font-medium text-yellow-900">{scholarship.title}</p>
-                              <Badge className="bg-yellow-500 text-white">
-                                {days} day{days !== 1 ? 's' : ''}
-                              </Badge>
-                            </div>
-                            <p className="text-yellow-600 text-xs">
-                              {scholarship.deadline.toLocaleDateString('id-ID', {
-                                day: 'numeric',
-                                month: 'long',
-                                year: 'numeric'
-                              })}
-                            </p>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                        <p className="text-yellow-600 text-xs">
+                          {new Date(deadline.applicationDeadline).toLocaleDateString('id-ID', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 
@@ -217,7 +201,7 @@ export function DashboardPage() {
                     <ul className="text-sm text-yellow-700 space-y-1">
                       <li className="flex items-center gap-2">
                         <Lock className="w-3 h-3" />
-                        Bookmark limit: {bookmarks.length}/{bookmarkLimit}
+                        Bookmark limit: {displayedBookmarkCount}/{bookmarkLimit}
                       </li>
                       <li className="flex items-center gap-2">
                         <Lock className="w-3 h-3" />
@@ -227,7 +211,7 @@ export function DashboardPage() {
                   </div>
                 </div>
                 <Button
-                  onClick={upgradeToPremium}
+                  onClick={openPaymentFlow}
                   className="bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-white shrink-0"
                 >
                   <Crown className="w-4 h-4 mr-2" />
@@ -260,6 +244,54 @@ export function DashboardPage() {
           ))}
         </div>
 
+        {dashboardLoading && (
+          <Card className="mb-6 border-yellow-200 bg-yellow-50/40">
+            <CardContent className="pt-6 text-sm text-yellow-800">Loading dashboard data from backend...</CardContent>
+          </Card>
+        )}
+
+        {/* Test Performance Summary */}
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Test Performance</CardTitle>
+                <CardDescription>Ringkasan hasil test terbaru</CardDescription>
+              </div>
+              <Link to="/tests">
+                <Button variant="ghost" size="sm" className="gap-2">
+                  View Test History
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {!testSummary || testSummary.total_attempts === 0 ? (
+              <p className="text-sm text-muted-foreground">Belum ada riwayat test.</p>
+            ) : (
+              <div className="grid md:grid-cols-4 gap-4">
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Total Attempts</p>
+                  <p className="text-2xl font-bold">{testSummary.total_attempts}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Passed</p>
+                  <p className="text-2xl font-bold text-green-600">{testSummary.passed_attempts}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Best Score</p>
+                  <p className="text-2xl font-bold">{testSummary.best_score}%</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Last Score</p>
+                  <p className="text-2xl font-bold">{testSummary.last_score ?? '-'}{testSummary.last_score !== null ? '%' : ''}</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Upcoming Deadlines */}
           <Card>
@@ -276,25 +308,25 @@ export function DashboardPage() {
               <CardDescription>Don't miss these important dates</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {upcomingDeadlines.length === 0 ? (
+              {(dashboardData?.upcomingDeadlines.length ?? 0) === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
                   No upcoming deadlines found
                 </p>
               ) : (
-                upcomingDeadlines.map((scholarship) => (
-                  <Link key={scholarship.id} to={`/scholarships/${scholarship.id}`}>
+                (dashboardData?.upcomingDeadlines ?? []).map((deadline) => (
+                  <Link key={deadline.scholarshipId} to={`/scholarships/${deadline.scholarshipId}`}>
                     <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
                       <div className="bg-primary/10 p-2 rounded-lg shrink-0">
                         <Clock className="w-5 h-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium mb-1 truncate">{scholarship.title}</h4>
+                        <h4 className="font-medium mb-1 truncate">{deadline.title}</h4>
                         <p className="text-sm text-muted-foreground truncate mb-2">
-                          {scholarship.provider}
+                          Deadline in {deadline.daysUntilDeadline} days
                         </p>
                         <div className="flex items-center gap-2 text-sm">
                           <Calendar className="w-4 h-4 text-muted-foreground" />
-                          <span>{scholarship.deadline.toLocaleDateString('en-US', { 
+                          <span>{new Date(deadline.applicationDeadline).toLocaleDateString('en-US', { 
                             month: 'long', 
                             day: 'numeric', 
                             year: 'numeric' 
@@ -335,19 +367,19 @@ export function DashboardPage() {
                   </Link>
                 </div>
               ) : (
-                bookmarkedScholarships.slice(0, 5).map((scholarship) => (
-                  <Link key={scholarship.id} to={`/scholarships/${scholarship.id}`}>
+                bookmarkedScholarships.slice(0, 5).map((item) => (
+                  <Link key={item.scholarship.id} to={`/scholarships/${item.scholarship.id}`}>
                     <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
                       <div className="bg-primary/10 p-2 rounded-lg shrink-0">
                         <Bookmark className="w-5 h-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium mb-1 truncate">{scholarship.title}</h4>
+                        <h4 className="font-medium mb-1 truncate">{item.scholarship.title}</h4>
                         <p className="text-sm text-muted-foreground truncate mb-2">
-                          {scholarship.location}
+                          {item.scholarship.provider?.name ?? 'Scholarship'}
                         </p>
                         <Badge variant="outline" className="text-xs">
-                          {scholarship.educationLevel}
+                          {item.scholarship.level}
                         </Badge>
                       </div>
                     </div>

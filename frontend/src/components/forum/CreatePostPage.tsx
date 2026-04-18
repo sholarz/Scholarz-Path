@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -9,18 +9,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Badge } from '../ui/badge';
 import { useForum } from '../../lib/forum-context';
 import { useAuth } from '../../lib/auth-context';
+import { getForumCategories, type ForumCategoryOption } from '../../lib/forum-api';
+import { ApiError } from '../../lib/api-client';
 import { X, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { Header } from '../Header';
-
-const CATEGORIES = [
-  'Tips & Experience',
-  'Announcements',
-  'Q&A',
-  'General Discussion',
-  'Test Preparation',
-  'Documents',
-];
 
 const SUGGESTED_TAGS = [
   'LPDP', 'Masters Scholarship', 'PhD Scholarship', 'IELTS', 'TOEFL',
@@ -34,10 +27,28 @@ export function CreatePostPage() {
   
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [category, setCategory] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [categories, setCategories] = useState<ForumCategoryOption[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [tags, setTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      setIsLoadingCategories(true);
+      try {
+        const rows = await getForumCategories();
+        setCategories(rows);
+      } catch {
+        toast.error('Gagal memuat kategori forum');
+      } finally {
+        setIsLoadingCategories(false);
+      }
+    };
+
+    void loadCategories();
+  }, []);
 
   const addTag = (tag: string) => {
     if (!tags.includes(tag) && tags.length < 5) {
@@ -57,32 +68,40 @@ export function CreatePostPage() {
   };
 
   const handleSubmit = async () => {
-    if (!title.trim() || !content.trim() || !category) {
+    if (!title.trim() || !content.trim() || !categoryId) {
       toast.error('Please fill in all required fields');
       return;
     }
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      await createPost({
+        title: title.trim(),
+        content: content.trim(),
+        categoryId,
+        tags,
+      });
 
-    // All posts are published immediately (approved status)
-    createPost({
-      authorId: user?.id || '',
-      authorName: user?.name || '',
-      authorRole: user?.role || 'free',
-      title: title.trim(),
-      content: content.trim(),
-      category,
-      tags,
-      status: 'approved', // Immediately approved
-    });
-
-    toast.success('Post published successfully!');
-    
-    setIsSubmitting(false);
-    navigate('/forum');
+      toast.success('Post published successfully!');
+      navigate('/forum');
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 422) {
+          toast.error(error.message || 'Data post tidak valid');
+        } else if (error.status === 403) {
+          toast.error('Anda tidak memiliki akses untuk membuat post');
+        } else if (error.status === 404) {
+          toast.error('Kategori forum tidak ditemukan');
+        } else {
+          toast.error(error.message || 'Gagal mempublikasikan post');
+        }
+      } else {
+        toast.error('Gagal mempublikasikan post');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -123,16 +142,25 @@ export function CreatePostPage() {
               {/* Category */}
               <div className="space-y-2">
                 <Label htmlFor="category">Category *</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger id="category">
+                <Select value={categoryId} onValueChange={setCategoryId}>
+                  <SelectTrigger id="category" disabled={isLoadingCategories || categories.length === 0}>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map(cat => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
+                    {isLoadingCategories ? (
+                      <SelectItem value="loading" disabled>Loading categories...</SelectItem>
+                    ) : categories.length === 0 ? (
+                      <SelectItem value="empty" disabled>No categories available</SelectItem>
+                    ) : (
+                      categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
+                {!isLoadingCategories && categories.length === 0 && (
+                  <p className="text-xs text-destructive">Kategori forum belum tersedia. Hubungi admin untuk menjalankan seeder kategori.</p>
+                )}
               </div>
 
               {/* Content */}
@@ -218,7 +246,7 @@ export function CreatePostPage() {
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <Button
                   onClick={handleSubmit}
-                  disabled={isSubmitting || !title.trim() || !content.trim() || !category}
+                  disabled={isSubmitting || !title.trim() || !content.trim() || !categoryId}
                   className="flex-1 sm:flex-none sm:px-8 gap-2"
                 >
                   <Send className="h-4 w-4" />

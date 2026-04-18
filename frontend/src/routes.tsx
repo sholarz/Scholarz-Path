@@ -20,11 +20,8 @@ import { ForumPage } from "./components/forum/ForumPage";
 import { CreatePostPage } from "./components/forum/CreatePostPage";
 import { PostDetailPage } from "./components/forum/PostDetailPage";
 import { AdminReportsPage } from "./components/forum/AdminReportsPage";
-import { AdminPendingPostsPage } from "./components/forum/AdminPendingPostsPage";
 import { NotificationsPage } from "./components/notifications/NotificationsPage";
 import { AdminPaymentManagementPage } from "./components/payment/AdminPaymentManagementPage";
-import { AdminPaymentPage } from "./components/admin/AdminPaymentPage";
-import { AdminPaymentVerificationDemo } from "./components/admin/AdminPaymentVerificationDemo";
 import { AdminDashboardPage } from "./components/admin/AdminDashboardPage";
 import { AdminUsersPage } from "./components/admin/AdminUsersPage";
 import { AdminSettingsPage } from "./components/admin/AdminSettingsPage";
@@ -133,14 +130,6 @@ export const router = createBrowserRouter([
         )
       },
       {
-        path: "forum/pending",
-        element: (
-          <AdminRoute>
-            <AdminPendingPostsPage />
-          </AdminRoute>
-        )
-      },
-      {
         path: "notifications",
         element: (
           <ProtectedRoute>
@@ -160,17 +149,9 @@ export const router = createBrowserRouter([
         path: "admin/payment-verification",
         element: (
           <AdminRoute>
-            <AdminPaymentPage />
+            <AdminPaymentManagementPage />
           </AdminRoute>
         )
-      },
-      {
-        path: "admin/payment-verification-demo",
-        element: (
-          <AdminRoute>
-            <AdminPaymentVerificationDemo />
-          </AdminRoute>
-        ),
       },
       {
         path: "admin/dashboard",
@@ -204,6 +185,7 @@ export const router = createBrowserRouter([
           </AdminRoute>
         ),
       },
+      { path: "subscription-snapshot", Component: SubscriptionSnapshotDemo },
       { path: "subscription-snapshot-demo", Component: SubscriptionSnapshotDemo },
       { path: "*", Component: NotFoundPage },
     ],

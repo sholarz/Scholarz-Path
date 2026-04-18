@@ -1,7 +1,7 @@
 // Auth Context for managing user authentication state
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type UserRole = 'admin' | 'premium' | 'free';
+export type UserRole = 'admin' | 'premium' | 'free' | 'guest';
 
 export interface User {
   id: string;
@@ -15,6 +15,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isAuthReady: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<User>;
   loginWithGoogle: () => Promise<void>;
@@ -22,7 +23,7 @@ interface AuthContextType {
   signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
   resetPassword: (email: string) => Promise<void>;
-  upgradeToPremium: () => void;
+  refreshUser: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -121,6 +122,20 @@ const persistSession = (setUser: (user: User) => void, user: User, token?: strin
   }
 };
 
+const loadStoredUser = (): User | null => {
+  const savedUser = localStorage.getItem('user');
+  if (!savedUser) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(savedUser) as User;
+  } catch {
+    localStorage.removeItem('user');
+    return null;
+  }
+};
+
 const fetchCurrentUser = async (token: string): Promise<ApiUserPayload> => {
   const response = await fetch(`${API_BASE_URL}/user`, {
     method: 'GET',
@@ -151,23 +166,71 @@ const fetchCurrentUser = async (token: string): Promise<ApiUserPayload> => {
   return userPayload;
 };
 
-// Mock test accounts
-const TEST_ACCOUNTS = {
-  'admin@scholarpath.com': { password: 'admin123', role: 'admin' as UserRole, name: 'Admin User' },
-  'premium@test.com': { password: 'premium123', role: 'premium' as UserRole, name: 'Premium User' },
-  'user@test.com': { password: 'user123', role: 'free' as UserRole, name: 'Free User' },
-};
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => loadStoredUser());
+  const [isAuthReady, setIsAuthReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+  const syncSessionUser = async () => {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      return;
     }
+
+    try {
+      const payloadUser = await fetchCurrentUser(token);
+      const storedUser = loadStoredUser();
+      const refreshedUser = mapApiUser(
+        payloadUser,
+        payloadUser.email || storedUser?.email || '',
+        storedUser?.name || payloadUser.email || ''
+      );
+      persistSession(setUser, refreshedUser);
+    } catch {
+      // Keep current state if sync fails (e.g. temporary network issue).
+    }
+  };
+
+  useEffect(() => {
+    // Global 401 handler — fired by api-client.ts when any API call returns 401
+    const handleUnauthorized = () => {
+      setUser(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('bookmarks_cache');
+    };
+
+    const handleWindowFocus = () => {
+      void syncSessionUser();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void syncSessionUser();
+      }
+    };
+
+    // Initial sync so role updates from backend are reflected after reload.
+    void syncSessionUser();
+
+    const syncInterval = window.setInterval(() => {
+      void syncSessionUser();
+    }, 30000);
+
+    window.addEventListener('api:unauthorized', handleUnauthorized);
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    setIsAuthReady(true);
+
+    return () => {
+      window.removeEventListener('api:unauthorized', handleUnauthorized);
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.clearInterval(syncInterval);
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -189,7 +252,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const payload = (await response.json()) as AuthApiResponse;
-      const apiUser = mapApiUser(payload.data?.user, email, TEST_ACCOUNTS[email.toLowerCase() as keyof typeof TEST_ACCOUNTS]?.name || email);
+      const apiUser = mapApiUser(payload.data?.user, email, email);
 
       persistSession(setUser, apiUser, payload.data?.token);
       return apiUser;
@@ -288,25 +351,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    // Revoke token on the backend (fire-and-forget)
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      fetch(`${API_BASE_URL}/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }).catch(() => { /* ignore network errors during logout */ });
+    }
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('bookmarks_cache');
   };
 
   const resetPassword = async (email: string) => {
     setIsLoading(true);
     setError(null);
 
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setIsLoading(false);
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({})) as { message?: string };
+        throw new Error(body.message ?? 'Failed to send password reset email.');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send password reset email.');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const upgradeToPremium = () => {
-    if (user) {
-      const updatedUser = { ...user, role: 'premium' as UserRole };
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-    }
+  const refreshUser = async () => {
+    await syncSessionUser();
   };
 
   const clearError = () => {
@@ -319,6 +406,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isAuthenticated: !!user,
         isLoading,
+        isAuthReady,
         error,
         login,
         loginWithGoogle,
@@ -326,7 +414,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signup,
         logout,
         resetPassword,
-        upgradeToPremium,
+        refreshUser,
         clearError,
       }}
     >

@@ -9,6 +9,7 @@ export interface PaymentDetails {
   amount: number;
   currency: string;
   timestamp: string;
+  status: 'pending' | 'confirmed' | 'rejected';
   scholarshipId?: string; // Track which scholarship this payment is for
   methodDetails?: string; // E.g., "BCA Virtual Account", "GoPay", etc.
 }
@@ -41,7 +42,7 @@ interface PaymentContextType {
   isPaymentFlowOpen: boolean;
   openPaymentFlow: () => void;
   closePaymentFlow: () => void;
-  processPayment: (details: any, scholarshipId?: string) => Promise<boolean>;
+  processPayment: (details: any, scholarshipId?: string) => Promise<{ success: boolean; message?: string }>;
   paymentHistory: PaymentDetails[];
   hasPaidForScholarship: (scholarshipId: string) => boolean;
 }
@@ -54,7 +55,7 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [isPaymentFlowOpen, setIsPaymentFlowOpen] = useState(false);
   const [paymentHistory, setPaymentHistory] = useState<PaymentDetails[]>([]);
-  const { upgradeToPremium } = useAuth();
+  const { refreshUser } = useAuth();
 
   const openPaymentFlow = () => {
     setIsPaymentFlowOpen(true);
@@ -66,41 +67,80 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
     setSelectedMethod(null);
   };
 
-  const processPayment = async (details: any, scholarshipId?: string): Promise<boolean> => {
-    // Simulate payment processing
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Determine payment method details
-        let methodDetails = '';
-        switch (selectedMethod) {
-          case 'bank-transfer':
-            methodDetails = `${details.bankName} Virtual Account`;
-            break;
-          case 'e-wallet':
-            methodDetails = details.provider?.toUpperCase() || 'E-Wallet';
-            break;
-          case 'credit-card':
-            methodDetails = 'Credit Card';
-            break;
+  const processPayment = async (details: any, scholarshipId?: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(
+        `${((import.meta as ImportMeta & { env?: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '')}/subscriptions/subscribe`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            payment_method: selectedMethod,
+            payment_reference: details?.paymentReference,
+            payment_proof_url: details?.paymentProofUrl,
+            payment_note: details?.paymentNote,
+          }),
         }
+      );
 
-        const payment: PaymentDetails = {
-          method: selectedMethod!,
-          amount: PREMIUM_PRICE,
-          currency: 'IDR',
-          timestamp: new Date().toISOString(),
-          scholarshipId,
-          methodDetails,
-        };
+      if (!response.ok) {
+        let errorMessage = `Subscription API error: ${response.status}`;
+        try {
+          const errorPayload = await response.json();
+          errorMessage = errorPayload?.message || errorPayload?.error?.message || errorMessage;
+        } catch {
+          // Keep default message if response body is not JSON.
+        }
+        console.error(errorMessage);
+        return { success: false, message: errorMessage };
+      }
 
-        setPaymentHistory(prev => [...prev, payment]);
-        
-        // Upgrade user to premium after successful payment
-        upgradeToPremium();
-        
-        resolve(true);
-      }, 2000); // Simulate 2 second processing time
-    });
+      const payload = await response.json();
+      const subscriptionStatus = payload?.data?.subscription?.status;
+      if (subscriptionStatus !== 'pending') {
+        console.error('Unexpected subscription status:', subscriptionStatus);
+        return { success: false, message: 'Status subscription tidak valid setelah submit pembayaran.' };
+      }
+
+      // Determine payment method details for local history
+      let methodDetails = '';
+      switch (selectedMethod) {
+        case 'bank-transfer':
+          methodDetails = `${details.bankName} Virtual Account`;
+          break;
+        case 'e-wallet':
+          methodDetails = details.provider?.toUpperCase() || 'E-Wallet';
+          break;
+        case 'credit-card':
+          methodDetails = 'Credit Card';
+          break;
+      }
+
+      const payment: PaymentDetails = {
+        method: selectedMethod!,
+        amount: PREMIUM_PRICE,
+        currency: 'IDR',
+        timestamp: new Date().toISOString(),
+        status: 'pending',
+        scholarshipId,
+        methodDetails,
+      };
+
+      setPaymentHistory(prev => [...prev, payment]);
+
+      // Refresh user so frontend stays in sync with backend role (should remain free until admin confirms).
+      await refreshUser();
+
+      return { success: true };
+    } catch (err) {
+      console.error('Payment processing error:', err);
+      return { success: false, message: 'Terjadi kesalahan saat memproses pembayaran.' };
+    }
   };
 
   const hasPaidForScholarship = (scholarshipId: string): boolean => {

@@ -9,7 +9,7 @@ import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Clock, BookOpen, Target, Crown, Lock, Search, Filter } from 'lucide-react';
 import { PremiumFeatureLock } from '../PremiumFeatureLock';
-import { getTests, type TestListItem } from '../../lib/test-prep-api';
+import { getTests, getTestHistory, type TestHistoryAttempt, type TestHistorySummary, type TestListItem } from '../../lib/test-prep-api';
 import { toast } from 'sonner';
 
 export function TestSimulationsPage() {
@@ -19,6 +19,8 @@ export function TestSimulationsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
+  const [testHistorySummary, setTestHistorySummary] = useState<TestHistorySummary | null>(null);
+  const [recentAttempts, setRecentAttempts] = useState<TestHistoryAttempt[]>([]);
 
   const isPremium = user?.role === 'premium' || user?.role === 'admin';
 
@@ -37,6 +39,21 @@ export function TestSimulationsPage() {
     };
 
     loadTests();
+  }, []);
+
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const payload = await getTestHistory();
+        setTestHistorySummary(payload.summary);
+        setRecentAttempts(payload.attempts.slice(0, 5));
+      } catch {
+        setTestHistorySummary(null);
+        setRecentAttempts([]);
+      }
+    };
+
+    void loadHistory();
   }, []);
 
   const filteredTests = useMemo(() => tests.filter(test => {
@@ -184,6 +201,59 @@ export function TestSimulationsPage() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Test History */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Your Test History</CardTitle>
+            <CardDescription>Recent attempts and performance summary</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!testHistorySummary || recentAttempts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No attempts yet. Start your first test now.</p>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid md:grid-cols-4 gap-3">
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">Total Attempts</p>
+                    <p className="text-xl font-semibold">{testHistorySummary.total_attempts}</p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">Passed</p>
+                    <p className="text-xl font-semibold">{testHistorySummary.passed_attempts}</p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">Best Score</p>
+                    <p className="text-xl font-semibold">{testHistorySummary.best_score}%</p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">Last Score</p>
+                    <p className="text-xl font-semibold">{testHistorySummary.last_score ?? '-'}{testHistorySummary.last_score !== null ? '%' : ''}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {recentAttempts.map((attempt) => (
+                    <div key={attempt.session_id} className="rounded-lg border p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div>
+                        <p className="font-medium">{attempt.test_title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {attempt.submitted_at ? new Date(attempt.submitted_at).toLocaleString('id-ID') : '-'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={attempt.passed ? 'default' : 'destructive'}>
+                          {attempt.passed ? 'Passed' : 'Failed'}
+                        </Badge>
+                        <Badge variant="outline">{attempt.score}%</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

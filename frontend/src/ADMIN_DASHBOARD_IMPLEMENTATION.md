@@ -89,8 +89,8 @@ Slide-in drawer with:
 - Auto-close after action
 - Different states for pending/approved/rejected
 
-### 5. AdminPaymentVerificationDemo.tsx
-**Path:** `/components/admin/AdminPaymentVerificationDemo.tsx`
+### 5. AdminPaymentManagementPage.tsx
+**Path:** `/components/payment/AdminPaymentManagementPage.tsx`
 
 Demo page combining all components with documentation.
 
@@ -147,12 +147,12 @@ Added to `/routes.ts`:
 
 ```typescript
 { 
-  path: "admin/payment-verification-demo", 
-  Component: AdminPaymentVerificationDemo 
+  path: "admin/payments", 
+  Component: AdminPaymentManagementPage 
 }
 ```
 
-**Access the demo at:** `/admin/payment-verification-demo`
+**Access the demo at:** `/admin/payments`
 
 ## ✨ Key Features
 
@@ -337,7 +337,9 @@ All components are:
 ---
 
 **Implementation Status:** ✅ COMPLETE  
-**Demo URL:** `/admin/payment-verification-demo`  
+**Demo URL:** `/admin/payments`  
 **Documentation:** `/components/admin/ADMIN_PAYMENT_VERIFICATION_README.md`
 
 Created for **ScholarPath Platform** - Admin Dashboard UI
+
+

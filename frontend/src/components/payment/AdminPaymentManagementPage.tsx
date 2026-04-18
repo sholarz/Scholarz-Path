@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -7,6 +7,7 @@ import { Input } from '../ui/input';
 import { useAuth } from '../../lib/auth-context';
 import { PaymentApprovalDialog } from './PaymentApprovalDialog';
 import { PaymentActionHistory, PaymentAction } from './PaymentActionHistory';
+import { ApiError, apiGet, apiPut } from '../../lib/api-client';
 import {
   CreditCard,
   Clock,
@@ -21,60 +22,129 @@ import { formatDistanceToNow } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { formatCurrency } from '../../lib/utils';
 import { Link } from 'react-router';
+import { toast } from 'sonner';
+import { AdminLayout } from '../admin/AdminLayout';
 
-// Mock pending payments
-const MOCK_PENDING_PAYMENTS = [
-  {
-    id: 'pay-003',
-    userName: 'Budi Santoso',
-    email: 'budi.santoso@email.com',
-    method: 'Bank Transfer',
-    amount: 49000,
-    createdAt: new Date('2026-04-03T08:30:00'),
-    proofUrl: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800',
-  },
-  {
-    id: 'pay-004',
-    userName: 'Siti Nurhaliza',
-    email: 'siti.nurhaliza@email.com',
-    method: 'E-Wallet',
-    amount: 490000,
-    createdAt: new Date('2026-04-03T09:15:00'),
-    proofUrl: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=800',
-  },
-];
+type BackendPayment = {
+  id: string;
+  status: 'pending' | 'confirmed' | 'rejected' | 'cancelled';
+  payment_method?: string | null;
+  payment_reference?: string | null;
+  payment_proof_url?: string | null;
+  payment_note?: string | null;
+  admin_note?: string | null;
+  reviewed_at?: string | null;
+  expires_at?: string | null;
+  created_at: string;
+  user?: {
+    id: string;
+    email: string;
+  };
+  plan?: {
+    name?: string;
+    price?: number;
+  };
+};
 
-// Mock payment action history
-const MOCK_ACTIONS: PaymentAction[] = [
-  {
-    id: '1',
-    paymentId: 'pay-001',
-    action: 'approved',
-    adminName: 'Admin ScholarPath',
-    adminId: 'admin1',
-    timestamp: new Date('2026-04-02T14:30:00'),
-    validUntil: '12 Bulan (1 Tahun)',
-    notes: 'Bukti pembayaran valid, transfer terverifikasi',
-  },
-  {
-    id: '2',
-    paymentId: 'pay-002',
-    action: 'rejected',
-    adminName: 'Admin ScholarPath',
-    adminId: 'admin1',
-    timestamp: new Date('2026-04-01T10:15:00'),
-    reason: 'Bukti pembayaran tidak jelas, nominal tidak sesuai',
-    notes: 'User diminta untuk upload ulang bukti pembayaran yang lebih jelas',
-  },
-];
+type PaymentView = {
+  id: string;
+  userName: string;
+  email: string;
+  method: string;
+  amount: number;
+  createdAt: Date;
+  proofUrl: string;
+  status: 'pending' | 'confirmed' | 'rejected' | 'cancelled';
+  adminNote?: string;
+  reviewedAt?: Date;
+  expiresAt?: Date;
+};
+
+function deriveUserName(payment: BackendPayment): string {
+  const email = payment.user?.email || '';
+  if (!email.includes('@')) {
+    return 'Unknown User';
+  }
+
+  return email.split('@')[0];
+}
+
+function mapBackendPayment(row: BackendPayment): PaymentView {
+  return {
+    id: row.id,
+    userName: deriveUserName(row),
+    email: row.user?.email || 'unknown@email.com',
+    method: row.payment_method || 'Unknown',
+    amount: Number(row.plan?.price || 0),
+    createdAt: new Date(row.created_at),
+    proofUrl: row.payment_proof_url || '#',
+    status: row.status,
+    adminNote: row.admin_note || undefined,
+    reviewedAt: row.reviewed_at ? new Date(row.reviewed_at) : undefined,
+    expiresAt: row.expires_at ? new Date(row.expires_at) : undefined,
+  };
+}
+
+function mapReviewedToAction(payment: PaymentView, adminName: string, adminId: string): PaymentAction | null {
+  if (payment.status !== 'confirmed' && payment.status !== 'rejected') {
+    return null;
+  }
+
+  return {
+    id: payment.id,
+    paymentId: payment.id,
+    action: payment.status === 'confirmed' ? 'approved' : 'rejected',
+    adminName,
+    adminId,
+    timestamp: payment.reviewedAt || payment.createdAt,
+    reason: payment.status === 'rejected' ? payment.adminNote : undefined,
+    validUntil: payment.status === 'confirmed' && payment.expiresAt
+      ? payment.expiresAt.toLocaleDateString('id-ID', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric',
+        })
+      : undefined,
+    notes: payment.adminNote,
+  };
+}
 
 export function AdminPaymentManagementPage() {
   const { user } = useAuth();
-  const [pendingPayments, setPendingPayments] = useState(MOCK_PENDING_PAYMENTS);
-  const [selectedPayment, setSelectedPayment] = useState<any>(null);
+  const [payments, setPayments] = useState<PaymentView[]>([]);
+  const [selectedPayment, setSelectedPayment] = useState<PaymentView | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
-  const [actionHistory, setActionHistory] = useState<PaymentAction[]>(MOCK_ACTIONS);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const loadPayments = async (status?: 'pending' | 'confirmed' | 'rejected') => {
+    setIsLoading(true);
+    try {
+      const query = status ? `?status=${status}` : '';
+      const payload = await apiGet<{ payments?: { data?: BackendPayment[] } | BackendPayment[] }>(`/admin/payments${query}`);
+
+      let rows: BackendPayment[] = [];
+      if (Array.isArray(payload?.payments)) {
+        rows = payload.payments;
+      } else if (Array.isArray((payload as any)?.payments?.data)) {
+        rows = (payload as any).payments.data;
+      }
+
+      setPayments(rows.map(mapBackendPayment));
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : 'Gagal memuat pembayaran';
+      toast.error(message);
+      setPayments([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      void loadPayments();
+    }
+  }, [user?.role]);
 
   if (user?.role !== 'admin') {
     return (
@@ -93,33 +163,53 @@ export function AdminPaymentManagementPage() {
     );
   }
 
-  const handleApprove = (paymentId: string, validUntil: string) => {
-    const newAction: PaymentAction = {
-      id: Date.now().toString(),
-      paymentId,
-      action: 'approved',
-      adminName: user?.name || 'Admin',
-      adminId: user?.id || '',
-      timestamp: new Date(),
-      validUntil,
-    };
-    setActionHistory(prev => [newAction, ...prev]);
-    setSelectedPayment(null);
+  const handleApprove = async (paymentId: string, validUntil: string) => {
+    try {
+      await apiPut(`/admin/payments/${paymentId}/review`, {
+        decision: 'confirmed',
+        admin_note: `Subscription duration: ${validUntil}`,
+        duration: validUntil,
+      });
+
+      toast.success('Pembayaran disetujui dan role user diupgrade di server');
+      setSelectedPayment(null);
+      await loadPayments();
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : 'Gagal menyetujui pembayaran';
+      toast.error(message);
+    }
   };
 
-  const handleReject = (paymentId: string, reason: string) => {
-    const newAction: PaymentAction = {
-      id: Date.now().toString(),
-      paymentId,
-      action: 'rejected',
-      adminName: user?.name || 'Admin',
-      adminId: user?.id || '',
-      timestamp: new Date(),
-      reason,
-    };
-    setActionHistory(prev => [newAction, ...prev]);
-    setSelectedPayment(null);
+  const handleReject = async (paymentId: string, reason: string) => {
+    try {
+      await apiPut(`/admin/payments/${paymentId}/review`, {
+        decision: 'rejected',
+        admin_note: reason,
+      });
+
+      toast.success('Pembayaran ditolak');
+      setSelectedPayment(null);
+      await loadPayments();
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : 'Gagal menolak pembayaran';
+      toast.error(message);
+    }
   };
+
+  const pendingPayments = useMemo(
+    () => payments.filter((payment) => payment.status === 'pending'),
+    [payments]
+  );
+
+  const actionHistory = useMemo(() => {
+    const adminName = user?.name || 'Admin';
+    const adminId = user?.id || '';
+
+    return payments
+      .map((payment) => mapReviewedToAction(payment, adminName, adminId))
+      .filter((entry): entry is PaymentAction => entry !== null)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }, [payments, user?.id, user?.name]);
 
   const filteredPayments = pendingPayments.filter(payment =>
     payment.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -127,8 +217,8 @@ export function AdminPaymentManagementPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background py-8">
-      <div className="container mx-auto px-4 max-w-7xl">
+    <AdminLayout>
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -235,7 +325,14 @@ export function AdminPaymentManagementPage() {
             </Card>
 
             {/* Payments List */}
-            {filteredPayments.length === 0 ? (
+            {isLoading ? (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <Clock className="h-12 w-12 mx-auto mb-4 opacity-50 animate-pulse" />
+                  <p>Memuat pembayaran...</p>
+                </CardContent>
+              </Card>
+            ) : filteredPayments.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center text-muted-foreground">
                   <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -286,14 +383,18 @@ export function AdminPaymentManagementPage() {
                         </div>
 
                         <div className="mt-3">
-                          <a
-                            href={payment.proofUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-primary hover:underline"
-                          >
-                            Lihat Bukti Pembayaran →
-                          </a>
+                          {payment.proofUrl !== '#' ? (
+                            <a
+                              href={payment.proofUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-primary hover:underline"
+                            >
+                              Lihat Bukti Pembayaran →
+                            </a>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Bukti pembayaran belum diunggah</p>
+                          )}
                         </div>
                       </div>
 
@@ -328,6 +429,6 @@ export function AdminPaymentManagementPage() {
           onReject={(reason) => handleReject(selectedPayment.id, reason)}
         />
       )}
-    </div>
+    </AdminLayout>
   );
 }

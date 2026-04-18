@@ -6,6 +6,7 @@ import { Textarea } from '../ui/textarea';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useForum } from '../../lib/forum-context';
 import { useAuth } from '../../lib/auth-context';
+import { ApiError } from '../../lib/api-client';
 import { toast } from 'sonner';
 import { AlertTriangle } from 'lucide-react';
 
@@ -36,7 +37,7 @@ export function ReportDialog({
   targetAuthor,
 }: ReportDialogProps) {
   const { user } = useAuth();
-  const { reportPost } = useForum();
+  const { reportPost, reportComment } = useForum();
   const [selectedReason, setSelectedReason] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,23 +60,32 @@ export function ReportDialog({
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    reportPost({
-      reporterId: user.id,
-      reporterName: user.name,
-      targetType,
-      targetId,
-      targetContent,
-      targetAuthor,
-      reason: selectedReason,
-      description: description.trim(),
-    });
-
-    toast.success('Laporan berhasil dikirim. Tim kami akan meninjau laporan Anda.');
-    setIsSubmitting(false);
-    onClose();
+    try {
+      if (targetType === 'post') {
+        const reason = `${selectedReason}: ${description.trim()}`.slice(0, 250);
+        await reportPost(targetId, reason);
+      } else {
+        await reportComment(targetId, selectedReason.slice(0, 200), description.trim());
+      }
+      toast.success('Laporan berhasil dikirim. Tim kami akan meninjau laporan Anda.');
+      onClose();
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 422 && /already reported/i.test(error.message)) {
+          toast.error('You have already reported this post');
+        } else if (error.status === 404) {
+          toast.error('Konten tidak ditemukan');
+        } else if (error.status === 403) {
+          toast.error('Anda tidak memiliki akses untuk melaporkan konten ini');
+        } else {
+          toast.error(error.message || 'Gagal mengirim laporan');
+        }
+      } else {
+        toast.error('Gagal mengirim laporan');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

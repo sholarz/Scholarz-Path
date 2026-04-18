@@ -12,6 +12,60 @@ import { id as localeId } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { ReviewReportDialog } from './ReviewReportDialog';
 import type { Report } from '../../lib/forum-context';
+import { AdminLayout } from '../admin/AdminLayout';
+
+function parseModerationAction(action?: string): {
+  kind: 'remove' | 'warn' | 'dismiss' | 'other';
+  label: string;
+  note?: string;
+  reviewedBy?: string;
+} {
+  if (!action?.trim()) {
+    return {
+      kind: 'other',
+      label: '-',
+    };
+  }
+
+  const [actionPart, byPart] = action.split('| by:').map((part) => part.trim());
+  const separatorIndex = actionPart.indexOf(':');
+  const actionKey = (separatorIndex >= 0 ? actionPart.slice(0, separatorIndex) : actionPart).trim().toLowerCase();
+  const note = separatorIndex >= 0 ? actionPart.slice(separatorIndex + 1).trim() : '';
+
+  if (actionKey === 'warn-user') {
+    return {
+      kind: 'warn',
+      label: 'Peringatan Dikirim',
+      note: note || undefined,
+      reviewedBy: byPart || undefined,
+    };
+  }
+
+  if (actionKey === 'remove-content' || actionKey.includes('remove')) {
+    return {
+      kind: 'remove',
+      label: 'Konten Dihapus',
+      note: note || undefined,
+      reviewedBy: byPart || undefined,
+    };
+  }
+
+  if (actionKey === 'dismiss' || actionKey.includes('keep')) {
+    return {
+      kind: 'dismiss',
+      label: 'Laporan Ditolak',
+      note: note || undefined,
+      reviewedBy: byPart || undefined,
+    };
+  }
+
+  return {
+    kind: 'other',
+    label: actionPart,
+    note: note || undefined,
+    reviewedBy: byPart || undefined,
+  };
+}
 
 export function AdminReportsPage() {
   const { user } = useAuth();
@@ -47,8 +101,8 @@ export function AdminReportsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background py-8">
-      <div className="container mx-auto px-4 max-w-6xl">
+    <AdminLayout>
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -165,53 +219,68 @@ export function AdminReportsPage() {
                 </CardContent>
               </Card>
             ) : (
-              reviewedReports.map(report => (
-                <Card key={report.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <Badge variant="outline" className="gap-1">
-                            {report.status === 'resolved' ? (
-                              <>
-                                <Check className="h-3 w-3" />
-                                Resolved
-                              </>
-                            ) : (
-                              <>
-                                <X className="h-3 w-3" />
-                                Dismissed
-                              </>
+              reviewedReports.map(report => {
+                const actionMeta = parseModerationAction(report.action);
+
+                return (
+                  <Card key={report.id}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <Badge variant="outline" className="gap-1">
+                              {report.status === 'resolved' ? (
+                                <>
+                                  <Check className="h-3 w-3" />
+                                  Resolved
+                                </>
+                              ) : (
+                                <>
+                                  <X className="h-3 w-3" />
+                                  Dismissed
+                                </>
+                              )}
+                            </Badge>
+                            {actionMeta.kind === 'warn' && (
+                              <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300" variant="outline">
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                Warning Dikirim
+                              </Badge>
                             )}
-                          </Badge>
-                          <Badge variant="secondary">
-                            {report.targetType === 'post' ? 'Post' : 'Comment'}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {report.reason.replace('-', ' ')}
-                          </span>
-                        </div>
+                            <Badge variant="secondary">
+                              {report.targetType === 'post' ? 'Post' : 'Comment'}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {report.reason.replace('-', ' ')}
+                            </span>
+                          </div>
 
-                        <div className="bg-muted p-3 rounded-lg mb-3">
-                          <p className="text-sm line-clamp-1">{report.targetContent}</p>
-                        </div>
+                          <div className="bg-muted p-3 rounded-lg mb-3">
+                            <p className="text-sm line-clamp-1">{report.targetContent}</p>
+                          </div>
 
-                        <div className="space-y-1 text-sm">
-                          <p>
-                            <span className="font-medium">Reviewed by:</span> {report.reviewedBy}
-                          </p>
-                          <p>
-                            <span className="font-medium">Action:</span> {report.action}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {report.reviewedAt && formatDistanceToNow(report.reviewedAt, { addSuffix: true, locale: localeId })}
-                          </p>
+                          <div className="space-y-1 text-sm">
+                            <p>
+                              <span className="font-medium">Reviewed by:</span> {actionMeta.reviewedBy || report.reviewedBy}
+                            </p>
+                            <p>
+                              <span className="font-medium">Action:</span> {actionMeta.label}
+                            </p>
+                            {actionMeta.note && (
+                              <p>
+                                <span className="font-medium">Catatan:</span> {actionMeta.note}
+                              </p>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                              {report.reviewedAt && formatDistanceToNow(report.reviewedAt, { addSuffix: true, locale: localeId })}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardHeader>
-                </Card>
-              ))
+                    </CardHeader>
+                  </Card>
+                );
+              })
             )}
           </TabsContent>
         </Tabs>
@@ -225,6 +294,6 @@ export function AdminReportsPage() {
           onClose={() => setSelectedReport(null)}
         />
       )}
-    </div>
+    </AdminLayout>
   );
 }

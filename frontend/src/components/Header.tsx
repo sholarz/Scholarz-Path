@@ -107,7 +107,11 @@ export function Header() {
                   {user?.role === 'admin' && (
                     <>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => navigate('/admin/payment-verification')} className="cursor-pointer">
+                      <DropdownMenuItem onClick={() => navigate('/admin/dashboard')} className="cursor-pointer">
+                        <LayoutDashboard className="w-4 h-4 mr-2" />
+                        Admin Dashboard
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/admin/payments')} className="cursor-pointer">
                         <Shield className="w-4 h-4 mr-2" />
                         Payment Verification
                       </DropdownMenuItem>
@@ -150,6 +154,24 @@ export function Header() {
                         Profile
                       </Button>
                     </Link>
+
+                    {user?.role === 'admin' && (
+                      <>
+                        <div className="my-2 border-t" />
+                        <Link to="/admin/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start gap-2">
+                            <LayoutDashboard className="w-4 h-4" />
+                            Admin Dashboard
+                          </Button>
+                        </Link>
+                        <Link to="/admin/payments" onClick={() => setMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start gap-2">
+                            <Shield className="w-4 h-4" />
+                            Payment Verification
+                          </Button>
+                        </Link>
+                      </>
+                    )}
                     
                     {user?.role === 'free' && (
                       <>

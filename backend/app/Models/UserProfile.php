@@ -23,9 +23,14 @@ class UserProfile extends Model
 
     public const ACADEMIC_FIELDS = [
         'gpa',
+        'field_of_study',
+        'sub_field',
         'major',
         'degree_level',
+        'target_degree',
         'graduation_year',
+        'expected_start_year',
+        'application_status',
     ];
 
     public const PROFILE_FIELDS = [
@@ -46,9 +51,14 @@ class UserProfile extends Model
         'nationality',
         'current_country',
         'gpa',
+        'field_of_study',
+        'sub_field',
         'major',
         'degree_level',
+        'target_degree',
         'graduation_year',
+        'expected_start_year',
+        'application_status',
         'profile_completion_percentage',
         'profile_status',
     ];

@@ -12,6 +12,7 @@ interface ProfileCompletionBannerProps {
     fieldOfStudy: string;
     gpa: string;
     preferredCountries: string[];
+    preferredFields: string[];
     budgetPreference: string;
     preferredStartYear: string;
     languageTests: Array<{ testType: string; overallScore: string }>;

@@ -29,6 +29,8 @@ class Scholarship extends Model
         'eligible_nationalities',
         'fields_of_study',
         'minimum_gpa',
+        'target_level',
+        'degree_level',
         'language_requirements',
         'application_deadline',
         'start_date',
@@ -56,6 +58,10 @@ class Scholarship extends Model
             'eligible_nationalities' => 'array',
             'fields_of_study' => 'array',
             'language_requirements' => 'array',
+            'requirements' => 'array',
+            'benefits' => 'array',
+            'selection_criteria' => 'array',
+            'application_process' => 'array',
             'application_deadline' => 'date',
             'start_date' => 'date',
             'amount' => 'decimal:2',
@@ -182,8 +188,8 @@ class Scholarship extends Model
     public function scopeSearch(Builder $query, string $search): Builder
     {
         return $query->where(function ($q) use ($search) {
-            $q->where('title', 'ILIKE', '%' . $search . '%')
-              ->orWhere('description', 'ILIKE', '%' . $search . '%');
+            $q->where('title', 'LIKE', '%' . $search . '%')
+              ->orWhere('description', 'LIKE', '%' . $search . '%');
         });
     }
 

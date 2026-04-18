@@ -60,4 +60,9 @@ class ForumPost extends Model
     {
         return $this->hasMany(ForumPostSave::class, 'post_id');
     }
+
+    public function reports(): HasMany
+    {
+        return $this->hasMany(ForumReport::class, 'target_id')->where('target_type', 'post');
+    }
 }

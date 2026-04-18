@@ -3,6 +3,7 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\UserNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -82,6 +83,81 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Account deleted successfully'
+        ]);
+    }
+
+    /**
+     * Get authenticated user notifications.
+     */
+    public function getNotifications(Request $request): JsonResponse
+    {
+        $notifications = UserNotification::query()
+            ->where('user_id', $request->user()->id)
+            ->latest()
+            ->limit(100)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $notifications,
+        ]);
+    }
+
+    /**
+     * Mark one notification as read.
+     */
+    public function markAsRead(Request $request, string $id): JsonResponse
+    {
+        $notification = UserNotification::query()
+            ->where('user_id', $request->user()->id)
+            ->findOrFail($id);
+
+        $notification->update([
+            'is_read' => true,
+            'read_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notification marked as read.',
+            'data' => $notification,
+        ]);
+    }
+
+    /**
+     * Mark all user notifications as read.
+     */
+    public function markAllAsRead(Request $request): JsonResponse
+    {
+        UserNotification::query()
+            ->where('user_id', $request->user()->id)
+            ->where('is_read', false)
+            ->update([
+                'is_read' => true,
+                'read_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'All notifications marked as read.',
+        ]);
+    }
+
+    /**
+     * Delete one user notification.
+     */
+    public function deleteNotification(Request $request, string $id): JsonResponse
+    {
+        $notification = UserNotification::query()
+            ->where('user_id', $request->user()->id)
+            ->findOrFail($id);
+
+        $notification->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notification deleted.',
         ]);
     }
 }

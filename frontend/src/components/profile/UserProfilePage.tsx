@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -9,9 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Badge } from '../ui/badge';
 import { LanguageTestCard, LanguageTest } from './LanguageTestCard';
 import { ProfileCompletionBanner } from './ProfileCompletionBanner';
-import { Plus, Save, X as XIcon, Eye, EyeOff } from 'lucide-react';
+import { Plus, Save, X as XIcon, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import { toast } from 'sonner';
+import { apiGet, apiPut, apiPost, apiDelete } from '../../lib/api-client';
 
 /**
  * USER PROFILE PAGE - DEVELOPER NOTES
@@ -91,10 +92,26 @@ const FIELDS_OF_STUDY = [
   'Architecture', 'Economics', 'Psychology'
 ];
 
+// ─── degree value mapping ───────────────────────────────────────────────────
+// Frontend uses 'high-school' / 'bachelor' / 'master' / 'phd'
+// Backend expects  'high_school' / 'bachelor' / 'master' / 'doctorate'
+const toBackendDegree = (v: string) =>
+  v === 'high-school' ? 'high_school' : v === 'phd' ? 'doctorate' : v;
+const fromBackendDegree = (v: string | null | undefined) =>
+  v === 'high_school' ? 'high-school' : v === 'doctorate' ? 'phd' : v ?? '';
+
+const fromBackendTestName = (v: string): LanguageTest['testType'] => {
+  if (v === 'ielts') return 'IELTS';
+  if (v === 'toefl_ibt') return 'TOEFL';
+  if (v === 'duolingo') return 'Duolingo';
+  return '';
+};
+
 export function UserProfilePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
+  const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile>({
     fullName: user?.name || '',
     nationality: '',
@@ -109,12 +126,7 @@ export function UserProfilePage() {
     budgetPreference: '',
     preferredStartYear: '',
     languageTests: [
-      {
-        id: '1',
-        testType: '',
-        overallScore: '',
-        showAdvanced: false,
-      }
+      { id: '1', testType: '', overallScore: '', showAdvanced: false },
     ],
     documents: {
       cvUploaded: false,
@@ -128,6 +140,128 @@ export function UserProfilePage() {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+
+  // ── Load existing profile from backend on mount ──────────────────────────
+  useEffect(() => {
+    const loadProfile = async () => {
+      setIsLoading(true);
+      try {
+        // 1. Core profile
+        type ProfileMe = {
+          user: { email: string };
+          profile: {
+            basic: {
+              first_name?: string | null;
+              last_name?: string | null;
+              nationality?: string | null;
+              current_country?: string | null;
+            };
+            academic: {
+              gpa?: string | null;
+              field_of_study?: string | null;
+              sub_field?: string | null;
+              major?: string | null;
+              degree_level?: string | null;
+              target_degree?: string | null;
+              graduation_year?: number | null;
+              expected_start_year?: number | null;
+              application_status?: string | null;
+            };
+          };
+          languages: Array<{
+            id: string;
+            language: string;
+            proficiency_level: string;
+            certification?: string | null;
+            score?: string | null;
+          }>;
+        };
+        const me = await apiGet<ProfileMe>('/profile/me');
+        const basic = me.profile?.basic ?? {};
+        const academic = me.profile?.academic ?? {};
+
+        // Load language tests from the dedicated endpoint (UserLanguageTest model)
+        type LangTestLoaded = { id: string; test_name: string; overall_score: string | number };
+        let langTests: LangTestLoaded[] = [];
+        try {
+          const ltResp = await apiGet<{ data?: LangTestLoaded[] } | LangTestLoaded[]>('/language-tests');
+          langTests = (ltResp as { data?: LangTestLoaded[] }).data ?? (ltResp as LangTestLoaded[]);
+        } catch { /* no tests yet */ }
+
+        // 2. Preferences
+        // GET returns: { countries, fields_of_study, budget_preference, preferred_start_year }
+        type PrefsData = {
+          countries?: string[] | null;
+          fields_of_study?: string[] | null;
+          budget_preference?: string | null;
+          preferred_start_year?: number | null;
+        };
+        let prefs: PrefsData = {};
+        try {
+          const prefsResp = await apiGet<{ data?: PrefsData } | PrefsData>('/preferences');
+          // unwrap { data: {...} } envelope if present
+          prefs = (prefsResp as { data?: PrefsData }).data ?? (prefsResp as PrefsData);
+        } catch { /* optional */ }
+
+        // 3. Document readiness
+        // GET returns: { data: { documents: [{document_type, is_ready}] } }
+        type DocEntry = { document_type: string; is_ready: boolean };
+        type DocReadiness = { data?: { documents?: DocEntry[] }; documents?: DocEntry[] };
+        let docsArr: DocEntry[] = [];
+        try {
+          const docResp = await apiGet<DocReadiness>('/documents/readiness');
+          docsArr = docResp?.data?.documents ?? docResp?.documents ?? [];
+        } catch { /* optional */ }
+
+        const docMap = Object.fromEntries(docsArr.map(d => [d.document_type, d.is_ready]));
+        // Backward compatibility: old records may only have major saved.
+        const majorParts = (academic.major ?? '').split(' | ');
+
+        setProfile(prev => ({
+          ...prev,
+          fullName: [basic.first_name, basic.last_name].filter(Boolean).join(' ') || prev.fullName,
+          nationality: basic.nationality ?? '',
+          currentCountry: basic.current_country ?? '',
+          currentDegree: fromBackendDegree(academic.degree_level),
+          targetDegree: fromBackendDegree(academic.target_degree),
+          gpa: academic.gpa != null ? String(academic.gpa) : '',
+          fieldOfStudy: academic.field_of_study ?? majorParts[0] ?? '',
+          subField: academic.sub_field ?? majorParts[1] ?? '',
+          preferredCountries: prefs.countries ?? [],
+          preferredFields: prefs.fields_of_study ?? [],
+          budgetPreference: prefs.budget_preference ?? '',
+          preferredStartYear: prefs.preferred_start_year ? String(prefs.preferred_start_year) : '',
+          expectedStartYear: academic.expected_start_year ? String(academic.expected_start_year) : '',
+          applicationStatus: academic.application_status ?? '',
+          languageTests: langTests.length > 0
+            ? langTests.map(l => ({
+                id: l.id,
+                testType: fromBackendTestName(l.test_name),
+                overallScore: String(l.overall_score),
+                showAdvanced: false,
+              }))
+            : prev.languageTests,
+          documents: {
+            cvUploaded:           docMap['cv'] ?? false,
+            motivationLetter:     docMap['motivation_letter'] ?? false,
+            recommendationLetter: docMap['recommendation_letter'] ?? false,
+            transcript:           docMap['transcript'] ?? false,
+            passportReady:        docMap['passport'] ?? false,
+          },
+        }));
+      } catch (err) {
+        // Don't show error if user just has no profile yet — that's normal
+        const msg = err instanceof Error ? err.message : '';
+        if (!msg.includes('404') && !msg.includes('No query results')) {
+          toast.error('Failed to load profile data.');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, []);
 
   // Password change states
   const [passwordData, setPasswordData] = useState({
@@ -204,16 +338,136 @@ export function UserProfilePage() {
   };
 
   const handleSave = async () => {
+    const fieldOfStudy = profile.fieldOfStudy.trim();
+    const subField = profile.subField.trim();
+    const gpaValue = profile.gpa ? parseFloat(profile.gpa) : NaN;
+
+    if (!profile.fullName.trim() || !profile.nationality || !profile.currentCountry) {
+      toast.error('Please complete all basic profile fields.');
+      return;
+    }
+
+    if (!profile.currentDegree || !profile.targetDegree || !fieldOfStudy) {
+      toast.error('Please complete all academic profile fields.');
+      return;
+    }
+
+    if (Number.isNaN(gpaValue) || gpaValue < 0 || gpaValue > 4) {
+      toast.error('GPA must be a number between 0.00 and 4.00.');
+      return;
+    }
+
     setIsSaving(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // In production, save to backend/Supabase
-    console.log('Saving profile:', profile);
-    
-    toast.success('Profile saved successfully!');
-    setIsSaving(false);
+
+    try {
+      // ── 1. Split fullName into first/last ──────────────────────────────
+      const nameParts = profile.fullName.trim().split(/\s+/);
+      const firstName = nameParts[0] ?? '';
+      const lastName = nameParts.slice(1).join(' ') || firstName; // fallback to firstName if single word
+
+      // ── 2. Persist canonical field_of_study and keep major for compatibility ──
+      const major = fieldOfStudy;
+
+      // ── 3. Save core profile (basic + academic in one PUT) ─────────────
+      await apiPut('/profile/', {
+        first_name: firstName,
+        last_name: lastName,
+        nationality: profile.nationality || undefined,
+        current_country: profile.currentCountry || undefined,
+        gpa: gpaValue,
+        field_of_study: fieldOfStudy || undefined,
+        sub_field: subField || undefined,
+        major: major || undefined,
+        degree_level: profile.currentDegree ? toBackendDegree(profile.currentDegree) : undefined,
+        target_degree: profile.targetDegree ? toBackendDegree(profile.targetDegree) : undefined,
+        expected_start_year: profile.expectedStartYear ? parseInt(profile.expectedStartYear) : undefined,
+        application_status: profile.applicationStatus || undefined,
+      });
+
+      // ── 4. Save preferences ────────────────────────────────────────────
+      // PUT /api/preferences expects: { countries, fields_of_study, budget_preference, preferred_start_year }
+      if (profile.preferredCountries.length || profile.preferredFields.length || profile.budgetPreference) {
+        await apiPut('/preferences/', {
+          countries: profile.preferredCountries,
+          fields_of_study: profile.preferredFields,
+          budget_preference: profile.budgetPreference || undefined,
+          preferred_start_year: profile.preferredStartYear ? parseInt(profile.preferredStartYear) : undefined,
+        });
+      }
+
+      // ── 5. Save document readiness ─────────────────────────────────────
+      // PUT /api/documents/readiness expects: { documents: ["cv", "transcript", ...] }
+      const checkedDocs: string[] = [];
+      if (profile.documents.cvUploaded)           checkedDocs.push('cv');
+      if (profile.documents.motivationLetter)     checkedDocs.push('motivation_letter');
+      if (profile.documents.recommendationLetter) checkedDocs.push('recommendation_letter');
+      if (profile.documents.transcript)           checkedDocs.push('transcript');
+      if (profile.documents.passportReady)        checkedDocs.push('passport');
+      await apiPut('/documents/readiness', { documents: checkedDocs });
+
+      // ── 6. Sync language tests ─────────────────────────────────────────
+      // GET /api/language-tests returns: { data: [{id, test_name, overall_score, ...}] }
+      // POST /api/language-tests expects: { test_name, overall_score, test_date } (validated enum)
+      // We store the LanguageTestCard's testType as a display name; map to backend enum
+      const TEST_NAME_MAP: Record<string, string> = {
+        'IELTS': 'ielts',
+        'TOEFL': 'toefl_ibt',
+        'Duolingo': 'duolingo',
+        'ielts': 'ielts',
+        'toefl_ibt': 'toefl_ibt',
+        'duolingo': 'duolingo',
+      };
+
+      type LangTestRaw = { id: string; test_name: string; overall_score: string };
+      let existingLangs: LangTestRaw[] = [];
+      try {
+        const resp = await apiGet<{ data?: LangTestRaw[] } | LangTestRaw[]>('/language-tests');
+        existingLangs = (resp as { data?: LangTestRaw[] }).data ?? (resp as LangTestRaw[]);
+      } catch { /* fresh user without tests */ }
+
+      const validTests = profile.languageTests.filter(t => t.testType && t.overallScore);
+
+      for (const test of validTests) {
+        const backendTestName = TEST_NAME_MAP[test.testType];
+        if (!backendTestName) continue; // skip unknown test types — don't block save
+
+        const payload = {
+          test_name: backendTestName,
+          overall_score: parseFloat(test.overallScore),
+          test_date: new Date().toISOString().split('T')[0], // today as fallback
+        };
+
+        const existingLang = existingLangs.find(l => l.id === test.id);
+        if (existingLang) {
+          try { await apiPut(`/language-tests/${test.id}`, payload); } catch { /* best-effort */ }
+        } else {
+          try {
+            const created = await apiPost<LangTestRaw>('/language-tests/', payload);
+            setProfile(prev => ({
+              ...prev,
+              languageTests: prev.languageTests.map(t =>
+                t.id === test.id ? { ...t, id: created.id } : t
+              ),
+            }));
+          } catch { /* skip unknown tests */ }
+        }
+      }
+
+      // Delete removed tests
+      for (const existingLang of existingLangs) {
+        const stillPresent = validTests.some(t => t.id === existingLang.id);
+        if (!stillPresent) {
+          try { await apiDelete(`/language-tests/${existingLang.id}`); } catch { /* best-effort */ }
+        }
+      }
+
+      toast.success('Profile saved successfully!');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to save profile.';
+      toast.error(msg);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -253,21 +507,21 @@ export function UserProfilePage() {
 
     setIsUpdatingPassword(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      await apiPut('/user/password', {
+        current_password: passwordData.currentPassword,
+        password: passwordData.newPassword,
+        password_confirmation: passwordData.confirmPassword,
+      });
 
-    // In production, call Supabase auth.updateUser({ password: newPassword })
-    console.log('Updating password...');
-
-    toast.success('Password updated successfully!');
-    
-    // Reset password fields
-    setPasswordData({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    });
-    setIsUpdatingPassword(false);
+      toast.success('Password updated successfully!');
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to update password.';
+      toast.error(msg);
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   };
 
   const handleCancelPasswordChange = () => {
@@ -277,6 +531,15 @@ export function UserProfilePage() {
       confirmPassword: '',
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3 text-muted-foreground">
+        <Loader2 className="w-8 h-8 animate-spin" />
+        <p>Loading your profile...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background py-8">
@@ -437,7 +700,7 @@ export function UserProfilePage() {
                   <Label htmlFor="nationality">Nationality *</Label>
                   <Select
                     value={profile.nationality}
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, nationality: value }))}
+                    onValueChange={(value: string) => setProfile(prev => ({ ...prev, nationality: value }))}
                   >
                     <SelectTrigger id="nationality">
                       <SelectValue placeholder="Select nationality" />
@@ -454,7 +717,7 @@ export function UserProfilePage() {
                   <Label htmlFor="currentCountry">Current Country *</Label>
                   <Select
                     value={profile.currentCountry}
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, currentCountry: value }))}
+                    onValueChange={(value: string) => setProfile(prev => ({ ...prev, currentCountry: value }))}
                   >
                     <SelectTrigger id="currentCountry">
                       <SelectValue placeholder="Select country" />
@@ -485,7 +748,7 @@ export function UserProfilePage() {
                   <Label htmlFor="currentDegree">Current Degree *</Label>
                   <Select
                     value={profile.currentDegree}
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, currentDegree: value }))}
+                    onValueChange={(value: string) => setProfile(prev => ({ ...prev, currentDegree: value }))}
                   >
                     <SelectTrigger id="currentDegree">
                       <SelectValue placeholder="Select degree" />
@@ -503,7 +766,7 @@ export function UserProfilePage() {
                   <Label htmlFor="targetDegree">Target Degree *</Label>
                   <Select
                     value={profile.targetDegree}
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, targetDegree: value }))}
+                    onValueChange={(value: string) => setProfile(prev => ({ ...prev, targetDegree: value }))}
                   >
                     <SelectTrigger id="targetDegree">
                       <SelectValue placeholder="Select degree" />
@@ -522,7 +785,7 @@ export function UserProfilePage() {
                 <Label htmlFor="fieldOfStudy">Field of Study *</Label>
                 <Select
                   value={profile.fieldOfStudy}
-                  onValueChange={(value) => setProfile(prev => ({ ...prev, fieldOfStudy: value }))}
+                  onValueChange={(value: string) => setProfile(prev => ({ ...prev, fieldOfStudy: value }))}
                 >
                   <SelectTrigger id="fieldOfStudy">
                     <SelectValue placeholder="Select field of study" />
@@ -634,15 +897,15 @@ export function UserProfilePage() {
                   <Label htmlFor="budgetPreference">Budget Preference *</Label>
                   <Select
                     value={profile.budgetPreference}
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, budgetPreference: value }))}
+                    onValueChange={(value: string) => setProfile(prev => ({ ...prev, budgetPreference: value }))}
                   >
                     <SelectTrigger id="budgetPreference">
                       <SelectValue placeholder="Select budget" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="full">Full Scholarship</SelectItem>
-                      <SelectItem value="partial">Partial Scholarship</SelectItem>
-                      <SelectItem value="self-funded">Self-funded</SelectItem>
+                      <SelectItem value="full_scholarship">Full Scholarship</SelectItem>
+                      <SelectItem value="partial_scholarship">Partial Scholarship</SelectItem>
+                      <SelectItem value="self_funded">Self-funded</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -651,7 +914,7 @@ export function UserProfilePage() {
                   <Label htmlFor="preferredStartYear">Preferred Start Year *</Label>
                   <Select
                     value={profile.preferredStartYear}
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, preferredStartYear: value }))}
+                    onValueChange={(value: string) => setProfile(prev => ({ ...prev, preferredStartYear: value }))}
                   >
                     <SelectTrigger id="preferredStartYear">
                       <SelectValue placeholder="Select year" />
@@ -712,10 +975,10 @@ export function UserProfilePage() {
                   <Checkbox
                     id="cvUploaded"
                     checked={profile.documents.cvUploaded}
-                    onCheckedChange={(checked) =>
+                    onCheckedChange={(checked: boolean | 'indeterminate') =>
                       setProfile(prev => ({
                         ...prev,
-                        documents: { ...prev.documents, cvUploaded: checked as boolean }
+                        documents: { ...prev.documents, cvUploaded: checked === true }
                       }))
                     }
                   />
@@ -731,10 +994,10 @@ export function UserProfilePage() {
                   <Checkbox
                     id="motivationLetter"
                     checked={profile.documents.motivationLetter}
-                    onCheckedChange={(checked) =>
+                    onCheckedChange={(checked: boolean | 'indeterminate') =>
                       setProfile(prev => ({
                         ...prev,
-                        documents: { ...prev.documents, motivationLetter: checked as boolean }
+                        documents: { ...prev.documents, motivationLetter: checked === true }
                       }))
                     }
                   />
@@ -750,10 +1013,10 @@ export function UserProfilePage() {
                   <Checkbox
                     id="recommendationLetter"
                     checked={profile.documents.recommendationLetter}
-                    onCheckedChange={(checked) =>
+                    onCheckedChange={(checked: boolean | 'indeterminate') =>
                       setProfile(prev => ({
                         ...prev,
-                        documents: { ...prev.documents, recommendationLetter: checked as boolean }
+                        documents: { ...prev.documents, recommendationLetter: checked === true }
                       }))
                     }
                   />
@@ -769,10 +1032,10 @@ export function UserProfilePage() {
                   <Checkbox
                     id="transcript"
                     checked={profile.documents.transcript}
-                    onCheckedChange={(checked) =>
+                    onCheckedChange={(checked: boolean | 'indeterminate') =>
                       setProfile(prev => ({
                         ...prev,
-                        documents: { ...prev.documents, transcript: checked as boolean }
+                        documents: { ...prev.documents, transcript: checked === true }
                       }))
                     }
                   />
@@ -788,10 +1051,10 @@ export function UserProfilePage() {
                   <Checkbox
                     id="passportReady"
                     checked={profile.documents.passportReady}
-                    onCheckedChange={(checked) =>
+                    onCheckedChange={(checked: boolean | 'indeterminate') =>
                       setProfile(prev => ({
                         ...prev,
-                        documents: { ...prev.documents, passportReady: checked as boolean }
+                        documents: { ...prev.documents, passportReady: checked === true }
                       }))
                     }
                   />
@@ -820,7 +1083,7 @@ export function UserProfilePage() {
                   <Label htmlFor="expectedStartYear">Expected Start Year *</Label>
                   <Select
                     value={profile.expectedStartYear}
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, expectedStartYear: value }))}
+                    onValueChange={(value: string) => setProfile(prev => ({ ...prev, expectedStartYear: value }))}
                   >
                     <SelectTrigger id="expectedStartYear">
                       <SelectValue placeholder="Select year" />
@@ -838,7 +1101,7 @@ export function UserProfilePage() {
                   <Label htmlFor="applicationStatus">Application Status *</Label>
                   <Select
                     value={profile.applicationStatus}
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, applicationStatus: value }))}
+                    onValueChange={(value: string) => setProfile(prev => ({ ...prev, applicationStatus: value }))}
                   >
                     <SelectTrigger id="applicationStatus">
                       <SelectValue placeholder="Select status" />

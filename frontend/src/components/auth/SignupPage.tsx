@@ -30,8 +30,8 @@ export function SignupPage() {
       return;
     }
 
-    if (password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    if (password.length < 8) {
+      toast.error('Password must be at least 8 characters');
       return;
     }
 
@@ -154,6 +154,7 @@ export function SignupPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  minLength={8}
                   className="pl-10"
                   disabled={isLoading}
                 />
@@ -170,6 +171,7 @@ export function SignupPage() {
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  minLength={8}
                   className="pl-10"
                   disabled={isLoading}
                 />

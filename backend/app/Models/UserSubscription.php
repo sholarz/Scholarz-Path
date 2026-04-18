@@ -17,6 +17,13 @@ class UserSubscription extends Model
         'user_id',
         'plan_id',
         'status',
+        'payment_method',
+        'payment_reference',
+        'payment_proof_url',
+        'payment_note',
+        'reviewed_by',
+        'reviewed_at',
+        'admin_note',
         'started_at',
         'expires_at',
     ];
@@ -24,6 +31,7 @@ class UserSubscription extends Model
     protected $casts = [
         'started_at' => 'datetime',
         'expires_at' => 'datetime',
+        'reviewed_at' => 'datetime',
     ];
 
     /**
@@ -47,7 +55,7 @@ class UserSubscription extends Model
      */
     public function isActive(): bool
     {
-        if ($this->status !== 'active') {
+        if (!in_array($this->status, ['active', 'confirmed'], true)) {
             return false;
         }
 
