@@ -20,7 +20,6 @@ import { ForumPage } from "./components/forum/ForumPage";
 import { CreatePostPage } from "./components/forum/CreatePostPage";
 import { PostDetailPage } from "./components/forum/PostDetailPage";
 import { AdminReportsPage } from "./components/forum/AdminReportsPage";
-import { AdminPendingPostsPage } from "./components/forum/AdminPendingPostsPage";
 import { NotificationsPage } from "./components/notifications/NotificationsPage";
 import { AdminPaymentManagementPage } from "./components/payment/AdminPaymentManagementPage";
 import { AdminDashboardPage } from "./components/admin/AdminDashboardPage";
@@ -127,14 +126,6 @@ export const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <AdminReportsPage />
-          </AdminRoute>
-        )
-      },
-      {
-        path: "forum/pending",
-        element: (
-          <AdminRoute>
-            <AdminPendingPostsPage />
           </AdminRoute>
         )
       },

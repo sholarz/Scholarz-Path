@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   Users, 
-  FileText, 
   MessageSquare, 
   CreditCard, 
   AlertTriangle,
-  TrendingUp,
-  Calendar,
   Award,
   Activity,
   ArrowLeft
@@ -23,44 +20,6 @@ interface DashboardStat {
   icon: any;
   color: string;
 }
-
-interface QuickAction {
-  title: string;
-  description: string;
-  icon: any;
-  href: string;
-  badge?: number;
-}
-
-const QUICK_ACTIONS: QuickAction[] = [
-  {
-    title: 'Payment Verification',
-    description: 'Review pending payment submissions',
-    icon: CreditCard,
-    href: '/admin/payments',
-    badge: 12,
-  },
-  {
-    title: 'User Reports',
-    description: 'Moderate reported content',
-    icon: AlertTriangle,
-    href: '/forum/reports',
-    badge: 8,
-  },
-  {
-    title: 'Pending Posts',
-    description: 'Review posts awaiting approval',
-    icon: FileText,
-    href: '/forum/pending',
-    badge: 5,
-  },
-  {
-    title: 'Subscription Monitor',
-    description: 'View subscription analytics',
-    icon: Activity,
-    href: '/subscription-snapshot-demo',
-  },
-];
 
 export function AdminDashboard() {
   const { user } = useAuth();
@@ -126,12 +85,6 @@ export function AdminDashboard() {
       icon: AlertTriangle,
       href: '/forum/reports',
       badge: stats?.reports.open ?? undefined,
-    },
-    {
-      title: 'Pending Posts',
-      description: 'Review posts awaiting approval',
-      icon: FileText,
-      href: '/forum/pending',
     },
     {
       title: 'Subscription Monitor',

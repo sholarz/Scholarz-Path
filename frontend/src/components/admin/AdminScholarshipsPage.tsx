@@ -153,6 +153,7 @@ export function AdminScholarshipsPage() {
   const [items, setItems] = useState<AdminScholarship[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -164,11 +165,15 @@ export function AdminScholarshipsPage() {
 
   const load = async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const data = await getAdminScholarships(200);
       setItems(data.data);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to load scholarships');
+      const message = err instanceof Error ? err.message : 'Failed to load scholarships';
+      setLoadError(message);
+      setItems([]);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -403,6 +408,11 @@ export function AdminScholarshipsPage() {
             <CardTitle>Scholarships ({filtered.length})</CardTitle>
           </CardHeader>
           <CardContent>
+            {loadError && (
+              <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                Failed to load data: {loadError}
+              </div>
+            )}
             <Table>
               <TableHeader>
                 <TableRow>
