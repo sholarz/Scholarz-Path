@@ -36,20 +36,20 @@ export function AdminPaymentPage() {
             className="mb-4 gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
+            Kembali ke Dasbor
           </Button>
 
           <div className="flex items-center gap-3 mb-2">
             <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 rounded-lg">
               <Shield className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-3xl font-bold">Payment Verification</h1>
+            <h1 className="text-3xl font-bold">Verifikasi Pembayaran</h1>
             <Badge className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
-              Admin Only
+              Khusus Admin
             </Badge>
           </div>
           <p className="text-muted-foreground">
-            Review and verify premium subscription payment submissions
+            Tinjau dan verifikasi pengajuan pembayaran langganan premium
           </p>
         </div>
 

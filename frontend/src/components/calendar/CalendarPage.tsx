@@ -34,8 +34,8 @@ export function CalendarPage() {
   };
 
   const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
   ];
 
   return (
@@ -44,9 +44,9 @@ export function CalendarPage() {
       
       <main className="container max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="mb-2">Scholarship Calendar</h1>
+          <h1 className="mb-2">Kalender Beasiswa</h1>
           <p className="text-muted-foreground">
-            Track all scholarship deadlines and never miss an opportunity
+            Pantau seluruh tenggat beasiswa agar tidak melewatkan peluang
           </p>
         </div>
 
@@ -64,7 +64,7 @@ export function CalendarPage() {
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>
-                      Today
+                      Hari Ini
                     </Button>
                     <Button variant="outline" size="icon" onClick={goToNextMonth}>
                       <ChevronRight className="w-4 h-4" />
@@ -77,7 +77,7 @@ export function CalendarPage() {
                   <div className="text-center py-12">
                     <CalendarIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">
-                      No scholarship deadlines in {monthNames[currentMonth]} {currentYear}
+                      Tidak ada tenggat beasiswa pada {monthNames[currentMonth]} {currentYear}
                     </p>
                   </div>
                 ) : (
@@ -120,12 +120,12 @@ export function CalendarPage() {
           <div>
             <Card>
               <CardHeader>
-                <CardTitle>All Upcoming Deadlines</CardTitle>
+                <CardTitle>Semua Tenggat Mendatang</CardTitle>
               </CardHeader>
               <CardContent>
                 {upcomingDeadlines.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">
-                    No upcoming deadlines
+                    Tidak ada tenggat mendatang
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -143,7 +143,7 @@ export function CalendarPage() {
                             <div className="flex items-center gap-2 mb-1">
                               <CalendarIcon className={`w-4 h-4 ${isUrgent ? 'text-red-600' : 'text-muted-foreground'}`} />
                               <span className={`text-sm font-medium ${isUrgent ? 'text-red-600' : ''}`}>
-                                {scholarship.deadline.toLocaleDateString('en-US', { 
+                                {scholarship.deadline.toLocaleDateString('id-ID', {
                                   month: 'short', 
                                   day: 'numeric',
                                   year: 'numeric'
@@ -154,7 +154,7 @@ export function CalendarPage() {
                               {scholarship.title}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {daysUntil > 0 ? `${daysUntil} days remaining` : 'Deadline passed'}
+                              {daysUntil > 0 ? `${daysUntil} hari lagi` : 'Batas akhir telah lewat'}
                             </p>
                           </div>
                         </Link>

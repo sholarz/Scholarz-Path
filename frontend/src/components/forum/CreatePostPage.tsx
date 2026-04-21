@@ -16,8 +16,8 @@ import { toast } from 'sonner';
 import { Header } from '../Header';
 
 const SUGGESTED_TAGS = [
-  'LPDP', 'Masters Scholarship', 'PhD Scholarship', 'IELTS', 'TOEFL',
-  'Motivation Letter', 'CV', 'Interview', 'Tips', 'Experience',
+  'LPDP', 'Beasiswa S2', 'Beasiswa S3', 'IELTS', 'TOEFL',
+  'Motivation Letter', 'CV', 'Wawancara', 'Tips', 'Pengalaman',
 ];
 
 export function CreatePostPage() {
@@ -69,7 +69,7 @@ export function CreatePostPage() {
 
   const handleSubmit = async () => {
     if (!title.trim() || !content.trim() || !categoryId) {
-      toast.error('Please fill in all required fields');
+      toast.error('Mohon isi semua kolom wajib');
       return;
     }
 
@@ -83,7 +83,7 @@ export function CreatePostPage() {
         tags,
       });
 
-      toast.success('Post published successfully!');
+      toast.success('Postingan berhasil dipublikasikan!');
       navigate('/forum');
     } catch (error) {
       if (error instanceof ApiError) {
@@ -110,47 +110,47 @@ export function CreatePostPage() {
       <div className="min-h-screen bg-background py-8">
         <div className="container mx-auto px-6 max-w-4xl">
           <div className="mb-8 ml-2">
-            <h1 className="text-2xl font-bold mb-1">Create New Post</h1>
+            <h1 className="text-2xl font-bold mb-1">Buat Postingan Baru</h1>
             <p className="text-muted-foreground text-sm">
-              Share your experiences, tips, or questions with the community
+              Bagikan pengalaman, tips, atau pertanyaanmu ke komunitas
             </p>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>Post Information</CardTitle>
+              <CardTitle>Informasi Postingan</CardTitle>
               <CardDescription>
-                Your post will be published immediately
+                Postingan kamu akan langsung dipublikasikan
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Title */}
               <div className="space-y-2">
-                <Label htmlFor="title">Title *</Label>
+                <Label htmlFor="title">Judul *</Label>
                 <Input
                   id="title"
-                  placeholder="Write an engaging and descriptive title"
+                  placeholder="Tulis judul yang menarik dan jelas"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   maxLength={150}
                 />
                 <p className="text-xs text-muted-foreground text-right">
-                  {title.length}/150 characters
+                  {title.length}/150 karakter
                 </p>
               </div>
 
               {/* Category */}
               <div className="space-y-2">
-                <Label htmlFor="category">Category *</Label>
+                <Label htmlFor="category">Kategori *</Label>
                 <Select value={categoryId} onValueChange={setCategoryId}>
                   <SelectTrigger id="category" disabled={isLoadingCategories || categories.length === 0}>
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder="Pilih kategori" />
                   </SelectTrigger>
                   <SelectContent>
                     {isLoadingCategories ? (
-                      <SelectItem value="loading" disabled>Loading categories...</SelectItem>
+                      <SelectItem value="loading" disabled>Memuat kategori...</SelectItem>
                     ) : categories.length === 0 ? (
-                      <SelectItem value="empty" disabled>No categories available</SelectItem>
+                      <SelectItem value="empty" disabled>Tidak ada kategori tersedia</SelectItem>
                     ) : (
                       categories.map((category) => (
                         <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
@@ -165,23 +165,23 @@ export function CreatePostPage() {
 
               {/* Content */}
               <div className="space-y-2">
-                <Label htmlFor="content">Content *</Label>
+                <Label htmlFor="content">Isi Postingan *</Label>
                 <Textarea
                   id="content"
-                  placeholder="Write your post content in detail..."
+                  placeholder="Tulis isi postingan secara detail..."
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   rows={12}
                   maxLength={5000}
                 />
                 <p className="text-xs text-muted-foreground text-right">
-                  {content.length}/5000 characters
+                  {content.length}/5000 karakter
                 </p>
               </div>
 
               {/* Tags */}
               <div className="space-y-2">
-                <Label>Tags (Maximum 5)</Label>
+                <Label>Tag (Maksimal 5)</Label>
                 
                 {/* Selected Tags */}
                 {tags.length > 0 && (
@@ -200,7 +200,7 @@ export function CreatePostPage() {
 
                 {/* Suggested Tags */}
                 <div>
-                  <p className="text-sm text-muted-foreground mb-2">Suggested tags:</p>
+                  <p className="text-sm text-muted-foreground mb-2">Tag yang disarankan:</p>
                   <div className="flex flex-wrap gap-2 mb-3">
                     {SUGGESTED_TAGS.filter(tag => !tags.includes(tag)).map(tag => (
                       <Badge
@@ -218,7 +218,7 @@ export function CreatePostPage() {
                 {/* Custom Tag */}
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Add custom tag"
+                    placeholder="Tambah tag kustom"
                     value={customTag}
                     onChange={(e) => setCustomTag(e.target.value)}
                     onKeyPress={(e) => {
@@ -234,11 +234,11 @@ export function CreatePostPage() {
                     onClick={addCustomTag}
                     disabled={tags.length >= 5 || !customTag.trim()}
                   >
-                    Add
+                    Tambah
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Tags help others find your post
+                  Tag membantu pengguna lain menemukan postinganmu
                 </p>
               </div>
 
@@ -250,7 +250,7 @@ export function CreatePostPage() {
                   className="flex-1 sm:flex-none sm:px-8 gap-2"
                 >
                   <Send className="h-4 w-4" />
-                  {isSubmitting ? 'Publishing...' : 'Publish'}
+                  {isSubmitting ? 'Mempublikasikan...' : 'Publikasikan'}
                 </Button>
                 <Button
                   variant="outline"
@@ -258,7 +258,7 @@ export function CreatePostPage() {
                   disabled={isSubmitting}
                   className="flex-1 sm:flex-none sm:px-8"
                 >
-                  Cancel
+                  Batal
                 </Button>
               </div>
             </CardContent>

@@ -21,27 +21,27 @@ export function SignupPage() {
     e.preventDefault();
     
     if (!name || !email || !password || !confirmPassword) {
-      toast.error('Please fill in all fields');
+      toast.error('Mohon isi semua kolom');
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error('Konfirmasi kata sandi tidak cocok');
       return;
     }
 
     if (password.length < 8) {
-      toast.error('Password must be at least 8 characters');
+      toast.error('Kata sandi minimal 8 karakter');
       return;
     }
 
     setIsLoading(true);
     try {
       await signup(email, password, name);
-      toast.success('Account created successfully!');
+      toast.success('Akun berhasil dibuat!');
       navigate('/dashboard');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to create account';
+      const message = error instanceof Error ? error.message : 'Gagal membuat akun';
       toast.error(message);
     } finally {
       setIsLoading(false);
@@ -52,9 +52,9 @@ export function SignupPage() {
     setIsLoading(true);
     try {
       await loginWithGoogle();
-      toast.success('Redirecting to Google...');
+      toast.success('Mengarahkan ke Google...');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to sign up with Google';
+      const message = error instanceof Error ? error.message : 'Gagal daftar dengan Google';
       toast.error(message);
     } finally {
       setIsLoading(false);
@@ -70,8 +70,8 @@ export function SignupPage() {
               <GraduationCap className="w-8 h-8 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle>Create Your Account</CardTitle>
-          <CardDescription>Start your scholarship journey today</CardDescription>
+          <CardTitle>Buat Akun Kamu</CardTitle>
+          <CardDescription>Mulai perjalanan beasiswa di Indonesia hari ini</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button
@@ -99,7 +99,7 @@ export function SignupPage() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Continue with Google
+            Lanjutkan dengan Google
           </Button>
 
           <div className="relative">
@@ -107,19 +107,19 @@ export function SignupPage() {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
+              <span className="bg-card px-2 text-muted-foreground">Atau lanjutkan dengan email</span>
             </div>
           </div>
 
           <form onSubmit={handleSignup} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">Nama Lengkap</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="name"
                   type="text"
-                  placeholder="John Doe"
+                  placeholder="Nama kamu"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="pl-10"
@@ -145,7 +145,7 @@ export function SignupPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Kata Sandi</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -162,7 +162,7 @@ export function SignupPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">Konfirmasi Kata Sandi</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -179,14 +179,14 @@ export function SignupPage() {
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Creating account...' : 'Create Account'}
+              {isLoading ? 'Membuat akun...' : 'Buat Akun'}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
+            Sudah punya akun?{' '}
             <Link to="/login" className="text-primary hover:underline">
-              Sign in
+              Masuk
             </Link>
           </p>
         </CardContent>

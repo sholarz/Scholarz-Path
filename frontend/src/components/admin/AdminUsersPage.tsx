@@ -58,7 +58,7 @@ export function AdminUsersPage() {
       const payload = await getAdminUsers();
       setUsers(payload.data.map(toDisplayUser));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load users');
+      setError(err instanceof Error ? err.message : 'Gagal memuat data pengguna');
     } finally {
       setIsLoading(false);
     }
@@ -83,9 +83,9 @@ export function AdminUsersPage() {
       setIsUpdating(userId);
       await updateAdminUserRole(userId, role);
       await loadUsers();
-      toast.success('User role updated');
+      toast.success('Peran pengguna berhasil diperbarui');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update role');
+      toast.error(err instanceof Error ? err.message : 'Gagal memperbarui peran');
     } finally {
       setIsUpdating(null);
     }
@@ -96,9 +96,9 @@ export function AdminUsersPage() {
       setIsUpdating(userId);
       await updateAdminUserStatus(userId, status);
       await loadUsers();
-      toast.success('User status updated');
+      toast.success('Status pengguna berhasil diperbarui');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update status');
+      toast.error(err instanceof Error ? err.message : 'Gagal memperbarui status');
     } finally {
       setIsUpdating(null);
     }
@@ -119,10 +119,17 @@ export function AdminUsersPage() {
       guest: null,
     };
 
+    const labels = {
+      admin: 'Admin',
+      premium: 'Premium',
+      free: 'Gratis',
+      guest: 'Tamu',
+    };
+
     return (
       <Badge variant="outline" className={`${styles[role]} flex items-center`}>
         {icons[role]}
-        {role.charAt(0).toUpperCase() + role.slice(1)}
+        {labels[role]}
       </Badge>
     );
   };
@@ -139,8 +146,8 @@ export function AdminUsersPage() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-[#2f4156] mb-2">Users Management</h1>
-          <p className="text-gray-600">Manage and monitor all platform users</p>
+          <h1 className="text-3xl font-bold text-[#2f4156] mb-2">Manajemen Pengguna</h1>
+          <p className="text-gray-600">Kelola dan pantau seluruh pengguna platform</p>
         </div>
 
         {error && (
@@ -153,14 +160,14 @@ export function AdminUsersPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="rounded-2xl border border-gray-200">
             <CardContent className="pt-6">
-              <div className="text-sm text-gray-600 mb-1">Total Users</div>
+              <div className="text-sm text-gray-600 mb-1">Total Pengguna</div>
               <div className="text-3xl font-bold text-[#2f4156]">{stats.total}</div>
             </CardContent>
           </Card>
           
           <Card className="rounded-2xl border border-gray-200">
             <CardContent className="pt-6">
-              <div className="text-sm text-gray-600 mb-1">Admins</div>
+              <div className="text-sm text-gray-600 mb-1">Admin</div>
               <div className="text-3xl font-bold text-purple-600">{stats.admin}</div>
             </CardContent>
           </Card>
@@ -174,7 +181,7 @@ export function AdminUsersPage() {
           
           <Card className="rounded-2xl border border-gray-200">
             <CardContent className="pt-6">
-              <div className="text-sm text-gray-600 mb-1">Free</div>
+              <div className="text-sm text-gray-600 mb-1">Gratis</div>
               <div className="text-3xl font-bold text-gray-600">{stats.free}</div>
             </CardContent>
           </Card>
@@ -187,7 +194,7 @@ export function AdminUsersPage() {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search by name or email..."
+                  placeholder="Cari berdasarkan nama atau email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9"
@@ -200,7 +207,7 @@ export function AdminUsersPage() {
                   onClick={() => setRoleFilter('all')}
                   size="sm"
                 >
-                  All
+                  Semua
                 </Button>
                 <Button
                   variant={roleFilter === 'admin' ? 'default' : 'outline'}
@@ -221,14 +228,14 @@ export function AdminUsersPage() {
                   onClick={() => setRoleFilter('free')}
                   size="sm"
                 >
-                  Free
+                  Gratis
                 </Button>
                 <Button
                   variant={roleFilter === 'guest' ? 'default' : 'outline'}
                   onClick={() => setRoleFilter('guest')}
                   size="sm"
                 >
-                  Guest
+                  Tamu
                 </Button>
               </div>
             </div>
@@ -242,19 +249,19 @@ export function AdminUsersPage() {
               <thead className="bg-[#f5efeb] border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-[#2f4156] uppercase tracking-wider">
-                    User
+                    Pengguna
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-[#2f4156] uppercase tracking-wider">
-                    Role
+                    Peran
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-[#2f4156] uppercase tracking-wider">
-                    Joined
+                    Bergabung
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-[#2f4156] uppercase tracking-wider">
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-[#2f4156] uppercase tracking-wider">
-                    Actions
+                    Aksi
                   </th>
                 </tr>
               </thead>
@@ -262,14 +269,14 @@ export function AdminUsersPage() {
                 {isLoading && (
                   <tr>
                     <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
-                      Loading users...
+                      Memuat data pengguna...
                     </td>
                   </tr>
                 )}
                 {!isLoading && filteredUsers.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
-                      No users found.
+                      Tidak ada pengguna ditemukan.
                     </td>
                   </tr>
                 )}
@@ -292,7 +299,7 @@ export function AdminUsersPage() {
                       {getRoleBadge(user.role)}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {new Date(user.joinedAt).toLocaleDateString('en-US', {
+                      {new Date(user.joinedAt).toLocaleDateString('id-ID', {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',
@@ -320,13 +327,13 @@ export function AdminUsersPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => updateRole(user.id, 'free')}>Set role: Free</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateRole(user.id, 'premium')}>Set role: Premium</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateRole(user.id, 'admin')}>Set role: Admin</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateStatus(user.id, 'active')}>Set status: Active</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateStatus(user.id, 'inactive')}>Set status: Inactive</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateRole(user.id, 'free')}>Atur peran: Gratis</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateRole(user.id, 'premium')}>Atur peran: Premium</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateRole(user.id, 'admin')}>Atur peran: Admin</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateStatus(user.id, 'active')}>Atur status: Aktif</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateStatus(user.id, 'inactive')}>Atur status: Tidak Aktif</DropdownMenuItem>
                           <DropdownMenuItem className="text-red-600" onClick={() => updateStatus(user.id, 'banned')}>
-                            Set status: Banned
+                            Atur status: Diblokir
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

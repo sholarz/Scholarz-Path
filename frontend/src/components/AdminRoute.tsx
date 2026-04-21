@@ -36,13 +36,13 @@ export function AdminRoute({ children }: AdminRouteProps) {
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <AlertTriangle className="h-8 w-8 text-red-600" />
           </div>
-          <h1 className="text-2xl font-bold text-[#2f4156] mb-3">Access Denied</h1>
+          <h1 className="text-2xl font-bold text-[#2f4156] mb-3">Akses Ditolak</h1>
           <p className="text-gray-600 mb-6">
-            This page is only accessible to administrators. Please contact support if you believe this is an error.
+            Halaman ini hanya bisa diakses oleh administrator. Silakan hubungi tim dukungan jika ini adalah kesalahan.
           </p>
           <Link to="/dashboard">
             <Button className="bg-[#2f4156] hover:bg-[#567c8d]">
-              Back to Dashboard
+              Kembali ke Dasbor
             </Button>
           </Link>
         </div>

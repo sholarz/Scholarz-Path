@@ -169,21 +169,21 @@ export function PaymentQueue() {
         return (
           <Badge variant="outline" className="border-yellow-300 bg-yellow-50 text-yellow-700">
             <Clock className="w-3 h-3 mr-1" />
-            Pending
+            Menunggu
           </Badge>
         );
       case 'approved':
         return (
           <Badge variant="outline" className="border-green-300 bg-green-50 text-green-700">
             <CheckCircle className="w-3 h-3 mr-1" />
-            Approved
+            Disetujui
           </Badge>
         );
       case 'rejected':
         return (
           <Badge variant="outline" className="border-red-300 bg-red-50 text-red-700">
             <XCircle className="w-3 h-3 mr-1" />
-            Rejected
+            Ditolak
           </Badge>
         );
     }
@@ -201,7 +201,7 @@ export function PaymentQueue() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Submissions</p>
+                <p className="text-sm text-muted-foreground">Total Pengajuan</p>
                 <p className="text-2xl font-bold">{payments.length}</p>
               </div>
               <div className="bg-blue-100 p-3 rounded-lg">
@@ -215,7 +215,7 @@ export function PaymentQueue() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Pending</p>
+                <p className="text-sm text-muted-foreground">Menunggu</p>
                 <p className="text-2xl font-bold">{pendingCount}</p>
               </div>
               <div className="bg-yellow-100 p-3 rounded-lg">
@@ -229,7 +229,7 @@ export function PaymentQueue() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Approved</p>
+                <p className="text-sm text-muted-foreground">Disetujui</p>
                 <p className="text-2xl font-bold">{approvedCount}</p>
               </div>
               <div className="bg-green-100 p-3 rounded-lg">
@@ -243,7 +243,7 @@ export function PaymentQueue() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Rejected</p>
+                <p className="text-sm text-muted-foreground">Ditolak</p>
                 <p className="text-2xl font-bold">{rejectedCount}</p>
               </div>
               <div className="bg-red-100 p-3 rounded-lg">
@@ -261,7 +261,7 @@ export function PaymentQueue() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name or reference number..."
+                placeholder="Cari berdasarkan nama atau nomor referensi..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -274,20 +274,20 @@ export function PaymentQueue() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="pending">Menunggu</SelectItem>
+                <SelectItem value="approved">Disetujui</SelectItem>
+                <SelectItem value="rejected">Ditolak</SelectItem>
               </SelectContent>
             </Select>
 
             <Select value={methodFilter} onValueChange={setMethodFilter}>
               <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder="Payment Method" />
+                <SelectValue placeholder="Metode Pembayaran" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Methods</SelectItem>
-                <SelectItem value="bank">Bank Transfer</SelectItem>
+                <SelectItem value="all">Semua Metode</SelectItem>
+                <SelectItem value="bank">Transfer Bank</SelectItem>
                 <SelectItem value="wallet">E-Wallet</SelectItem>
                 <SelectItem value="qris">QRIS</SelectItem>
               </SelectContent>
@@ -295,7 +295,7 @@ export function PaymentQueue() {
 
             <Button variant="outline" className="gap-2">
               <Calendar className="w-4 h-4" />
-              Date Range
+              Rentang Tanggal
               <ChevronDown className="w-4 h-4" />
             </Button>
           </div>
@@ -309,7 +309,7 @@ export function PaymentQueue() {
             <div className="flex items-center justify-center py-16">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">Loading payments...</p>
+                <p className="text-muted-foreground">Memuat pembayaran...</p>
               </div>
             </div>
           ) : filteredPayments.length === 0 ? (
@@ -317,11 +317,11 @@ export function PaymentQueue() {
               <div className="bg-muted/50 p-4 rounded-full mb-4">
                 <AlertCircle className="w-8 h-8 text-muted-foreground" />
               </div>
-              <h3 className="font-medium mb-2">No payments found</h3>
+              <h3 className="font-medium mb-2">Tidak ada pembayaran ditemukan</h3>
               <p className="text-sm text-muted-foreground text-center max-w-sm">
                 {searchQuery || statusFilter !== 'all' || methodFilter !== 'all'
-                  ? 'No payments match your filters. Try adjusting your search criteria.'
-                  : 'No payment submissions yet. Payments will appear here when users submit them.'}
+                  ? 'Tidak ada pembayaran yang sesuai filter. Coba ubah kriteria pencarian.'
+                  : 'Belum ada pengajuan pembayaran. Data akan muncul saat pengguna mengirim pembayaran.'}
               </p>
             </div>
           ) : (
@@ -329,14 +329,14 @@ export function PaymentQueue() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>User</TableHead>
+                    <TableHead>Pengguna</TableHead>
                     <TableHead>Plan</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead>Submitted At</TableHead>
-                    <TableHead>Reference</TableHead>
+                    <TableHead>Nominal</TableHead>
+                    <TableHead>Metode</TableHead>
+                    <TableHead>Waktu Kirim</TableHead>
+                    <TableHead>Referensi</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

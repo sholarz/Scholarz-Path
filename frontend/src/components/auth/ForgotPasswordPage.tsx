@@ -18,7 +18,7 @@ export function ForgotPasswordPage() {
     e.preventDefault();
     
     if (!email) {
-      toast.error('Please enter your email');
+      toast.error('Mohon masukkan email kamu');
       return;
     }
 
@@ -26,9 +26,9 @@ export function ForgotPasswordPage() {
     try {
       await resetPassword(email);
       setEmailSent(true);
-      toast.success('Password reset link sent!');
+      toast.success('Link reset kata sandi berhasil dikirim!');
     } catch (error) {
-      toast.error('Failed to send reset link');
+      toast.error('Gagal mengirim link reset');
     } finally {
       setIsLoading(false);
     }
@@ -43,11 +43,11 @@ export function ForgotPasswordPage() {
               <GraduationCap className="w-8 h-8 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle>Reset Your Password</CardTitle>
+          <CardTitle>Reset Kata Sandi</CardTitle>
           <CardDescription>
             {emailSent 
-              ? "We've sent you a password reset link" 
-              : "Enter your email to receive a password reset link"
+              ? 'Kami sudah mengirim link reset kata sandi' 
+              : 'Masukkan email untuk menerima link reset kata sandi'
             }
           </CardDescription>
         </CardHeader>
@@ -60,13 +60,13 @@ export function ForgotPasswordPage() {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                If an account exists for <strong>{email}</strong>, you will receive a password reset link shortly.
+                Jika akun dengan email <strong>{email}</strong> tersedia, kamu akan menerima link reset dalam beberapa saat.
               </p>
               <p className="text-sm text-muted-foreground">
-                Please check your email and follow the instructions to reset your password.
+                Periksa email kamu dan ikuti instruksinya untuk reset kata sandi.
               </p>
               <Link to="/login">
-                <Button className="w-full">Return to Login</Button>
+                <Button className="w-full">Kembali ke Halaman Masuk</Button>
               </Link>
             </div>
           ) : (
@@ -89,14 +89,14 @@ export function ForgotPasswordPage() {
                 </div>
 
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? 'Sending...' : 'Send Reset Link'}
+                  {isLoading ? 'Mengirim...' : 'Kirim Link Reset'}
                 </Button>
               </form>
 
               <Link to="/login">
                 <Button variant="ghost" className="w-full gap-2">
                   <ArrowLeft className="w-4 h-4" />
-                  Back to Login
+                  Kembali ke Halaman Masuk
                 </Button>
               </Link>
             </>

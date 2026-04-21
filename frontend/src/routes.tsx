@@ -6,6 +6,7 @@ import { LandingPage } from "./components/LandingPage";
 import { LoginPage } from "./components/auth/LoginPage";
 import { SignupPage } from "./components/auth/SignupPage";
 import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
+import { GoogleCallbackPage } from "./components/auth/GoogleCallbackPage";
 import { DashboardPage } from "./components/dashboard/DashboardPage";
 import { ScholarshipsPage } from "./components/scholarships/ScholarshipsPage";
 import { ScholarshipDetailPage } from "./components/scholarships/ScholarshipDetailPage";
@@ -22,7 +23,6 @@ import { AdminReportsPage } from "./components/forum/AdminReportsPage";
 import { NotificationsPage } from "./components/notifications/NotificationsPage";
 import { AdminPaymentManagementPage } from "./components/payment/AdminPaymentManagementPage";
 import { AdminPaymentPage } from "./components/admin/AdminPaymentPage";
-import { AdminPaymentVerificationDemo } from "./components/admin/AdminPaymentVerificationDemo";
 import { AdminDashboardPage } from "./components/admin/AdminDashboardPage";
 import { AdminUsersPage } from "./components/admin/AdminUsersPage";
 import { AdminSettingsPage } from "./components/admin/AdminSettingsPage";
@@ -39,6 +39,7 @@ export const router = createBrowserRouter([
       { path: "login", Component: LoginPage },
       { path: "signup", Component: SignupPage },
       { path: "forgot-password", Component: ForgotPasswordPage },
+      { path: "auth/google/callback", Component: GoogleCallbackPage },
       {
         path: "dashboard",
         element: (
@@ -153,7 +154,6 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         )
       },
-      { path: "admin/payment-verification-demo", Component: AdminPaymentVerificationDemo },
       {
         path: "admin/dashboard",
         element: (

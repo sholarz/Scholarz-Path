@@ -249,7 +249,7 @@ export function PostDetailPage() {
                     {isAuthor && (
                       <DropdownMenuItem>
                         <Edit className="h-4 w-4 mr-2" />
-                        Edit
+                        Ubah
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem onClick={handleDelete} className="text-destructive">
@@ -350,7 +350,7 @@ export function PostDetailPage() {
             ) : (
               <div className="text-center py-8 bg-muted rounded-lg">
                 <p className="text-muted-foreground mb-4">Silakan login untuk menambahkan komentar</p>
-                <Button onClick={() => navigate('/login')}>Login</Button>
+                <Button onClick={() => navigate('/login')}>Masuk</Button>
               </div>
             )}
 

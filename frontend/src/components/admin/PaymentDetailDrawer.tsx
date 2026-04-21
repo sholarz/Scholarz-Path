@@ -46,14 +46,14 @@ export function PaymentDetailDrawer({
   };
 
   const getPlanLabel = (plan: Payment['plan']) => {
-    return plan === 'premium-monthly' ? 'Premium Monthly' : 'Premium Yearly';
+    return plan === 'premium-monthly' ? 'Premium Bulanan' : 'Premium Tahunan';
   };
 
   const getMethodLabel = (method: Payment['paymentMethod']) => {
     const labels = {
-      'bank-transfer': 'Bank Transfer',
+      'bank-transfer': 'Transfer Bank',
       'e-wallet': 'E-Wallet',
-      'retail': 'Retail',
+      'retail': 'Gerai Ritel',
     };
     return labels[method];
   };
@@ -65,9 +65,9 @@ export function PaymentDetailDrawer({
       rejected: 'bg-red-100 text-red-800 border-red-200',
     };
     const labels = {
-      pending: 'Pending Review',
-      approved: 'Approved',
-      rejected: 'Rejected',
+      pending: 'Menunggu Tinjauan',
+      approved: 'Disetujui',
+      rejected: 'Ditolak',
     };
     return (
       <Badge variant="outline" className={styles[status]}>
@@ -82,7 +82,7 @@ export function PaymentDetailDrawer({
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    toast.success('Payment approved successfully!');
+    toast.success('Pembayaran berhasil disetujui!');
     
     if (onApprove) {
       onApprove(payment.id, adminNote);
@@ -95,7 +95,7 @@ export function PaymentDetailDrawer({
 
   const handleReject = async () => {
     if (!adminNote.trim()) {
-      toast.error('Please provide a reason for rejection');
+      toast.error('Mohon isi alasan penolakan');
       return;
     }
 
@@ -104,7 +104,7 @@ export function PaymentDetailDrawer({
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    toast.success('Payment rejected');
+    toast.success('Pembayaran ditolak');
     
     if (onReject) {
       onReject(payment.id, adminNote);
@@ -118,7 +118,7 @@ export function PaymentDetailDrawer({
   const handleDownloadProof = () => {
     // In production, download the actual proof file
     window.open(payment.proofUrl, '_blank');
-    toast.success('Downloading payment proof...');
+    toast.success('Mengunduh bukti pembayaran...');
   };
 
   return (
@@ -140,8 +140,8 @@ export function PaymentDetailDrawer({
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
           <div>
-            <h2 className="text-xl font-bold text-[#2f4156]">Payment Details</h2>
-            <p className="text-sm text-gray-500 mt-1">Transaction ID: {payment.id}</p>
+            <h2 className="text-xl font-bold text-[#2f4156]">Detail Pembayaran</h2>
+            <p className="text-sm text-gray-500 mt-1">ID Transaksi: {payment.id}</p>
           </div>
           <button
             onClick={onClose}
@@ -155,14 +155,14 @@ export function PaymentDetailDrawer({
         <div className="p-6 space-y-6">
           {/* Status */}
           <div className="flex items-center justify-between p-4 bg-[#f5efeb] rounded-lg">
-            <span className="text-sm font-medium text-[#2f4156]">Payment Status</span>
+            <span className="text-sm font-medium text-[#2f4156]">Status Pembayaran</span>
             {getStatusBadge(payment.status)}
           </div>
 
           {/* User Summary */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-[#2f4156] uppercase tracking-wide">
-              User Information
+              Informasi Pengguna
             </h3>
             <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-3">
@@ -178,7 +178,7 @@ export function PaymentDetailDrawer({
               </div>
               <div className="pt-3 border-t border-gray-100 grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <span className="text-gray-500">User ID:</span>
+                  <span className="text-gray-500">ID Pengguna:</span>
                   <div className="font-mono text-[#2f4156] mt-1">{payment.userId}</div>
                 </div>
                 <div>
@@ -193,7 +193,7 @@ export function PaymentDetailDrawer({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-[#2f4156] uppercase tracking-wide">
-                Payment Proof
+                Bukti Pembayaran
               </h3>
               <Button
                 variant="outline"
@@ -202,13 +202,13 @@ export function PaymentDetailDrawer({
                 className="text-[#567c8d] border-[#567c8d] hover:bg-[#567c8d] hover:text-white"
               >
                 <Download className="h-4 w-4 mr-2" />
-                Download
+                Unduh
               </Button>
             </div>
             <div className="border border-gray-200 rounded-lg overflow-hidden">
               <img
                 src={payment.proofUrl}
-                alt="Payment Proof"
+                alt="Bukti Pembayaran"
                 className="w-full h-auto object-cover"
               />
             </div>
@@ -217,13 +217,13 @@ export function PaymentDetailDrawer({
           {/* Payment Details */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-[#2f4156] uppercase tracking-wide">
-              Payment Details
+              Rincian Pembayaran
             </h3>
             <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
               <div className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-gray-600">
                   <CreditCard className="h-4 w-4" />
-                  <span className="text-sm">Amount</span>
+                  <span className="text-sm">Nominal</span>
                 </div>
                 <span className="font-semibold text-[#2f4156]">
                   {formatAmount(payment.amount)}
@@ -232,7 +232,7 @@ export function PaymentDetailDrawer({
               <div className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-gray-600">
                   <FileText className="h-4 w-4" />
-                  <span className="text-sm">Payment Method</span>
+                  <span className="text-sm">Metode Pembayaran</span>
                 </div>
                 <span className="font-medium text-[#2f4156]">
                   {getMethodLabel(payment.paymentMethod)}
@@ -241,7 +241,7 @@ export function PaymentDetailDrawer({
               <div className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-gray-600">
                   <Hash className="h-4 w-4" />
-                  <span className="text-sm">Reference Number</span>
+                  <span className="text-sm">Nomor Referensi</span>
                 </div>
                 <span className="font-mono text-sm text-[#2f4156]">
                   {payment.referenceNumber}
@@ -250,7 +250,7 @@ export function PaymentDetailDrawer({
               <div className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-gray-600">
                   <Calendar className="h-4 w-4" />
-                  <span className="text-sm">Submitted Date</span>
+                  <span className="text-sm">Tanggal Pengajuan</span>
                 </div>
                 <span className="text-sm text-[#2f4156]">
                   {formatDate(payment.submittedAt)}
@@ -263,7 +263,7 @@ export function PaymentDetailDrawer({
           {payment.userNote && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-[#2f4156] uppercase tracking-wide">
-                User Note
+                Catatan Pengguna
               </h3>
               <div className="bg-[#f5efeb] border border-gray-200 rounded-lg p-4">
                 <p className="text-sm text-gray-700">{payment.userNote}</p>
@@ -275,10 +275,10 @@ export function PaymentDetailDrawer({
           {payment.status === 'pending' && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-[#2f4156] uppercase tracking-wide">
-                Admin Note {payment.status === 'pending' && '(Optional)'}
+                Catatan Admin {payment.status === 'pending' && '(Opsional)'}
               </h3>
               <Textarea
-                placeholder="Add a note for this payment (required for rejection)..."
+                placeholder="Tambahkan catatan untuk pembayaran ini (wajib untuk penolakan)..."
                 value={adminNote}
                 onChange={(e) => setAdminNote(e.target.value)}
                 rows={4}
@@ -303,7 +303,7 @@ export function PaymentDetailDrawer({
                 ) : (
                   <XCircle className="h-4 w-4 mr-2" />
                 )}
-                Reject
+                Tolak
               </Button>
               <Button
                 onClick={handleApprove}
@@ -315,7 +315,7 @@ export function PaymentDetailDrawer({
                 ) : (
                   <CheckCircle className="h-4 w-4 mr-2" />
                 )}
-                Approve Payment
+                Setujui Pembayaran
               </Button>
             </div>
           </div>
@@ -330,7 +330,7 @@ export function PaymentDetailDrawer({
                 : 'bg-red-50 text-red-700'
             }`}>
               <p className="text-sm font-medium">
-                This payment has been {payment.status === 'approved' ? 'approved' : 'rejected'}
+                Pembayaran ini telah {payment.status === 'approved' ? 'disetujui' : 'ditolak'}
               </p>
             </div>
           </div>

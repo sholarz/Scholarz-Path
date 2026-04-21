@@ -8,33 +8,33 @@ export function LandingPage() {
   const features = [
     {
       icon: Search,
-      title: 'Curated Scholarships',
-      description: 'Access scholarships to top universities in Indonesia, especially Java region',
+      title: 'Beasiswa Terkurasi',
+      description: 'Akses beasiswa terkurasi untuk kampus terbaik di seluruh Indonesia',
     },
     {
       icon: Calendar,
-      title: 'Scholarship Calendar',
-      description: 'Never miss a deadline with our comprehensive calendar view',
+      title: 'Kalender Beasiswa',
+      description: 'Jangan lewatkan tenggat penting dengan tampilan kalender yang lengkap',
     },
     {
       icon: Clock,
-      title: 'Preparation Timeline',
-      description: 'Automated timeline breaks down all tasks needed before deadlines',
+      title: 'Timeline Persiapan',
+      description: 'Timeline otomatis membantu kamu menyusun semua tugas sebelum tenggat',
     },
     {
       icon: Bookmark,
-      title: 'Bookmark & Track',
-      description: 'Save and organize scholarships you want to apply for',
+      title: 'Simpan & Pantau',
+      description: 'Simpan dan kelola beasiswa yang ingin kamu daftar',
     },
     {
       icon: CheckCircle,
-      title: 'Verified Information',
-      description: 'All scholarships are verified and regularly updated',
+      title: 'Informasi Terverifikasi',
+      description: 'Semua data beasiswa diverifikasi dan diperbarui secara berkala',
     },
     {
       icon: Globe,
-      title: 'International Focus',
-      description: 'Specialized in opportunities for international students in Indonesia',
+      title: 'Fokus Indonesia',
+      description: 'Dirancang untuk pencarian peluang beasiswa di Indonesia',
     },
   ];
 
@@ -47,33 +47,31 @@ export function LandingPage() {
         <div className="container max-w-6xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-primary/10 rounded-full px-4 py-2 mb-6">
             <GraduationCap className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">Your Path to Education in Java</span>
+            <span className="text-sm font-medium">Jalurmu Mencari Beasiswa di Indonesia</span>
           </div>
           
-          <h1 className="mb-6 max-w-4xl mx-auto">
-            Find Your Perfect Scholarship to Study in Java
-          </h1>
+          <h1 className="mb-6 max-w-4xl mx-auto">Temukan Beasiswa Terbaik untuk Studi di Indonesia</h1>
           
           <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Discover scholarships, track deadlines, and prepare your application with our automated timeline. 
-            Everything you need to study at top universities in Indonesia.
+            Cari beasiswa, pantau tenggat, dan siapkan pendaftaranmu dengan timeline otomatis.
+            Semua yang kamu butuhkan untuk kuliah di kampus terbaik Indonesia.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/signup">
               <Button size="lg" className="w-full sm:w-auto">
-                Get Started Free
+                Mulai Gratis
               </Button>
             </Link>
             <Link to="/scholarships">
               <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                Browse Scholarships
+                Jelajahi Beasiswa
               </Button>
             </Link>
           </div>
 
           <p className="text-sm text-muted-foreground mt-4">
-            Free forever. No credit card required.
+            Gratis selamanya. Tanpa kartu kredit.
           </p>
         </div>
       </section>
@@ -82,9 +80,9 @@ export function LandingPage() {
       <section className="px-4 py-20">
         <div className="container max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="mb-4">Everything You Need to Succeed</h2>
+            <h2 className="mb-4">Semua yang Kamu Butuhkan untuk Berhasil</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              ScholarPath provides all the tools you need to find, track, and apply for scholarships efficiently.
+              ScholarPath menyediakan alat lengkap untuk mencari, memantau, dan mendaftar beasiswa di Indonesia dengan lebih efisien.
             </p>
           </div>
 
@@ -107,13 +105,13 @@ export function LandingPage() {
       {/* CTA Section */}
       <section className="px-4 py-20 bg-primary text-primary-foreground">
         <div className="container max-w-4xl mx-auto text-center">
-          <h2 className="mb-4">Ready to Start Your Journey?</h2>
+          <h2 className="mb-4">Siap Memulai Perjalananmu?</h2>
           <p className="text-lg mb-8 opacity-90">
-            Join thousands of students who are using ScholarPath to achieve their educational goals in Indonesia.
+            Bergabung dengan ribuan pelajar yang menggunakan ScholarPath untuk meraih tujuan pendidikan di Indonesia.
           </p>
           <Link to="/signup">
             <Button size="lg" variant="secondary">
-              Create Your Free Account
+              Buat Akun Gratis
             </Button>
           </Link>
         </div>
@@ -122,7 +120,7 @@ export function LandingPage() {
       {/* Footer */}
       <footer className="px-4 py-8 border-t">
         <div className="container max-w-6xl mx-auto text-center text-sm text-muted-foreground">
-          <p>&copy; 2026 ScholarPath. All rights reserved.</p>
+          <p>&copy; 2026 ScholarPath. Seluruh hak cipta dilindungi.</p>
         </div>
       </footer>
     </div>

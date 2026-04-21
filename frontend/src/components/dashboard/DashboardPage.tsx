@@ -5,7 +5,7 @@ import { usePayment } from '../../lib/payment-context';
 import { useBookmarks } from '../../lib/bookmark-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { Calendar, Bookmark, Clock, TrendingUp, ArrowRight, Crown, Lock, Bell, AlertTriangle } from 'lucide-react';
+import { Calendar, Bookmark, Clock, TrendingUp, ArrowRight, Crown, Lock, Bell } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { useEffect, useState } from 'react';
 import { PremiumBadge } from '../PremiumFeatureLock';
@@ -70,29 +70,29 @@ export function DashboardPage() {
 
   const stats = [
     {
-      title: 'Top Matches',
+      title: 'Rekomendasi Teratas',
       value: dashboardData?.topMatches.length ?? 0,
       icon: TrendingUp,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
     },
     {
-      title: 'Bookmarked',
+      title: 'Tersimpan',
       value: bookmarkLimit ? `${displayedBookmarkCount}/${bookmarkLimit}` : displayedBookmarkCount,
       icon: Bookmark,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
-      subtitle: bookmarkLimit && !canAddMore ? 'Limit reached' : undefined,
+      subtitle: bookmarkLimit && !canAddMore ? 'Batas tercapai' : undefined,
     },
     {
-      title: 'Upcoming Deadlines',
+      title: 'Tenggat Mendatang',
       value: dashboardData?.upcomingDeadlines.length ?? 0,
       icon: Calendar,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
     },
     {
-      title: 'Active Notifications',
+      title: 'Notifikasi Aktif',
       value: dashboardData?.activeNotificationsCount ?? 0,
       icon: Bell,
       color: 'text-yellow-600',
@@ -108,7 +108,7 @@ export function DashboardPage() {
         {/* Welcome Section */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <h1>Welcome back, {user?.name}!</h1>
+            <h1>Selamat datang kembali, {user?.name}!</h1>
             {user?.role === 'premium' && <PremiumBadge />}
             {user?.role === 'admin' && (
               <Badge className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
@@ -117,7 +117,7 @@ export function DashboardPage() {
             )}
           </div>
           <p className="text-muted-foreground">
-            Here's an overview of your scholarship journey
+            Berikut ringkasan perjalanan beasiswa kamu
           </p>
         </div>
 
@@ -128,12 +128,12 @@ export function DashboardPage() {
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
                   <Bell className="w-5 h-5 text-yellow-600" />
-                  <CardTitle className="text-yellow-900">Upcoming Deadlines</CardTitle>
+                  <CardTitle className="text-yellow-900">Tenggat Mendatang</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-yellow-700 mb-3">
-                  {approachingDeadlines.length} bookmarked scholarship{approachingDeadlines.length !== 1 ? 's have' : ' has'} deadlines within 7 days
+                  {approachingDeadlines.length} beasiswa tersimpan memiliki tenggat dalam 7 hari ke depan
                 </p>
                 <div className="space-y-2">
                   {approachingDeadlines.map((deadline) => (
@@ -146,7 +146,7 @@ export function DashboardPage() {
                         <div className="flex items-center justify-between">
                           <p className="font-medium text-yellow-900">{deadline.title}</p>
                           <Badge className="bg-yellow-500 text-white">
-                            {deadline.daysUntilDeadline} day{deadline.daysUntilDeadline !== 1 ? 's' : ''}
+                            {deadline.daysUntilDeadline} hari
                           </Badge>
                         </div>
                         <p className="text-yellow-600 text-xs">
@@ -174,9 +174,9 @@ export function DashboardPage() {
                   <Crown className="w-5 h-5 text-blue-600" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-medium text-blue-900 mb-1">Admin Access</h4>
+                  <h4 className="font-medium text-blue-900 mb-1">Akses Admin</h4>
                   <p className="text-sm text-blue-700">
-                    You have full admin access to all features and scholarship management capabilities.
+                    Kamu memiliki akses admin penuh untuk semua fitur dan manajemen beasiswa.
                   </p>
                 </div>
               </div>
@@ -194,18 +194,18 @@ export function DashboardPage() {
                     <Crown className="w-5 h-5 text-yellow-600" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-medium text-yellow-900 mb-1">Unlock Premium Features</h4>
+                    <h4 className="font-medium text-yellow-900 mb-1">Buka Fitur Premium</h4>
                     <p className="text-sm text-yellow-700 mb-2">
-                      Get unlimited bookmarks, automated preparation timeline, and more!
+                      Dapatkan bookmark tanpa batas, timeline persiapan otomatis, dan banyak lagi!
                     </p>
                     <ul className="text-sm text-yellow-700 space-y-1">
                       <li className="flex items-center gap-2">
                         <Lock className="w-3 h-3" />
-                        Bookmark limit: {displayedBookmarkCount}/{bookmarkLimit}
+                        Batas bookmark: {displayedBookmarkCount}/{bookmarkLimit}
                       </li>
                       <li className="flex items-center gap-2">
                         <Lock className="w-3 h-3" />
-                        Preparation Timeline locked
+                        Timeline persiapan terkunci
                       </li>
                     </ul>
                   </div>
@@ -246,7 +246,7 @@ export function DashboardPage() {
 
         {dashboardLoading && (
           <Card className="mb-6 border-yellow-200 bg-yellow-50/40">
-            <CardContent className="pt-6 text-sm text-yellow-800">Loading dashboard data from backend...</CardContent>
+            <CardContent className="pt-6 text-sm text-yellow-800">Memuat data dasbor dari backend...</CardContent>
           </Card>
         )}
 
@@ -255,12 +255,12 @@ export function DashboardPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Test Performance</CardTitle>
-                <CardDescription>Ringkasan hasil test terbaru</CardDescription>
+                <CardTitle>Performa Tes</CardTitle>
+                <CardDescription>Ringkasan hasil tes terbaru</CardDescription>
               </div>
               <Link to="/tests">
                 <Button variant="ghost" size="sm" className="gap-2">
-                  View Test History
+                  Lihat Riwayat Tes
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
@@ -268,23 +268,23 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent>
             {!testSummary || testSummary.total_attempts === 0 ? (
-              <p className="text-sm text-muted-foreground">Belum ada riwayat test.</p>
+              <p className="text-sm text-muted-foreground">Belum ada riwayat tes.</p>
             ) : (
               <div className="grid md:grid-cols-4 gap-4">
                 <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Total Attempts</p>
+                  <p className="text-xs text-muted-foreground">Total Percobaan</p>
                   <p className="text-2xl font-bold">{testSummary.total_attempts}</p>
                 </div>
                 <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Passed</p>
+                  <p className="text-xs text-muted-foreground">Lulus</p>
                   <p className="text-2xl font-bold text-green-600">{testSummary.passed_attempts}</p>
                 </div>
                 <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Best Score</p>
+                  <p className="text-xs text-muted-foreground">Nilai Terbaik</p>
                   <p className="text-2xl font-bold">{testSummary.best_score}%</p>
                 </div>
                 <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Last Score</p>
+                  <p className="text-xs text-muted-foreground">Nilai Terakhir</p>
                   <p className="text-2xl font-bold">{testSummary.last_score ?? '-'}{testSummary.last_score !== null ? '%' : ''}</p>
                 </div>
               </div>
@@ -297,20 +297,20 @@ export function DashboardPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Upcoming Deadlines</CardTitle>
+                <CardTitle>Tenggat Mendatang</CardTitle>
                 <Link to="/calendar">
                   <Button variant="ghost" size="sm" className="gap-2">
-                    View All
+                    Lihat Semua
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
               </div>
-              <CardDescription>Don't miss these important dates</CardDescription>
+              <CardDescription>Jangan lewatkan tanggal penting berikut</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {(dashboardData?.upcomingDeadlines.length ?? 0) === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  No upcoming deadlines found
+                  Belum ada tenggat dalam waktu dekat
                 </p>
               ) : (
                 (dashboardData?.upcomingDeadlines ?? []).map((deadline) => (
@@ -322,11 +322,11 @@ export function DashboardPage() {
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium mb-1 truncate">{deadline.title}</h4>
                         <p className="text-sm text-muted-foreground truncate mb-2">
-                          Deadline in {deadline.daysUntilDeadline} days
+                          Tenggat dalam {deadline.daysUntilDeadline} hari
                         </p>
                         <div className="flex items-center gap-2 text-sm">
                           <Calendar className="w-4 h-4 text-muted-foreground" />
-                          <span>{new Date(deadline.applicationDeadline).toLocaleDateString('en-US', { 
+                          <span>{new Date(deadline.applicationDeadline).toLocaleDateString('id-ID', {
                             month: 'long', 
                             day: 'numeric', 
                             year: 'numeric' 
@@ -344,25 +344,25 @@ export function DashboardPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Your Bookmarks</CardTitle>
+                <CardTitle>Beasiswa Tersimpan</CardTitle>
                 <Link to="/bookmarks">
                   <Button variant="ghost" size="sm" className="gap-2">
-                    View All
+                    Lihat Semua
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
               </div>
-              <CardDescription>Scholarships you've saved</CardDescription>
+              <CardDescription>Daftar beasiswa yang sudah kamu simpan</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {bookmarkedScholarships.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-sm text-muted-foreground mb-4">
-                    You haven't bookmarked any scholarships yet
+                    Kamu belum menyimpan beasiswa apa pun
                   </p>
                   <Link to="/scholarships">
                     <Button variant="outline" size="sm">
-                      Browse Scholarships
+                      Jelajahi Beasiswa
                     </Button>
                   </Link>
                 </div>
@@ -376,7 +376,7 @@ export function DashboardPage() {
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium mb-1 truncate">{item.scholarship.title}</h4>
                         <p className="text-sm text-muted-foreground truncate mb-2">
-                          {item.scholarship.provider?.name ?? 'Scholarship'}
+                          {item.scholarship.provider?.name ?? 'Beasiswa'}
                         </p>
                         <Badge variant="outline" className="text-xs">
                           {item.scholarship.level}
@@ -400,8 +400,8 @@ export function DashboardPage() {
                     <TrendingUp className="w-5 h-5 text-primary" />
                   </div>
                   <div className="text-left">
-                    <p className="font-medium">Browse Scholarships</p>
-                    <p className="text-xs text-muted-foreground">Find new opportunities</p>
+                    <p className="font-medium">Jelajahi Beasiswa</p>
+                    <p className="text-xs text-muted-foreground">Temukan peluang baru di Indonesia</p>
                   </div>
                 </Button>
               </Link>
@@ -412,8 +412,8 @@ export function DashboardPage() {
                     <Calendar className="w-5 h-5 text-primary" />
                   </div>
                   <div className="text-left">
-                    <p className="font-medium">View Calendar</p>
-                    <p className="text-xs text-muted-foreground">Track all deadlines</p>
+                    <p className="font-medium">Lihat Kalender</p>
+                    <p className="text-xs text-muted-foreground">Pantau semua tenggat</p>
                   </div>
                 </Button>
               </Link>
@@ -432,8 +432,8 @@ export function DashboardPage() {
                     <Clock className="w-5 h-5 text-primary" />
                   </div>
                   <div className="text-left">
-                    <p className="font-medium">Preparation Timeline</p>
-                    <p className="text-xs text-muted-foreground">Plan your applications</p>
+                    <p className="font-medium">Timeline Persiapan</p>
+                    <p className="text-xs text-muted-foreground">Rencanakan pendaftaranmu</p>
                   </div>
                 </Button>
               </Link>

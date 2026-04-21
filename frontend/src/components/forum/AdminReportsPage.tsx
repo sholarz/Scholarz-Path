@@ -78,12 +78,12 @@ export function AdminReportsPage() {
       <div className="min-h-screen bg-background py-8">
         <div className="container mx-auto px-4 max-w-4xl text-center">
           <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
+          <h1 className="text-2xl font-bold mb-2">Akses Ditolak</h1>
           <p className="text-muted-foreground mb-4">
-            This page can only be accessed by administrators.
+            Halaman ini hanya dapat diakses oleh administrator.
           </p>
           <Link to="/forum">
-            <Button>Back to Forum</Button>
+            <Button>Kembali ke Forum</Button>
           </Link>
         </div>
       </div>
@@ -109,17 +109,17 @@ export function AdminReportsPage() {
             <Link to="/admin/dashboard">
               <Button variant="ghost" className="gap-2 mb-4">
                 <ArrowLeft className="h-4 w-4" />
-                Back to Admin Dashboard
+                Kembali ke Dasbor Admin
               </Button>
             </Link>
-            <h1 className="text-3xl font-bold">Content Reports</h1>
+            <h1 className="text-3xl font-bold">Laporan Konten</h1>
             <p className="text-muted-foreground">
-              Review and moderate reported content
+              Tinjau dan moderasi konten yang dilaporkan
             </p>
           </div>
           <div className="text-right">
             <div className="text-2xl font-bold">{pendingReports.length}</div>
-            <div className="text-sm text-muted-foreground">Pending Reports</div>
+            <div className="text-sm text-muted-foreground">Laporan Menunggu</div>
           </div>
         </div>
 
@@ -128,11 +128,11 @@ export function AdminReportsPage() {
           <TabsList className="mb-6">
             <TabsTrigger value="pending" className="gap-2">
               <Flag className="h-4 w-4" />
-              Pending ({pendingReports.length})
+              Menunggu ({pendingReports.length})
             </TabsTrigger>
             <TabsTrigger value="reviewed" className="gap-2">
               <Check className="h-4 w-4" />
-              Reviewed ({reviewedReports.length})
+              Ditinjau ({reviewedReports.length})
             </TabsTrigger>
           </TabsList>
 
@@ -142,7 +142,7 @@ export function AdminReportsPage() {
               <Card>
                 <CardContent className="py-12 text-center text-muted-foreground">
                   <Flag className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No pending reports</p>
+                  <p>Tidak ada laporan yang menunggu</p>
                 </CardContent>
               </Card>
             ) : (
@@ -159,23 +159,23 @@ export function AdminReportsPage() {
                               {report.reason.replace('-', ' ').toUpperCase()}
                             </Badge>
                             <Badge variant="outline">
-                              {report.targetType === 'post' ? 'Post' : 'Comment'}
+                              {report.targetType === 'post' ? 'Postingan' : 'Komentar'}
                             </Badge>
                           </div>
 
                           <h3 className="font-semibold mb-2">
-                            Reported by: {report.reporterName}
+                            Dilaporkan oleh: {report.reporterName}
                           </h3>
                           
                           <div className="bg-muted p-3 rounded-lg mb-3">
-                            <p className="text-sm font-medium mb-1">Reported content:</p>
+                            <p className="text-sm font-medium mb-1">Konten yang dilaporkan:</p>
                             <p className="text-sm line-clamp-2 mb-2">{report.targetContent}</p>
-                            <p className="text-xs text-muted-foreground">By: {report.targetAuthor}</p>
+                            <p className="text-xs text-muted-foreground">Oleh: {report.targetAuthor}</p>
                           </div>
 
                           <div className="space-y-1">
                             <p className="text-sm">
-                              <span className="font-medium">Description:</span> {report.description}
+                              <span className="font-medium">Deskripsi:</span> {report.description}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {formatDistanceToNow(report.createdAt, { addSuffix: true, locale: localeId })}
@@ -188,7 +188,7 @@ export function AdminReportsPage() {
                             <Link to={`/forum/${report.targetId}`}>
                               <Button variant="outline" size="sm" className="gap-2 w-full">
                                 <Eye className="h-4 w-4" />
-                                View
+                                Lihat
                               </Button>
                             </Link>
                           )}
@@ -198,7 +198,7 @@ export function AdminReportsPage() {
                             className="gap-2"
                           >
                             <Check className="h-4 w-4" />
-                            Review
+                            Tinjau
                           </Button>
                         </div>
                       </div>
@@ -215,7 +215,7 @@ export function AdminReportsPage() {
               <Card>
                 <CardContent className="py-12 text-center text-muted-foreground">
                   <Check className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No reviewed reports</p>
+                  <p>Tidak ada laporan yang sudah ditinjau</p>
                 </CardContent>
               </Card>
             ) : (
@@ -232,12 +232,12 @@ export function AdminReportsPage() {
                               {report.status === 'resolved' ? (
                                 <>
                                   <Check className="h-3 w-3" />
-                                  Resolved
+                                  Selesai
                                 </>
                               ) : (
                                 <>
                                   <X className="h-3 w-3" />
-                                  Dismissed
+                                  Ditolak
                                 </>
                               )}
                             </Badge>
@@ -248,7 +248,7 @@ export function AdminReportsPage() {
                               </Badge>
                             )}
                             <Badge variant="secondary">
-                              {report.targetType === 'post' ? 'Post' : 'Comment'}
+                              {report.targetType === 'post' ? 'Postingan' : 'Komentar'}
                             </Badge>
                             <span className="text-xs text-muted-foreground">
                               {report.reason.replace('-', ' ')}
@@ -261,10 +261,10 @@ export function AdminReportsPage() {
 
                           <div className="space-y-1 text-sm">
                             <p>
-                              <span className="font-medium">Reviewed by:</span> {actionMeta.reviewedBy || report.reviewedBy}
+                              <span className="font-medium">Ditinjau oleh:</span> {actionMeta.reviewedBy || report.reviewedBy}
                             </p>
                             <p>
-                              <span className="font-medium">Action:</span> {actionMeta.label}
+                              <span className="font-medium">Tindakan:</span> {actionMeta.label}
                             </p>
                             {actionMeta.note && (
                               <p>

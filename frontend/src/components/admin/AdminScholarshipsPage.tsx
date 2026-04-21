@@ -84,12 +84,12 @@ const DEFAULT_FORM: ScholarshipFormState = {
 };
 
 const TYPE_OPTIONS: Array<{ value: AdminScholarshipPayload['type']; label: string }> = [
-  { value: 'full', label: 'Full' },
-  { value: 'partial', label: 'Partial' },
-  { value: 'merit', label: 'Merit' },
-  { value: 'need_based', label: 'Need Based' },
-  { value: 'sports', label: 'Sports' },
-  { value: 'academic', label: 'Academic' },
+  { value: 'full', label: 'Penuh' },
+  { value: 'partial', label: 'Parsial' },
+  { value: 'merit', label: 'Prestasi' },
+  { value: 'need_based', label: 'Berdasarkan Kebutuhan' },
+  { value: 'sports', label: 'Olahraga' },
+  { value: 'academic', label: 'Akademik' },
 ];
 
 const TARGET_LEVEL_OPTIONS: Array<{ value: TargetLevel; label: string }> = [
@@ -106,10 +106,10 @@ const DEGREE_LEVEL_OPTIONS: Array<{ value: DegreeLevel; label: string }> = [
 ];
 
 const STATUS_OPTIONS: Array<{ value: NonNullable<AdminScholarshipPayload['status']>; label: string }> = [
-  { value: 'draft', label: 'Draft' },
-  { value: 'active', label: 'Active' },
-  { value: 'inactive', label: 'Inactive' },
-  { value: 'expired', label: 'Expired' },
+  { value: 'draft', label: 'Draf' },
+  { value: 'active', label: 'Aktif' },
+  { value: 'inactive', label: 'Tidak Aktif' },
+  { value: 'expired', label: 'Kedaluwarsa' },
 ];
 
 const mapDegreeToLegacyLevel = (degreeLevel: DegreeLevel): AdminScholarshipPayload['level'] => {
@@ -170,7 +170,7 @@ export function AdminScholarshipsPage() {
       const data = await getAdminScholarships(200);
       setItems(data.data);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load scholarships';
+      const message = err instanceof Error ? err.message : 'Gagal memuat beasiswa';
       setLoadError(message);
       setItems([]);
       toast.error(message);
@@ -231,7 +231,7 @@ export function AdminScholarshipsPage() {
       setBenefitInput('');
       setIsDialogOpen(true);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to load scholarship details');
+      toast.error(err instanceof Error ? err.message : 'Gagal memuat detail beasiswa');
     } finally {
       setActiveId(null);
     }
@@ -361,15 +361,15 @@ export function AdminScholarshipsPage() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm('Delete this scholarship?')) return;
+    if (!confirm('Hapus beasiswa ini?')) return;
 
     try {
       setActiveId(id);
       await deleteAdminScholarship(id);
-      toast.success('Scholarship deleted');
+      toast.success('Beasiswa berhasil dihapus');
       await load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete scholarship');
+      toast.error(err instanceof Error ? err.message : 'Gagal menghapus beasiswa');
     } finally {
       setActiveId(null);
     }
@@ -380,12 +380,12 @@ export function AdminScholarshipsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Scholarship Management</h1>
-            <p className="text-sm text-muted-foreground mt-1">Admin CRUD connected to backend APIs</p>
+            <h1 className="text-2xl font-bold text-gray-900">Manajemen Beasiswa</h1>
+            <p className="text-sm text-muted-foreground mt-1">CRUD admin terhubung ke API backend</p>
           </div>
           <Button className="gap-2" onClick={openCreate}>
             <Plus className="h-4 w-4" />
-            Add Scholarship
+            Tambah Beasiswa
           </Button>
         </div>
 
@@ -395,7 +395,7 @@ export function AdminScholarshipsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 className="pl-10"
-                placeholder="Search by title/provider/country..."
+                placeholder="Cari berdasarkan judul/penyedia/negara..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -405,38 +405,38 @@ export function AdminScholarshipsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Scholarships ({filtered.length})</CardTitle>
+            <CardTitle>Beasiswa ({filtered.length})</CardTitle>
           </CardHeader>
           <CardContent>
             {loadError && (
               <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                Failed to load data: {loadError}
+                Gagal memuat data: {loadError}
               </div>
             )}
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead>Deadline</TableHead>
+                  <TableHead>Judul</TableHead>
+                  <TableHead>Penyedia</TableHead>
+                  <TableHead>Jenjang</TableHead>
+                  <TableHead>Tenggat</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Featured</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>Unggulan</TableHead>
+                  <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading && (
                   <TableRow>
                     <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                      Loading scholarships...
+                      Memuat data beasiswa...
                     </TableCell>
                   </TableRow>
                 )}
                 {!isLoading && filtered.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                      No scholarships found.
+                      Tidak ada beasiswa ditemukan.
                     </TableCell>
                   </TableRow>
                 )}
@@ -451,7 +451,7 @@ export function AdminScholarshipsPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant={item.is_featured ? 'default' : 'outline'}>
-                        {item.is_featured ? 'Yes' : 'No'}
+                        {item.is_featured ? 'Ya' : 'Tidak'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right space-x-1">
@@ -478,25 +478,25 @@ export function AdminScholarshipsPage() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingId ? 'Edit Scholarship' : 'Create Scholarship'}</DialogTitle>
-              <DialogDescription>Manage scholarship data used by user listing and matching engine.</DialogDescription>
+              <DialogTitle>{editingId ? 'Edit Beasiswa' : 'Buat Beasiswa'}</DialogTitle>
+              <DialogDescription>Kelola data beasiswa yang digunakan pada daftar dan mesin pencocokan pengguna.</DialogDescription>
             </DialogHeader>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <Label>Title *</Label>
+                <Label>Judul *</Label>
                 <Input value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} />
               </div>
               <div>
-                <Label>Provider Name *</Label>
+                <Label>Nama Penyedia *</Label>
                 <Input value={form.providerName} onChange={(e) => setForm((prev) => ({ ...prev, providerName: e.target.value }))} />
               </div>
               <div>
-                <Label>Provider Country</Label>
+                <Label>Negara Penyedia</Label>
                 <Input value={form.providerCountry} onChange={(e) => setForm((prev) => ({ ...prev, providerCountry: e.target.value }))} />
               </div>
               <div>
-                <Label>Type *</Label>
+                <Label>Tipe *</Label>
                 <Select value={form.type} onValueChange={(value: AdminScholarshipPayload['type']) => setForm((prev) => ({ ...prev, type: value }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -505,7 +505,7 @@ export function AdminScholarshipsPage() {
                 </Select>
               </div>
               <div>
-                <Label>Target Level *</Label>
+                <Label>Jenjang Target *</Label>
                 <Select value={form.targetLevel} onValueChange={(value: TargetLevel) => setForm((prev) => ({ ...prev, targetLevel: value }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -514,7 +514,7 @@ export function AdminScholarshipsPage() {
                 </Select>
               </div>
               <div>
-                <Label>Degree Level *</Label>
+                <Label>Jenjang Gelar *</Label>
                 <Select value={form.degreeLevel} onValueChange={(value: DegreeLevel) => setForm((prev) => ({ ...prev, degreeLevel: value }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -523,7 +523,7 @@ export function AdminScholarshipsPage() {
                 </Select>
               </div>
               <div>
-                <Label>Amount</Label>
+                <Label>Nominal</Label>
                 <Input type="number" value={form.amount} onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))} />
               </div>
               <div>
@@ -531,15 +531,15 @@ export function AdminScholarshipsPage() {
                 <Input value={form.currency} onChange={(e) => setForm((prev) => ({ ...prev, currency: e.target.value }))} />
               </div>
               <div>
-                <Label>Minimum GPA</Label>
+                <Label>IPK Minimum</Label>
                 <Input type="number" step="0.01" min="0" max="4" value={form.minimumGpa} onChange={(e) => setForm((prev) => ({ ...prev, minimumGpa: e.target.value }))} />
               </div>
               <div>
-                <Label>Application Deadline *</Label>
+                <Label>Tenggat Pendaftaran *</Label>
                 <Input type="date" value={form.applicationDeadline} onChange={(e) => setForm((prev) => ({ ...prev, applicationDeadline: e.target.value }))} />
               </div>
               <div className="md:col-span-2">
-                <Label>Application URL *</Label>
+                <Label>URL Pendaftaran *</Label>
                 <Input value={form.applicationUrl} onChange={(e) => setForm((prev) => ({ ...prev, applicationUrl: e.target.value }))} />
               </div>
               <div className="md:col-span-2">
@@ -550,7 +550,7 @@ export function AdminScholarshipsPage() {
                     addArrayItem('fieldsOfStudy', fieldOfStudyInput);
                     setFieldOfStudyInput('');
                   }}>
-                    Add
+                    Tambah
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
@@ -565,7 +565,7 @@ export function AdminScholarshipsPage() {
                 </div>
               </div>
               <div className="md:col-span-2">
-                <Label>Description *</Label>
+                <Label>Deskripsi *</Label>
                 <Textarea rows={4} value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} />
               </div>
               <div className="md:col-span-2">
@@ -576,7 +576,7 @@ export function AdminScholarshipsPage() {
                     addArrayItem('requirements', requirementInput);
                     setRequirementInput('');
                   }}>
-                    Add
+                    Tambah
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
@@ -591,14 +591,14 @@ export function AdminScholarshipsPage() {
                 </div>
               </div>
               <div className="md:col-span-2">
-                <Label>Benefits</Label>
+                <Label>Manfaat</Label>
                 <div className="flex gap-2">
                   <Input value={benefitInput} onChange={(e) => setBenefitInput(e.target.value)} placeholder="Tambah manfaat" />
                   <Button type="button" variant="outline" onClick={() => {
                     addArrayItem('benefits', benefitInput);
                     setBenefitInput('');
                   }}>
-                    Add
+                    Tambah
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
@@ -624,10 +624,10 @@ export function AdminScholarshipsPage() {
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Cancel</Button>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Batal</Button>
               <Button onClick={save} disabled={isSaving}>
                 {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                {editingId ? 'Update Scholarship' : 'Create Scholarship'}
+                {editingId ? 'Perbarui Beasiswa' : 'Buat Beasiswa'}
               </Button>
             </div>
           </DialogContent>

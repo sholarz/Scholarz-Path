@@ -253,7 +253,7 @@ export function UserProfilePage() {
         // Don't show error if user just has no profile yet — that's normal
         const msg = err instanceof Error ? err.message : '';
         if (!msg.includes('404') && !msg.includes('No query results')) {
-          toast.error('Failed to load profile data.');
+          toast.error('Gagal memuat data profil.');
         }
       } finally {
         setIsLoading(false);
@@ -343,17 +343,17 @@ export function UserProfilePage() {
     const gpaValue = profile.gpa ? parseFloat(profile.gpa) : NaN;
 
     if (!profile.fullName.trim() || !profile.nationality || !profile.currentCountry) {
-      toast.error('Please complete all basic profile fields.');
+      toast.error('Mohon lengkapi semua data profil dasar.');
       return;
     }
 
     if (!profile.currentDegree || !profile.targetDegree || !fieldOfStudy) {
-      toast.error('Please complete all academic profile fields.');
+      toast.error('Mohon lengkapi semua data akademik.');
       return;
     }
 
     if (Number.isNaN(gpaValue) || gpaValue < 0 || gpaValue > 4) {
-      toast.error('GPA must be a number between 0.00 and 4.00.');
+      toast.error('IPK harus berupa angka antara 0.00 sampai 4.00.');
       return;
     }
 
@@ -461,9 +461,9 @@ export function UserProfilePage() {
         }
       }
 
-      toast.success('Profile saved successfully!');
+      toast.success('Profil berhasil disimpan!');
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to save profile.';
+      const msg = err instanceof Error ? err.message : 'Gagal menyimpan profil.';
       toast.error(msg);
     } finally {
       setIsSaving(false);
@@ -489,19 +489,19 @@ export function UserProfilePage() {
   const handleUpdatePassword = async () => {
     // Validation
     if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
-      toast.error('All password fields are required');
+      toast.error('Semua kolom kata sandi wajib diisi');
       return;
     }
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('New passwords do not match');
+      toast.error('Konfirmasi kata sandi baru tidak cocok');
       return;
     }
 
     // Password strength validation
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(passwordData.newPassword)) {
-      toast.error('Password must be at least 8 characters with uppercase, lowercase, number, and special character');
+      toast.error('Kata sandi minimal 8 karakter dengan huruf besar, huruf kecil, angka, dan karakter khusus');
       return;
     }
 
@@ -514,10 +514,10 @@ export function UserProfilePage() {
         password_confirmation: passwordData.confirmPassword,
       });
 
-      toast.success('Password updated successfully!');
+      toast.success('Kata sandi berhasil diperbarui!');
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to update password.';
+      const msg = err instanceof Error ? err.message : 'Gagal memperbarui kata sandi.';
       toast.error(msg);
     } finally {
       setIsUpdatingPassword(false);
@@ -536,7 +536,7 @@ export function UserProfilePage() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3 text-muted-foreground">
         <Loader2 className="w-8 h-8 animate-spin" />
-        <p>Loading your profile...</p>
+        <p>Memuat profil kamu...</p>
       </div>
     );
   }
@@ -546,9 +546,9 @@ export function UserProfilePage() {
       <div className="container mx-auto px-4" style={{ maxWidth: '800px' }}>
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">User Profile</h1>
+          <h1 className="text-3xl font-bold mb-2">Profil Pengguna</h1>
           <p className="text-muted-foreground">
-            Complete your profile to get personalized scholarship recommendations
+            Lengkapi profilmu untuk mendapatkan rekomendasi beasiswa yang lebih personal
           </p>
         </div>
 
@@ -559,22 +559,22 @@ export function UserProfilePage() {
           {/* 1. Change Password */}
           <Card className="rounded-2xl shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg">Change Password</CardTitle>
+              <CardTitle className="text-lg">Ubah Kata Sandi</CardTitle>
               <CardDescription>
-                Update your password to keep your account secure
+                Perbarui kata sandi untuk menjaga keamanan akunmu
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {/* Current Password */}
               <div className="space-y-2">
-                <Label htmlFor="currentPassword">Current Password</Label>
+                <Label htmlFor="currentPassword">Kata Sandi Saat Ini</Label>
                 <div className="relative">
                   <Input
                     id="currentPassword"
                     type={showCurrentPassword ? "text" : "password"}
                     value={passwordData.currentPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                    placeholder="Enter current password"
+                    placeholder="Masukkan kata sandi saat ini"
                     className="pr-10"
                   />
                   <button
@@ -593,14 +593,14 @@ export function UserProfilePage() {
 
               {/* New Password */}
               <div className="space-y-2">
-                <Label htmlFor="newPassword">New Password</Label>
+                <Label htmlFor="newPassword">Kata Sandi Baru</Label>
                 <div className="relative">
                   <Input
                     id="newPassword"
                     type={showNewPassword ? "text" : "password"}
                     value={passwordData.newPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                    placeholder="Enter new password"
+                    placeholder="Masukkan kata sandi baru"
                     className="pr-10"
                   />
                   <button
@@ -619,14 +619,14 @@ export function UserProfilePage() {
 
               {/* Confirm New Password */}
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Label htmlFor="confirmPassword">Konfirmasi Kata Sandi Baru</Label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     value={passwordData.confirmPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    placeholder="Confirm new password"
+                    placeholder="Konfirmasi kata sandi baru"
                     className="pr-10"
                   />
                   <button
@@ -649,7 +649,7 @@ export function UserProfilePage() {
                   to="/forgot-password"
                   className="text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors"
                 >
-                  Forgot Password?
+                  Lupa Kata Sandi?
                 </Link>
               </div>
 
@@ -661,14 +661,14 @@ export function UserProfilePage() {
                   disabled={isUpdatingPassword}
                   size="sm"
                 >
-                  Cancel
+                  Batal
                 </Button>
                 <Button
                   onClick={handleUpdatePassword}
                   disabled={isUpdatingPassword}
                   size="sm"
                 >
-                  {isUpdatingPassword ? 'Updating...' : 'Update Password'}
+                  {isUpdatingPassword ? 'Memperbarui...' : 'Perbarui Kata Sandi'}
                 </Button>
               </div>
             </CardContent>
@@ -677,33 +677,33 @@ export function UserProfilePage() {
           {/* 2. Basic Information */}
           <Card className="rounded-2xl shadow-sm">
             <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
+              <CardTitle>Informasi Dasar</CardTitle>
               <CardDescription>
-                Your personal details and current location
+                Data pribadi dan lokasi kamu saat ini
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Full Name */}
               <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name *</Label>
+                <Label htmlFor="fullName">Nama Lengkap *</Label>
                 <Input
                   id="fullName"
                   value={profile.fullName}
                   onChange={(e) => setProfile(prev => ({ ...prev, fullName: e.target.value }))}
-                  placeholder="Enter your full name"
+                  placeholder="Masukkan nama lengkap"
                 />
               </div>
 
               {/* Nationality + Current Country */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="nationality">Nationality *</Label>
+                  <Label htmlFor="nationality">Kewarganegaraan *</Label>
                   <Select
                     value={profile.nationality}
                     onValueChange={(value: string) => setProfile(prev => ({ ...prev, nationality: value }))}
                   >
                     <SelectTrigger id="nationality">
-                      <SelectValue placeholder="Select nationality" />
+                      <SelectValue placeholder="Pilih kewarganegaraan" />
                     </SelectTrigger>
                     <SelectContent>
                       {COUNTRIES.map(country => (
@@ -714,13 +714,13 @@ export function UserProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="currentCountry">Current Country *</Label>
+                  <Label htmlFor="currentCountry">Negara Saat Ini *</Label>
                   <Select
                     value={profile.currentCountry}
                     onValueChange={(value: string) => setProfile(prev => ({ ...prev, currentCountry: value }))}
                   >
                     <SelectTrigger id="currentCountry">
-                      <SelectValue placeholder="Select country" />
+                      <SelectValue placeholder="Pilih negara" />
                     </SelectTrigger>
                     <SelectContent>
                       {COUNTRIES.map(country => (
@@ -736,44 +736,44 @@ export function UserProfilePage() {
           {/* 3. Academic Background */}
           <Card className="rounded-2xl shadow-sm">
             <CardHeader>
-              <CardTitle>Academic Background</CardTitle>
+              <CardTitle>Latar Belakang Akademik</CardTitle>
               <CardDescription>
-                Your current education level and field of study
+                Jenjang pendidikan dan bidang studi kamu saat ini
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Current Degree + Target Degree */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="currentDegree">Current Degree *</Label>
+                  <Label htmlFor="currentDegree">Jenjang Saat Ini *</Label>
                   <Select
                     value={profile.currentDegree}
                     onValueChange={(value: string) => setProfile(prev => ({ ...prev, currentDegree: value }))}
                   >
                     <SelectTrigger id="currentDegree">
-                      <SelectValue placeholder="Select degree" />
+                      <SelectValue placeholder="Pilih jenjang" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="high-school">High School</SelectItem>
-                      <SelectItem value="bachelor">Bachelor's Degree</SelectItem>
-                      <SelectItem value="master">Master's Degree</SelectItem>
+                      <SelectItem value="high-school">SMA</SelectItem>
+                      <SelectItem value="bachelor">S1 / Sarjana</SelectItem>
+                      <SelectItem value="master">S2 / Magister</SelectItem>
                       <SelectItem value="phd">PhD</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="targetDegree">Target Degree *</Label>
+                  <Label htmlFor="targetDegree">Jenjang Tujuan *</Label>
                   <Select
                     value={profile.targetDegree}
                     onValueChange={(value: string) => setProfile(prev => ({ ...prev, targetDegree: value }))}
                   >
                     <SelectTrigger id="targetDegree">
-                      <SelectValue placeholder="Select degree" />
+                      <SelectValue placeholder="Pilih jenjang" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="bachelor">Bachelor's Degree</SelectItem>
-                      <SelectItem value="master">Master's Degree</SelectItem>
+                      <SelectItem value="bachelor">S1 / Sarjana</SelectItem>
+                      <SelectItem value="master">S2 / Magister</SelectItem>
                       <SelectItem value="phd">PhD</SelectItem>
                     </SelectContent>
                   </Select>
@@ -782,13 +782,13 @@ export function UserProfilePage() {
 
               {/* Field of Study */}
               <div className="space-y-2">
-                <Label htmlFor="fieldOfStudy">Field of Study *</Label>
+                <Label htmlFor="fieldOfStudy">Bidang Studi *</Label>
                 <Select
                   value={profile.fieldOfStudy}
                   onValueChange={(value: string) => setProfile(prev => ({ ...prev, fieldOfStudy: value }))}
                 >
                   <SelectTrigger id="fieldOfStudy">
-                    <SelectValue placeholder="Select field of study" />
+                    <SelectValue placeholder="Pilih bidang studi" />
                   </SelectTrigger>
                   <SelectContent>
                     {FIELDS_OF_STUDY.map(field => (
@@ -800,18 +800,18 @@ export function UserProfilePage() {
 
               {/* Sub Field (Optional) */}
               <div className="space-y-2">
-                <Label htmlFor="subField">Sub Field (Optional)</Label>
+                <Label htmlFor="subField">Sub Bidang (Opsional)</Label>
                 <Input
                   id="subField"
                   value={profile.subField}
                   onChange={(e) => setProfile(prev => ({ ...prev, subField: e.target.value }))}
-                  placeholder="e.g., Machine Learning, Corporate Law, etc."
+                  placeholder="contoh: Machine Learning, Hukum Perusahaan, dll."
                 />
               </div>
 
               {/* GPA */}
               <div className="space-y-2">
-                <Label htmlFor="gpa">GPA *</Label>
+                <Label htmlFor="gpa">IPK *</Label>
                 <Input
                   id="gpa"
                   type="number"
@@ -829,18 +829,18 @@ export function UserProfilePage() {
           {/* 4. Preferences */}
           <Card className="rounded-2xl shadow-sm">
             <CardHeader>
-              <CardTitle>Preferences</CardTitle>
+              <CardTitle>Preferensi</CardTitle>
               <CardDescription>
-                Your scholarship and study preferences
+                Preferensi beasiswa dan studi kamu
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Preferred Countries */}
               <div className="space-y-2">
-                <Label htmlFor="preferredCountries">Preferred Countries</Label>
+                <Label htmlFor="preferredCountries">Negara Tujuan</Label>
                 <Select onValueChange={toggleCountry}>
                   <SelectTrigger id="preferredCountries">
-                    <SelectValue placeholder="Select countries" />
+                    <SelectValue placeholder="Pilih negara" />
                   </SelectTrigger>
                   <SelectContent>
                     {COUNTRIES.filter(c => !profile.preferredCountries.includes(c)).map(country => (
@@ -865,10 +865,10 @@ export function UserProfilePage() {
 
               {/* Preferred Fields */}
               <div className="space-y-2">
-                <Label htmlFor="preferredFields">Preferred Fields</Label>
+                <Label htmlFor="preferredFields">Bidang Favorit</Label>
                 <Select onValueChange={toggleField}>
                   <SelectTrigger id="preferredFields">
-                    <SelectValue placeholder="Select fields" />
+                    <SelectValue placeholder="Pilih bidang" />
                   </SelectTrigger>
                   <SelectContent>
                     {FIELDS_OF_STUDY.filter(f => !profile.preferredFields.includes(f)).map(field => (
@@ -894,30 +894,30 @@ export function UserProfilePage() {
               {/* Budget Preference + Preferred Start Year */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="budgetPreference">Budget Preference *</Label>
+                  <Label htmlFor="budgetPreference">Preferensi Pendanaan *</Label>
                   <Select
                     value={profile.budgetPreference}
                     onValueChange={(value: string) => setProfile(prev => ({ ...prev, budgetPreference: value }))}
                   >
                     <SelectTrigger id="budgetPreference">
-                      <SelectValue placeholder="Select budget" />
+                      <SelectValue placeholder="Pilih pendanaan" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="full_scholarship">Full Scholarship</SelectItem>
-                      <SelectItem value="partial_scholarship">Partial Scholarship</SelectItem>
-                      <SelectItem value="self_funded">Self-funded</SelectItem>
+                      <SelectItem value="full_scholarship">Beasiswa Penuh</SelectItem>
+                      <SelectItem value="partial_scholarship">Beasiswa Parsial</SelectItem>
+                      <SelectItem value="self_funded">Biaya Mandiri</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="preferredStartYear">Preferred Start Year *</Label>
+                  <Label htmlFor="preferredStartYear">Tahun Mulai yang Diinginkan *</Label>
                   <Select
                     value={profile.preferredStartYear}
                     onValueChange={(value: string) => setProfile(prev => ({ ...prev, preferredStartYear: value }))}
                   >
                     <SelectTrigger id="preferredStartYear">
-                      <SelectValue placeholder="Select year" />
+                      <SelectValue placeholder="Pilih tahun" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="2025">2025</SelectItem>
@@ -934,9 +934,9 @@ export function UserProfilePage() {
           {/* 5. Language Tests */}
           <Card className="rounded-2xl shadow-sm">
             <CardHeader>
-              <CardTitle>Language Tests</CardTitle>
+              <CardTitle>Tes Bahasa</CardTitle>
               <CardDescription>
-                Add your English proficiency test scores
+                Tambahkan nilai tes kemampuan bahasa Inggris
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -956,7 +956,7 @@ export function UserProfilePage() {
                 className="w-full md:w-auto"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Language Test
+                Tambah Tes Bahasa
               </Button>
             </CardContent>
           </Card>
@@ -964,9 +964,9 @@ export function UserProfilePage() {
           {/* 6. Documents Readiness */}
           <Card className="rounded-2xl shadow-sm">
             <CardHeader>
-              <CardTitle>Documents Readiness</CardTitle>
+              <CardTitle>Kesiapan Dokumen</CardTitle>
               <CardDescription>
-                Check off documents you have ready
+                Centang dokumen yang sudah kamu siapkan
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -986,7 +986,7 @@ export function UserProfilePage() {
                     htmlFor="cvUploaded"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                   >
-                    CV Uploaded
+                    CV Sudah Diunggah
                   </label>
                 </div>
 
@@ -1024,7 +1024,7 @@ export function UserProfilePage() {
                     htmlFor="recommendationLetter"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                   >
-                    Recommendation Letter
+                    Surat Rekomendasi
                   </label>
                 </div>
 
@@ -1043,7 +1043,7 @@ export function UserProfilePage() {
                     htmlFor="transcript"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                   >
-                    Transcript
+                    Transkrip
                   </label>
                 </div>
 
@@ -1062,7 +1062,7 @@ export function UserProfilePage() {
                     htmlFor="passportReady"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                   >
-                    Passport Ready
+                    Paspor Siap
                   </label>
                 </div>
               </div>
@@ -1072,21 +1072,21 @@ export function UserProfilePage() {
           {/* 7. Application Status */}
           <Card className="rounded-2xl shadow-sm">
             <CardHeader>
-              <CardTitle>Application Status</CardTitle>
+              <CardTitle>Status Pendaftaran</CardTitle>
               <CardDescription>
-                Your current application timeline and status
+                Timeline dan status pendaftaran kamu saat ini
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="expectedStartYear">Expected Start Year *</Label>
+                  <Label htmlFor="expectedStartYear">Perkiraan Tahun Mulai *</Label>
                   <Select
                     value={profile.expectedStartYear}
                     onValueChange={(value: string) => setProfile(prev => ({ ...prev, expectedStartYear: value }))}
                   >
                     <SelectTrigger id="expectedStartYear">
-                      <SelectValue placeholder="Select year" />
+                      <SelectValue placeholder="Pilih tahun" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="2025">2025</SelectItem>
@@ -1098,19 +1098,19 @@ export function UserProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="applicationStatus">Application Status *</Label>
+                  <Label htmlFor="applicationStatus">Status Pendaftaran *</Label>
                   <Select
                     value={profile.applicationStatus}
                     onValueChange={(value: string) => setProfile(prev => ({ ...prev, applicationStatus: value }))}
                   >
                     <SelectTrigger id="applicationStatus">
-                      <SelectValue placeholder="Select status" />
+                      <SelectValue placeholder="Pilih status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="not-started">Not Started</SelectItem>
-                      <SelectItem value="preparing">Preparing</SelectItem>
-                      <SelectItem value="ready">Ready to Apply</SelectItem>
-                      <SelectItem value="applied">Applied</SelectItem>
+                      <SelectItem value="not-started">Belum Mulai</SelectItem>
+                      <SelectItem value="preparing">Sedang Persiapan</SelectItem>
+                      <SelectItem value="ready">Siap Mendaftar</SelectItem>
+                      <SelectItem value="applied">Sudah Mendaftar</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1126,7 +1126,7 @@ export function UserProfilePage() {
               className="flex-1 sm:flex-none sm:px-8"
             >
               <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save Changes'}
+              {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
             </Button>
             <Button
               variant="outline"
@@ -1134,7 +1134,7 @@ export function UserProfilePage() {
               disabled={isSaving}
               className="flex-1 sm:flex-none sm:px-8"
             >
-              Cancel
+              Batal
             </Button>
           </div>
         </div>

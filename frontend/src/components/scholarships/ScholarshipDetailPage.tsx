@@ -43,10 +43,10 @@ type NotificationScholarship = {
 const toNotificationScholarship = (scholarship: ApiScholarship): NotificationScholarship => ({
   id: scholarship.id,
   title: scholarship.title,
-  provider: scholarship.provider?.name ?? 'Unknown Provider',
+  provider: scholarship.provider?.name ?? 'Penyedia Tidak Diketahui',
   country: scholarship.provider?.country ?? '-',
   location: scholarship.targetCountries?.join(', ') || scholarship.provider?.country || '-',
-  amount: scholarship.formattedAmount || (scholarship.amount != null ? `${scholarship.currency ?? 'USD'} ${scholarship.amount}` : 'Amount not specified'),
+  amount: scholarship.formattedAmount || (scholarship.amount != null ? `${scholarship.currency ?? 'USD'} ${scholarship.amount}` : 'Nominal tidak disebutkan'),
   deadline: new Date(scholarship.applicationDeadline),
   educationLevel: scholarship.level,
   fieldOfStudy: scholarship.fieldsOfStudy ?? [],
@@ -79,7 +79,7 @@ export function ScholarshipDetailPage() {
         setScholarship(data.scholarship);
       } catch (err) {
         setScholarship(null);
-        toast.error(err instanceof Error ? err.message : 'Failed to load scholarship');
+        toast.error(err instanceof Error ? err.message : 'Gagal memuat detail beasiswa');
       } finally {
         setIsLoading(false);
       }
@@ -99,7 +99,7 @@ export function ScholarshipDetailPage() {
         <Header />
         <main className="container max-w-4xl mx-auto px-4 py-8 flex items-center gap-3 text-muted-foreground">
           <Loader2 className="h-6 w-6 animate-spin" />
-          Loading scholarship details...
+          Memuat detail beasiswa...
         </main>
       </div>
     );
@@ -112,8 +112,8 @@ export function ScholarshipDetailPage() {
         <main className="container max-w-4xl mx-auto px-4 py-8">
           <Card>
             <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground mb-4">Scholarship not found</p>
-              <Button onClick={() => navigate('/scholarships')}>Back to Scholarships</Button>
+              <p className="text-muted-foreground mb-4">Beasiswa tidak ditemukan</p>
+              <Button onClick={() => navigate('/scholarships')}>Kembali ke Daftar Beasiswa</Button>
             </CardContent>
           </Card>
         </main>
@@ -126,7 +126,7 @@ export function ScholarshipDetailPage() {
 
   const handleBookmarkToggle = () => {
     toggleBookmark(scholarship.id);
-    toast.success(isBookmarked(scholarship.id) ? 'Removed from bookmarks' : 'Added to bookmarks');
+    toast.success(isBookmarked(scholarship.id) ? 'Dihapus dari tersimpan' : 'Disimpan ke daftar tersimpan');
   };
 
   return (
@@ -136,7 +136,7 @@ export function ScholarshipDetailPage() {
       <main className="container max-w-4xl mx-auto px-4 py-8">
         <Button variant="ghost" className="mb-6 gap-2" onClick={() => navigate('/scholarships')}>
           <ArrowLeft className="w-4 h-4" />
-          Back to Scholarships
+          Kembali ke Daftar Beasiswa
         </Button>
 
         <Card className="mb-6">
@@ -144,14 +144,14 @@ export function ScholarshipDetailPage() {
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <h1 className="mb-3">{scholarship.title}</h1>
-                <p className="text-lg text-muted-foreground mb-4">{scholarship.provider?.name ?? 'Unknown Provider'}</p>
+                <p className="text-lg text-muted-foreground mb-4">{scholarship.provider?.name ?? 'Penyedia Tidak Diketahui'}</p>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="outline">{scholarship.level}</Badge>
                   {scholarship.type ? <Badge variant="secondary">{scholarship.type}</Badge> : null}
                   {scholarship.status === 'active' ? (
                     <Badge className="gap-1">
                       <CheckCircle className="w-3 h-3" />
-                      Verified
+                      Terverifikasi
                     </Badge>
                   ) : null}
                   <DeadlineBadge deadline={deadline} />
@@ -167,12 +167,12 @@ export function ScholarshipDetailPage() {
                   {isBookmarked(scholarship.id) ? (
                     <>
                       <BookmarkCheck className="w-5 h-5" />
-                      Bookmarked
+                      Tersimpan
                     </>
                   ) : (
                     <>
                       <Bookmark className="w-5 h-5" />
-                      Bookmark
+                      Simpan
                     </>
                   )}
                 </Button>
@@ -188,7 +188,7 @@ export function ScholarshipDetailPage() {
                   <MapPin className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Target Countries</p>
+                  <p className="text-sm text-muted-foreground">Negara Tujuan</p>
                   <p className="font-medium">{scholarship.targetCountries?.join(', ') || scholarship.provider?.country || '-'}</p>
                 </div>
               </div>
@@ -198,8 +198,8 @@ export function ScholarshipDetailPage() {
                   <GraduationCap className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Amount</p>
-                  <p className="font-medium">{scholarship.formattedAmount || 'Amount not specified'}</p>
+                  <p className="text-sm text-muted-foreground">Nominal</p>
+                  <p className="font-medium">{scholarship.formattedAmount || 'Nominal tidak disebutkan'}</p>
                 </div>
               </div>
 
@@ -208,10 +208,10 @@ export function ScholarshipDetailPage() {
                   <Calendar className={`w-5 h-5 ${daysUntilDeadline <= 30 ? 'text-red-600' : 'text-primary'}`} />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Deadline</p>
-                  <p className="font-medium">{deadline.toLocaleDateString()}</p>
+                  <p className="text-sm text-muted-foreground">Batas Akhir</p>
+                  <p className="font-medium">{deadline.toLocaleDateString('id-ID')}</p>
                   <p className="text-sm text-muted-foreground">
-                    {daysUntilDeadline > 0 ? `${daysUntilDeadline} days remaining` : 'Deadline passed'}
+                    {daysUntilDeadline > 0 ? `${daysUntilDeadline} hari lagi` : 'Batas akhir telah lewat'}
                   </p>
                 </div>
               </div>
@@ -220,12 +220,12 @@ export function ScholarshipDetailPage() {
             <Separator />
 
             <div>
-              <h3 className="mb-3">About This Scholarship</h3>
-              <p className="text-muted-foreground leading-relaxed">{scholarship.description || 'No description available.'}</p>
+              <h3 className="mb-3">Tentang Beasiswa Ini</h3>
+              <p className="text-muted-foreground leading-relaxed">{scholarship.description || 'Belum ada deskripsi.'}</p>
             </div>
 
             <div>
-              <h3 className="mb-3">Fields of Study</h3>
+              <h3 className="mb-3">Bidang Studi</h3>
               <div className="flex flex-wrap gap-2">
                 {(scholarship.fieldsOfStudy ?? []).map((field) => (
                   <Badge key={field} variant="outline">{field}</Badge>
@@ -236,7 +236,7 @@ export function ScholarshipDetailPage() {
             <Separator />
 
             <div>
-              <h3 className="mb-3">Requirements</h3>
+              <h3 className="mb-3">Persyaratan</h3>
               <ul className="space-y-2">
                 {(scholarship.requirements ?? []).map((req, index) => (
                   <li key={index} className="flex items-start gap-3">
@@ -248,7 +248,7 @@ export function ScholarshipDetailPage() {
             </div>
 
             <div>
-              <h3 className="mb-3">Benefits</h3>
+              <h3 className="mb-3">Manfaat</h3>
               <ul className="space-y-2">
                 {(scholarship.benefits ?? []).map((benefit, index) => (
                   <li key={index} className="flex items-start gap-3">
@@ -266,14 +266,14 @@ export function ScholarshipDetailPage() {
                 <Button asChild size="lg" className="flex-1">
                   <a href={scholarship.applicationUrl} target="_blank" rel="noopener noreferrer" className="gap-2">
                     <ExternalLink className="w-5 h-5" />
-                    Visit Application Page
+                    Kunjungi Halaman Pendaftaran
                   </a>
                 </Button>
               ) : null}
               <Link to="/timeline" className="flex-1">
                 <Button variant="outline" size="lg" className="w-full gap-2">
                   <Clock className="w-5 h-5" />
-                  View Preparation Timeline
+                  Lihat Timeline Persiapan
                 </Button>
               </Link>
             </div>
