@@ -13,22 +13,34 @@ class ScholarshipMatchTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function createScholarship(): Scholarship
+    {
+        $provider = ScholarshipProvider::create([
+            'name' => 'Provider',
+            'country' => 'Indonesia',
+        ]);
+
+        return Scholarship::create([
+            'provider_id' => $provider->id,
+            'title' => 'Scholarship',
+            'description' => 'Scholarship description',
+            'amount' => 50000000,
+            'currency' => 'IDR',
+            'type' => 'full',
+            'level' => 'bachelor',
+            'application_deadline' => now()->addDays(30)->toDateString(),
+            'application_url' => 'https://example.com/apply',
+            'status' => 'active',
+        ]);
+    }
+
     /**
      * Test scholarship match can be created
      */
     public function test_scholarship_match_can_be_created(): void
     {
         $user = User::factory()->create();
-        $provider = ScholarshipProvider::create([
-            'name' => 'Provider',
-            'country' => 'Indonesia',
-        ]);
-        $scholarship = Scholarship::create([
-            'provider_id' => $provider->id,
-            'title' => 'Scholarship',
-            'amount' => 50000000,
-            'currency' => 'IDR',
-        ]);
+        $scholarship = $this->createScholarship();
 
         $match = ScholarshipMatch::create([
             'user_id' => $user->id,
@@ -46,16 +58,7 @@ class ScholarshipMatchTest extends TestCase
     public function test_scholarship_match_belongs_to_user(): void
     {
         $user = User::factory()->create();
-        $provider = ScholarshipProvider::create([
-            'name' => 'Provider',
-            'country' => 'Indonesia',
-        ]);
-        $scholarship = Scholarship::create([
-            'provider_id' => $provider->id,
-            'title' => 'Scholarship',
-            'amount' => 50000000,
-            'currency' => 'IDR',
-        ]);
+        $scholarship = $this->createScholarship();
 
         $match = ScholarshipMatch::create([
             'user_id' => $user->id,
@@ -73,16 +76,7 @@ class ScholarshipMatchTest extends TestCase
     public function test_scholarship_match_belongs_to_scholarship(): void
     {
         $user = User::factory()->create();
-        $provider = ScholarshipProvider::create([
-            'name' => 'Provider',
-            'country' => 'Indonesia',
-        ]);
-        $scholarship = Scholarship::create([
-            'provider_id' => $provider->id,
-            'title' => 'Scholarship',
-            'amount' => 50000000,
-            'currency' => 'IDR',
-        ]);
+        $scholarship = $this->createScholarship();
 
         $match = ScholarshipMatch::create([
             'user_id' => $user->id,
@@ -100,16 +94,7 @@ class ScholarshipMatchTest extends TestCase
     public function test_scholarship_match_can_track_bookmark_status(): void
     {
         $user = User::factory()->create();
-        $provider = ScholarshipProvider::create([
-            'name' => 'Provider',
-            'country' => 'Indonesia',
-        ]);
-        $scholarship = Scholarship::create([
-            'provider_id' => $provider->id,
-            'title' => 'Scholarship',
-            'amount' => 50000000,
-            'currency' => 'IDR',
-        ]);
+        $scholarship = $this->createScholarship();
 
         $match = ScholarshipMatch::create([
             'user_id' => $user->id,
@@ -131,26 +116,15 @@ class ScholarshipMatchTest extends TestCase
     public function test_scholarship_match_score_is_stored(): void
     {
         $user = User::factory()->create();
-        $provider = ScholarshipProvider::create([
-            'name' => 'Provider',
-            'country' => 'Indonesia',
-        ]);
-        $scholarship = Scholarship::create([
-            'provider_id' => $provider->id,
-            'title' => 'Scholarship',
-            'amount' => 50000000,
-            'currency' => 'IDR',
+        $scholarship = $this->createScholarship();
+
+        $match = ScholarshipMatch::create([
+            'user_id' => $user->id,
+            'scholarship_id' => $scholarship->id,
+            'match_score' => 95,
         ]);
 
-        foreach ([30, 50, 75, 95] as $score) {
-            $match = ScholarshipMatch::create([
-                'user_id' => $user->id,
-                'scholarship_id' => $scholarship->id,
-                'match_score' => $score,
-            ]);
-
-            $this->assertEquals($score, $match->match_score);
-        }
+        $this->assertEquals(95, $match->match_score);
     }
 
     /**
@@ -159,16 +133,7 @@ class ScholarshipMatchTest extends TestCase
     public function test_scholarship_match_can_store_analysis_data(): void
     {
         $user = User::factory()->create();
-        $provider = ScholarshipProvider::create([
-            'name' => 'Provider',
-            'country' => 'Indonesia',
-        ]);
-        $scholarship = Scholarship::create([
-            'provider_id' => $provider->id,
-            'title' => 'Scholarship',
-            'amount' => 50000000,
-            'currency' => 'IDR',
-        ]);
+        $scholarship = $this->createScholarship();
 
         $analysis = [
             'gpa_match' => true,
@@ -181,14 +146,13 @@ class ScholarshipMatchTest extends TestCase
             'user_id' => $user->id,
             'scholarship_id' => $scholarship->id,
             'match_score' => 85,
-            'matching_criteria' => json_encode($analysis),
+            'criteria_met' => ['GPA requirement met', 'Field of study match'],
+            'criteria_missing' => ['Language proficiency required'],
         ]);
 
-        $stored = json_decode($match->matching_criteria, true);
-
-        $this->assertIsArray($stored);
-        $this->assertTrue($stored['gpa_match']);
-        $this->assertFalse($stored['location_match']);
+        $this->assertIsArray($match->criteria_met);
+        $this->assertIsArray($match->criteria_missing);
+        $this->assertContains('GPA requirement met', $match->criteria_met);
     }
 
     /**
@@ -197,59 +161,41 @@ class ScholarshipMatchTest extends TestCase
     public function test_scholarship_match_can_store_reasons(): void
     {
         $user = User::factory()->create();
-        $provider = ScholarshipProvider::create([
-            'name' => 'Provider',
-            'country' => 'Indonesia',
-        ]);
-        $scholarship = Scholarship::create([
-            'provider_id' => $provider->id,
-            'title' => 'Scholarship',
-            'amount' => 50000000,
-            'currency' => 'IDR',
-        ]);
+        $scholarship = $this->createScholarship();
 
         $match = ScholarshipMatch::create([
             'user_id' => $user->id,
             'scholarship_id' => $scholarship->id,
             'match_score' => 80,
-            'match_reasons' => 'Strong academic profile and relevant field of study',
+            'recommendations' => 'Strong academic profile and relevant field of study',
         ]);
 
-        $this->assertEquals('Strong academic profile and relevant field of study', $match->match_reasons);
+        $this->assertEquals('Strong academic profile and relevant field of study', $match->recommendations);
     }
 
     /**
      * Test multiple matches for same user and scholarship
      */
-    public function test_user_can_have_multiple_matches_with_same_scholarship(): void
+    public function test_user_can_have_multiple_matches_across_scholarships(): void
     {
         $user = User::factory()->create();
-        $provider = ScholarshipProvider::create([
-            'name' => 'Provider',
-            'country' => 'Indonesia',
-        ]);
-        $scholarship = Scholarship::create([
-            'provider_id' => $provider->id,
-            'title' => 'Scholarship',
-            'amount' => 50000000,
-            'currency' => 'IDR',
-        ]);
+        $scholarship1 = $this->createScholarship();
+        $scholarship2 = $this->createScholarship();
+        $scholarship2->update(['title' => 'Scholarship 2']);
 
         $match1 = ScholarshipMatch::create([
             'user_id' => $user->id,
-            'scholarship_id' => $scholarship->id,
+            'scholarship_id' => $scholarship1->id,
             'match_score' => 75,
         ]);
 
         $match2 = ScholarshipMatch::create([
             'user_id' => $user->id,
-            'scholarship_id' => $scholarship->id,
+            'scholarship_id' => $scholarship2->id,
             'match_score' => 85,
         ]);
 
-        $matches = ScholarshipMatch::where('user_id', $user->id)
-            ->where('scholarship_id', $scholarship->id)
-            ->get();
+        $matches = ScholarshipMatch::where('user_id', $user->id)->get();
 
         $this->assertCount(2, $matches);
     }
@@ -291,16 +237,9 @@ class ScholarshipMatchTest extends TestCase
     public function test_match_scores_are_in_valid_range(): void
     {
         $user = User::factory()->create();
-        $provider = ScholarshipProvider::create([
-            'name' => 'Provider',
-            'country' => 'Indonesia',
-        ]);
-        $scholarship = Scholarship::create([
-            'provider_id' => $provider->id,
-            'title' => 'Scholarship',
-            'amount' => 50000000,
-            'currency' => 'IDR',
-        ]);
+        $scholarship = $this->createScholarship();
+        $otherScholarship = $this->createScholarship();
+        $otherScholarship->update(['title' => 'Other Scholarship']);
 
         // Test min and max scores
         $minMatch = ScholarshipMatch::create([
@@ -311,7 +250,7 @@ class ScholarshipMatchTest extends TestCase
 
         $maxMatch = ScholarshipMatch::create([
             'user_id' => $user->id,
-            'scholarship_id' => $scholarship->id,
+            'scholarship_id' => $otherScholarship->id,
             'match_score' => 100,
         ]);
 

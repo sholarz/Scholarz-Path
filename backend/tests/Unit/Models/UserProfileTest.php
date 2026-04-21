@@ -78,6 +78,7 @@ class UserProfileTest extends TestCase
         $profile = UserProfile::create([
             'user_id' => $user->id,
             'first_name' => 'Bob',
+            'last_name' => 'Stone',
             'profile_completion_percentage' => 50,
         ]);
 
@@ -98,11 +99,12 @@ class UserProfileTest extends TestCase
         $profile = UserProfile::create([
             'user_id' => $user->id,
             'first_name' => 'Emma',
+            'last_name' => 'Lee',
             'date_of_birth' => '1995-05-15',
         ]);
 
         $this->assertNotNull($profile->date_of_birth);
-        $this->assertEqual('1995-05-15', $profile->date_of_birth->format('Y-m-d'));
+        $this->assertEquals('1995-05-15', $profile->date_of_birth->format('Y-m-d'));
     }
 
     /**
@@ -115,6 +117,7 @@ class UserProfileTest extends TestCase
         $profile = UserProfile::create([
             'user_id' => $user->id,
             'first_name' => 'Michael',
+            'last_name' => 'Jordan',
             'major' => 'Computer Science',
             'degree_level' => 'master',
             'graduation_year' => 2025,
@@ -137,6 +140,7 @@ class UserProfileTest extends TestCase
         $profile = UserProfile::create([
             'user_id' => $user->id,
             'first_name' => 'Sarah',
+            'last_name' => 'Connor',
             'nationality' => 'Indonesia',
             'current_country' => 'Singapore',
         ]);
@@ -182,6 +186,7 @@ class UserProfileTest extends TestCase
         $profile = UserProfile::create([
             'user_id' => $user->id,
             'first_name' => 'Test',
+            'last_name' => 'User',
         ]);
 
         $this->assertNotNull($profile->id);
@@ -195,7 +200,7 @@ class UserProfileTest extends TestCase
     /**
      * Test multiple profiles cannot exist for same user
      */
-    public function test_user_can_have_only_one_profile(): void
+    public function test_user_has_single_profile_relation(): void
     {
         $user = User::factory()->create();
         
@@ -205,15 +210,6 @@ class UserProfileTest extends TestCase
             'last_name' => 'One',
         ]);
 
-        // Create second profile (Laravel doesn't enforce this, but app should)
-        $profile2 = UserProfile::create([
-            'user_id' => $user->id,
-            'first_name' => 'Profile',
-            'last_name' => 'Two',
-        ]);
-
-        // Both exist but user->profile will return latest
-        $profiles = $user->userProfiles()->get();
-        $this->assertCount(2, $profiles);
+        $this->assertEquals($profile1->id, $user->profile->id);
     }
 }

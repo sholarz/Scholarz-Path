@@ -36,6 +36,18 @@ class ForumPost extends Model
         ];
     }
 
+    /**
+     * Ensure tags are properly serialized for database storage.
+     * This fixes SQLite JSON handling issues in tests.
+     */
+    public function setAttribute($key, $value)
+    {
+        if ($key === 'tags' && is_array($value)) {
+            $value = json_encode($value);
+        }
+        return parent::setAttribute($key, $value);
+    }
+
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'author_id');

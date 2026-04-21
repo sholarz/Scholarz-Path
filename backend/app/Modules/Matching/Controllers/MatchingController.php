@@ -3,12 +3,16 @@
 namespace App\Modules\Matching\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\MatchSearch;
 use App\Modules\Matching\Services\MatchingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class MatchingController extends Controller
 {
+    private const FREE_DAILY_MATCH_LIMIT = 1;
+    private const FREE_MAX_MATCH_RESULTS = 3;
+
     public function __construct(private MatchingService $matchingService) {}
 
     /**
@@ -29,6 +33,25 @@ class MatchingController extends Controller
 
         $user = $request->user();
 
+        $isPremiumOrAdmin = in_array($user->role, ['premium', 'admin'], true);
+        $todayUsage = MatchSearch::where('user_id', $user->id)
+            ->whereDate('created_at', now()->toDateString())
+            ->count();
+
+        if (!$isPremiumOrAdmin && $todayUsage >= self::FREE_DAILY_MATCH_LIMIT) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Free plan limit reached: you can run scholarship matching once per day. Upgrade to Premium for unlimited matching.',
+                'error' => [
+                    'code' => 'MATCHING_LIMIT_REACHED',
+                    'details' => [
+                        'daily_limit' => self::FREE_DAILY_MATCH_LIMIT,
+                        'used_today' => $todayUsage,
+                    ],
+                ],
+            ], 429);
+        }
+
         // Build criteria: prefer explicit request params, fallback to profile
         $profile = $user->profile;
         $criteria = [
@@ -44,9 +67,29 @@ class MatchingController extends Controller
         ];
 
         $matches = $this->matchingService->findMatches($user, $criteria);
+        if (!$isPremiumOrAdmin) {
+            $matches = array_slice($matches, 0, self::FREE_MAX_MATCH_RESULTS);
+        }
 
         // Log the search for history
         $this->matchingService->logMatchSearch($user, $criteria, count($matches));
+
+        $missingProfileFields = [];
+        if (!$profile?->gpa) {
+            $missingProfileFields[] = 'gpa';
+        }
+        if (!$profile?->field_of_study && !$profile?->major) {
+            $missingProfileFields[] = 'field_of_study';
+        }
+        if (!$profile?->degree_level) {
+            $missingProfileFields[] = 'degree_level';
+        }
+        if (!$profile?->nationality) {
+            $missingProfileFields[] = 'nationality';
+        }
+        if (!$profile?->current_country) {
+            $missingProfileFields[] = 'current_country';
+        }
 
         return response()->json([
             'success' => true,
@@ -54,8 +97,18 @@ class MatchingController extends Controller
                 'matches'        => $matches,
                 'total_matched'  => count($matches),
                 'criteria_used'  => $criteria,
+                'usage'          => [
+                    'is_premium' => $isPremiumOrAdmin,
+                    'daily_limit' => $isPremiumOrAdmin ? null : self::FREE_DAILY_MATCH_LIMIT,
+                    'used_today' => $todayUsage + 1,
+                    'remaining_today' => $isPremiumOrAdmin ? null : max(0, self::FREE_DAILY_MATCH_LIMIT - ($todayUsage + 1)),
+                    'result_limit' => $isPremiumOrAdmin ? null : self::FREE_MAX_MATCH_RESULTS,
+                ],
+                'missing_profile_fields' => $missingProfileFields,
             ],
-            'message' => count($matches) . ' scholarship(s) matched your profile.',
+            'message' => count($matches) > 0
+                ? count($matches) . ' scholarship(s) matched your profile.'
+                : 'No eligible scholarships found with your current profile and criteria.',
         ]);
     }
 

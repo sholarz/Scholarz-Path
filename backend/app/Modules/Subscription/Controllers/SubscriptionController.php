@@ -65,7 +65,7 @@ class SubscriptionController extends Controller
                 ? 'Pembayaran Anda telah diverifikasi admin. Akun Anda sekarang Premium.'
                 : ('Pembayaran Anda ditolak admin. ' . ($adminNote ?: 'Silakan kirim ulang bukti pembayaran yang valid.')),
             'is_read' => false,
-            'link' => '/subscription-snapshot-demo',
+            'link' => '/subscription-snapshot',
             'action_by' => $actionBy,
             'metadata' => json_encode([
                 'subscription_id' => $subscription->id,

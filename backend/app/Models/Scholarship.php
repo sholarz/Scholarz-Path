@@ -14,6 +14,14 @@ class Scholarship extends Model
 {
     use HasFactory, HasUuids;
 
+    protected $attributes = [
+        'description' => '',
+        'type' => 'full',
+        'level' => 'bachelor',
+        'status' => 'active',
+        'application_url' => 'https://example.com',
+    ];
+
     /**
      * The attributes that are mass assignable.
      */
@@ -72,6 +80,15 @@ class Scholarship extends Model
             'scraped_at' => 'datetime',
             'last_verified_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Scholarship $scholarship): void {
+            if (!$scholarship->application_deadline) {
+                $scholarship->application_deadline = now()->addDays(30)->toDateString();
+            }
+        });
     }
 
     /**

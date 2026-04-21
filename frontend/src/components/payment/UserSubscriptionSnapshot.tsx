@@ -7,32 +7,49 @@ interface UserSubscriptionSnapshotProps {
   targetUserRole?: 'free' | 'premium';
   scholarshipId?: string;
   isAdminView?: boolean;
+  snapshot?: {
+    role: 'free' | 'premium';
+    activeUntil?: string | null;
+    hasPaidBefore: boolean;
+    lastPaymentDate?: string | null;
+    paymentMethodName?: string | null;
+    hasPaidForThisScholarship?: boolean;
+  };
 }
 
 export function UserSubscriptionSnapshot({ 
   targetUserId,
   targetUserRole,
   scholarshipId,
-  isAdminView = false 
+  isAdminView = false,
+  snapshot,
 }: UserSubscriptionSnapshotProps) {
   const { user } = useAuth();
   const { paymentHistory, hasPaidForScholarship } = usePayment();
 
-  const displayRole = isAdminView && targetUserRole ? targetUserRole : user?.role || 'free';
+  const displayRole = snapshot?.role || (isAdminView && targetUserRole ? targetUserRole : user?.role || 'free');
   const isPremium = displayRole === 'premium';
   
-  const hasPaidBefore = paymentHistory.length > 0;
+  const hasPaidBefore = snapshot?.hasPaidBefore ?? paymentHistory.length > 0;
   const lastPayment = paymentHistory[paymentHistory.length - 1];
-  const hasPaidForThisScholarship = scholarshipId ? hasPaidForScholarship(scholarshipId) : false;
+  const hasPaidForThisScholarship = snapshot?.hasPaidForThisScholarship ?? (scholarshipId ? hasPaidForScholarship(scholarshipId) : false);
   
-  const premiumActiveUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const premiumActiveUntil = snapshot?.activeUntil
+    ? new Date(snapshot.activeUntil)
+    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   const formattedActiveDate = premiumActiveUntil.toLocaleDateString('en-US', {
     day: 'numeric',
     month: 'short',
     year: 'numeric'
   });
 
-  const lastPaymentDate = lastPayment 
+  const lastPaymentDate = snapshot?.lastPaymentDate
+    ? new Date(snapshot.lastPaymentDate).toLocaleDateString('en-US', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      })
+    : lastPayment 
     ? new Date(lastPayment.timestamp).toLocaleDateString('en-US', {
         day: 'numeric',
         month: 'short',
@@ -40,7 +57,7 @@ export function UserSubscriptionSnapshot({
       })
     : null;
 
-  const paymentMethodName = lastPayment?.methodDetails || 'Unknown method';
+  const paymentMethodName = snapshot?.paymentMethodName || lastPayment?.methodDetails || 'Unknown method';
 
   return (
     <div 

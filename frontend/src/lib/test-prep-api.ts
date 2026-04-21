@@ -69,6 +69,34 @@ export type TestSubmitResult = {
   reviewAnswers: TestReviewAnswer[];
 };
 
+export type TestHistorySummary = {
+  total_attempts: number;
+  passed_attempts: number;
+  best_score: number;
+  last_score: number | null;
+  last_submitted_at: string | null;
+};
+
+export type TestHistoryAttempt = {
+  session_id: string;
+  test_id: string;
+  test_title: string;
+  category: string;
+  difficulty: TestDifficulty;
+  access_level: 'free' | 'premium';
+  score: number;
+  passed: boolean;
+  correct_answers: number;
+  total_questions: number;
+  time_taken_seconds: number | null;
+  submitted_at: string | null;
+};
+
+export type TestHistoryResponse = {
+  summary: TestHistorySummary;
+  attempts: TestHistoryAttempt[];
+};
+
 const API_BASE_URL = ((import.meta as ImportMeta & {
   env?: { VITE_API_BASE_URL?: string };
 }).env?.VITE_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
@@ -161,6 +189,24 @@ export const submitTest = async (
   const payload = (await response.json()) as ApiEnvelope<TestSubmitResult>;
   if (!payload.data) {
     throw new Error('Submit response is unavailable');
+  }
+
+  return payload.data;
+};
+
+export const getTestHistory = async (): Promise<TestHistoryResponse> => {
+  const response = await fetch(`${API_BASE_URL}/tests/history`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  const payload = (await response.json()) as ApiEnvelope<TestHistoryResponse>;
+  if (!payload.data) {
+    throw new Error('Test history is unavailable');
   }
 
   return payload.data;

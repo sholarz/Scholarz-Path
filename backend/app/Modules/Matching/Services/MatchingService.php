@@ -44,6 +44,7 @@ class MatchingService
                         'level' => $scholarship->level
                     ],
                     'match_score' => round($matchResult['match_score'], 1),
+                    'score_breakdown' => $matchResult['score_breakdown'],
                     'criteria_met' => $matchResult['criteria_met'],
                     'criteria_missing' => $matchResult['criteria_missing'],
                     'recommendations' => $this->generateRecommendations($matchResult)
@@ -69,6 +70,7 @@ class MatchingService
         $maxPoints = 0;
         $criteriaMet = [];
         $criteriaMissing = [];
+        $scoreBreakdown = [];
 
         // GPA Matching (20 points)
         $maxPoints += 20;
@@ -78,8 +80,10 @@ class MatchingService
         if ($gpaMeetsMinimum) {
             $score += 20;
             $criteriaMet[] = "GPA requirement met";
+            $scoreBreakdown['gpa'] = ['points' => 20, 'max' => 20, 'met' => true, 'reason' => 'GPA requirement met'];
         } else {
             $criteriaMissing[] = "GPA requirement not met";
+            $scoreBreakdown['gpa'] = ['points' => 0, 'max' => 20, 'met' => false, 'reason' => 'GPA requirement not met'];
         }
 
         // Field of Study Matching (25 points)
@@ -87,8 +91,10 @@ class MatchingService
         if ($this->matchesFieldOfStudy($criteria['major'], $scholarship->fields_of_study)) {
             $score += 25;
             $criteriaMet[] = "Field of study match";
+            $scoreBreakdown['field_of_study'] = ['points' => 25, 'max' => 25, 'met' => true, 'reason' => 'Field of study match'];
         } else {
             $criteriaMissing[] = "Field of study alignment";
+            $scoreBreakdown['field_of_study'] = ['points' => 0, 'max' => 25, 'met' => false, 'reason' => 'Field of study alignment missing'];
         }
 
         // Degree Level Matching (20 points)
@@ -96,12 +102,15 @@ class MatchingService
         if ($this->matchesAcademicTrack(
             $criteria['degree_level'] ?? 'bachelor',
             $scholarship->target_level,
-            $scholarship->degree_level
+            $scholarship->degree_level,
+            $scholarship->level
         )) {
             $score += 20;
             $criteriaMet[] = "Academic level pathway match";
+            $scoreBreakdown['degree_level'] = ['points' => 20, 'max' => 20, 'met' => true, 'reason' => 'Academic level pathway match'];
         } else {
             $criteriaMissing[] = "Academic level pathway mismatch";
+            $scoreBreakdown['degree_level'] = ['points' => 0, 'max' => 20, 'met' => false, 'reason' => 'Academic level pathway mismatch'];
         }
 
         // Country/Nationality Matching (15 points)
@@ -110,8 +119,10 @@ class MatchingService
         if ($countryMatch['eligible']) {
             $score += 15;
             $criteriaMet[] = $countryMatch['reason'];
+            $scoreBreakdown['geography'] = ['points' => 15, 'max' => 15, 'met' => true, 'reason' => $countryMatch['reason']];
         } else {
             $criteriaMissing[] = $countryMatch['reason'];
+            $scoreBreakdown['geography'] = ['points' => 0, 'max' => 15, 'met' => false, 'reason' => $countryMatch['reason']];
         }
 
         // Language Requirements (10 points)
@@ -120,8 +131,10 @@ class MatchingService
         if ($languageMatch['met']) {
             $score += 10;
             $criteriaMet[] = "Language requirement met";
+            $scoreBreakdown['language'] = ['points' => 10, 'max' => 10, 'met' => true, 'reason' => 'Language requirement met'];
         } else {
             $criteriaMissing[] = $languageMatch['missing'];
+            $scoreBreakdown['language'] = ['points' => 0, 'max' => 10, 'met' => false, 'reason' => $languageMatch['missing']];
         }
 
         // Deadline Proximity Bonus (10 points)
@@ -131,6 +144,12 @@ class MatchingService
         if ($deadlineScore > 5) {
             $criteriaMet[] = "Application deadline is manageable";
         }
+        $scoreBreakdown['deadline_feasibility'] = [
+            'points' => $deadlineScore,
+            'max' => 10,
+            'met' => $deadlineScore > 0,
+            'reason' => $deadlineScore > 5 ? 'Application deadline is manageable' : 'Deadline is very close',
+        ];
 
         $matchScore = ($score / $maxPoints) * 100;
 
@@ -139,15 +158,27 @@ class MatchingService
             'criteria_met' => $criteriaMet,
             'criteria_missing' => $criteriaMissing,
             'raw_score' => $score,
-            'max_points' => $maxPoints
+            'max_points' => $maxPoints,
+            'score_breakdown' => $scoreBreakdown,
         ];
     }
 
     /**
      * Check if user's major matches scholarship's field requirements
      */
-    private function matchesFieldOfStudy(?string $userMajor, ?array $scholarshipFields): bool
+    private function matchesFieldOfStudy(?string $userMajor, mixed $scholarshipFields): bool
     {
+        if (is_string($scholarshipFields)) {
+            $decoded = json_decode($scholarshipFields, true);
+            if (is_array($decoded)) {
+                $scholarshipFields = $decoded;
+            }
+        }
+
+        if (!is_array($scholarshipFields)) {
+            $scholarshipFields = [];
+        }
+
         if (!$scholarshipFields || empty($scholarshipFields)) {
             return true; // No specific requirement
         }
@@ -172,11 +203,16 @@ class MatchingService
     /**
      * Check degree level compatibility
      */
-    private function matchesAcademicTrack(string $userLevel, ?string $targetLevel, ?string $degreeLevel): bool
+    private function matchesAcademicTrack(string $userLevel, ?string $targetLevel, ?string $degreeLevel, ?string $fallbackLevel = null): bool
     {
         $normalizedUserLevel = $this->normalizeAcademicLevel($userLevel);
-        if (!$normalizedUserLevel || !$targetLevel || !$degreeLevel) {
+        if (!$normalizedUserLevel) {
             return false;
+        }
+
+        if (!$targetLevel || !$degreeLevel) {
+            $normalizedFallback = $this->normalizeAcademicLevel((string) $fallbackLevel);
+            return $normalizedFallback ? $normalizedUserLevel === $normalizedFallback : true;
         }
 
         $levelRank = [
@@ -239,8 +275,19 @@ class MatchingService
     /**
      * Check language requirements
      */
-    private function matchesLanguageRequirements(array $userLanguages, ?array $requiredLanguages): array
+    private function matchesLanguageRequirements(array $userLanguages, mixed $requiredLanguages): array
     {
+        if (is_string($requiredLanguages)) {
+            $decoded = json_decode($requiredLanguages, true);
+            if (is_array($decoded)) {
+                $requiredLanguages = $decoded;
+            }
+        }
+
+        if (!is_array($requiredLanguages)) {
+            $requiredLanguages = [];
+        }
+
         if (!$requiredLanguages || empty($requiredLanguages)) {
             return ['met' => true];
         }

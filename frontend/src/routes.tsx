@@ -19,7 +19,6 @@ import { ForumPage } from "./components/forum/ForumPage";
 import { CreatePostPage } from "./components/forum/CreatePostPage";
 import { PostDetailPage } from "./components/forum/PostDetailPage";
 import { AdminReportsPage } from "./components/forum/AdminReportsPage";
-import { AdminPendingPostsPage } from "./components/forum/AdminPendingPostsPage";
 import { NotificationsPage } from "./components/notifications/NotificationsPage";
 import { AdminPaymentManagementPage } from "./components/payment/AdminPaymentManagementPage";
 import { AdminPaymentPage } from "./components/admin/AdminPaymentPage";
@@ -131,14 +130,6 @@ export const router = createBrowserRouter([
         )
       },
       {
-        path: "forum/pending",
-        element: (
-          <ProtectedRoute>
-            <AdminPendingPostsPage />
-          </ProtectedRoute>
-        )
-      },
-      {
         path: "notifications",
         element: (
           <ProtectedRoute>
@@ -163,10 +154,39 @@ export const router = createBrowserRouter([
         )
       },
       { path: "admin/payment-verification-demo", Component: AdminPaymentVerificationDemo },
-      { path: "admin/dashboard", Component: AdminDashboardPage },
-      { path: "admin/users", Component: AdminUsersPage },
-      { path: "admin/settings", Component: AdminSettingsPage },
-      { path: "admin/scholarships", Component: AdminScholarshipsPage },
+      {
+        path: "admin/dashboard",
+        element: (
+          <AdminRoute>
+            <AdminDashboardPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "admin/users",
+        element: (
+          <AdminRoute>
+            <AdminUsersPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "admin/settings",
+        element: (
+          <AdminRoute>
+            <AdminSettingsPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "admin/scholarships",
+        element: (
+          <AdminRoute>
+            <AdminScholarshipsPage />
+          </AdminRoute>
+        ),
+      },
+      { path: "subscription-snapshot", Component: SubscriptionSnapshotDemo },
       { path: "subscription-snapshot-demo", Component: SubscriptionSnapshotDemo },
       { path: "*", Component: NotFoundPage },
     ],

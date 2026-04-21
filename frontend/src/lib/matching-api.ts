@@ -30,6 +30,7 @@ export interface ScholarshipMatch {
     provider?: { name: string; logoUrl?: string | null } | null;
   };
   matchScore: number;
+  scoreBreakdown?: Record<string, { points: number; max: number; met: boolean; reason: string }>;
   criteriaMet: string[];
   criteriaMissing: string[];
   recommendations: string;
@@ -39,6 +40,14 @@ export interface MatchResultsResponse {
   matches: ScholarshipMatch[];
   totalMatched: number;
   criteriaUsed: MatchCriteria;
+  usage?: {
+    isPremium: boolean;
+    dailyLimit: number | null;
+    usedToday: number;
+    remainingToday: number | null;
+    resultLimit: number | null;
+  };
+  missingProfileFields?: string[];
 }
 
 export interface MatchHistoryEntry {
@@ -88,12 +97,21 @@ export async function performMatching(
     matches: Array<{
       scholarship: Record<string, unknown>;
       match_score: number;
+      score_breakdown?: Record<string, { points: number; max: number; met: boolean; reason: string }>;
       criteria_met: string[];
       criteria_missing: string[];
       recommendations: string;
     }>;
     total_matched: number;
     criteria_used: Record<string, unknown>;
+    usage?: {
+      is_premium: boolean;
+      daily_limit: number | null;
+      used_today: number;
+      remaining_today: number | null;
+      result_limit: number | null;
+    };
+    missing_profile_fields?: string[];
   }>('/scholarships/match', payload);
 
   // Normalize response keys
@@ -101,12 +119,23 @@ export async function performMatching(
     matches: raw.matches.map(m => ({
       scholarship: m.scholarship as unknown as ScholarshipMatch['scholarship'],
       matchScore: m.match_score,
+      scoreBreakdown: m.score_breakdown,
       criteriaMet: m.criteria_met,
       criteriaMissing: m.criteria_missing,
       recommendations: m.recommendations,
     })),
     totalMatched: raw.total_matched,
-    criteriaUsed: criteria,
+    criteriaUsed: (raw.criteria_used ?? criteria) as MatchCriteria,
+    usage: raw.usage
+      ? {
+          isPremium: raw.usage.is_premium,
+          dailyLimit: raw.usage.daily_limit,
+          usedToday: raw.usage.used_today,
+          remainingToday: raw.usage.remaining_today,
+          resultLimit: raw.usage.result_limit,
+        }
+      : undefined,
+    missingProfileFields: raw.missing_profile_fields ?? [],
   };
 }
 

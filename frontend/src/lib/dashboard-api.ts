@@ -54,6 +54,7 @@ export interface DashboardData {
   activeTasks: DashboardTask[];
   activeRoadmaps: DashboardRoadmap[];
   activeRoadmapCount: number;
+  activeNotificationsCount: number;
 }
 
 // ─────────────────────────────────────────
@@ -109,6 +110,7 @@ function normalizeDashboard(raw: Record<string, unknown>): DashboardData {
       daysUntilDeadline: (r.days_until_deadline ?? 0) as number,
     })),
     activeRoadmapCount: (raw.active_roadmap_count as number) ?? 0,
+    activeNotificationsCount: (raw.active_notifications_count as number) ?? 0,
   };
 }
 

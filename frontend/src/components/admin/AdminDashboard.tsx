@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   Users, 
-  FileText, 
   MessageSquare, 
   CreditCard, 
   AlertTriangle,
-  TrendingUp,
-  Calendar,
   Award,
   Activity,
   ArrowLeft
@@ -14,6 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';
 import { Link } from 'react-router';
+import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../../lib/auth-context';
 import { getAdminDashboardStats, type AdminDashboardStats } from '../../lib/admin-api';
 
@@ -23,44 +21,6 @@ interface DashboardStat {
   icon: any;
   color: string;
 }
-
-interface QuickAction {
-  title: string;
-  description: string;
-  icon: any;
-  href: string;
-  badge?: number;
-}
-
-const QUICK_ACTIONS: QuickAction[] = [
-  {
-    title: 'Payment Verification',
-    description: 'Review pending payment submissions',
-    icon: CreditCard,
-    href: '/admin/payments',
-    badge: 12,
-  },
-  {
-    title: 'User Reports',
-    description: 'Moderate reported content',
-    icon: AlertTriangle,
-    href: '/forum/reports',
-    badge: 8,
-  },
-  {
-    title: 'Pending Posts',
-    description: 'Review posts awaiting approval',
-    icon: FileText,
-    href: '/forum/pending',
-    badge: 5,
-  },
-  {
-    title: 'Subscription Monitor',
-    description: 'View subscription analytics',
-    icon: Activity,
-    href: '/subscription-snapshot-demo',
-  },
-];
 
 export function AdminDashboard() {
   const { user } = useAuth();
@@ -128,18 +88,14 @@ export function AdminDashboard() {
       badge: stats?.reports.open ?? undefined,
     },
     {
-      title: 'Pending Posts',
-      description: 'Review posts awaiting approval',
-      icon: FileText,
-      href: '/forum/pending',
-    },
-    {
       title: 'Subscription Monitor',
       description: 'View subscription analytics',
       icon: Activity,
-      href: '/subscription-snapshot-demo',
+      href: '/subscription-snapshot',
     },
   ];
+
+  const recentActivity = stats?.recent_activity ?? [];
 
   return (
     <div className="space-y-8">
@@ -235,32 +191,37 @@ export function AdminDashboard() {
         <h2 className="text-xl font-bold text-[#2f4156] mb-4">Recent Activity</h2>
         <Card className="rounded-2xl border border-gray-200">
           <CardContent className="pt-6">
-            <div className="space-y-4">
-              <ActivityItem
-                icon={Users}
-                title="New user registration"
-                description="Siti Nurhaliza joined as Free User"
-                time="5 minutes ago"
-              />
-              <ActivityItem
-                icon={CreditCard}
-                title="Payment submitted"
-                description="Budi Santoso submitted payment proof (Rp 49,000)"
-                time="12 minutes ago"
-              />
-              <ActivityItem
-                icon={MessageSquare}
-                title="New forum post"
-                description="Ahmad Fauzi created a post about LPDP scholarship"
-                time="1 hour ago"
-              />
-              <ActivityItem
-                icon={AlertTriangle}
-                title="Content reported"
-                description="User reported a post for spam"
-                time="2 hours ago"
-              />
-            </div>
+            {isLoading ? (
+              <p className="text-sm text-gray-500">Loading recent activity...</p>
+            ) : recentActivity.length === 0 ? (
+              <p className="text-sm text-gray-500">No recent activity yet.</p>
+            ) : (
+              <div className="space-y-4">
+                {recentActivity.map((entry, index) => {
+                  const iconMap: Record<string, any> = {
+                    user: Users,
+                    payment: CreditCard,
+                    forum: MessageSquare,
+                    report: AlertTriangle,
+                  };
+
+                  const Icon = iconMap[entry.type] || Activity;
+                  const time = entry.timestamp
+                    ? formatDistanceToNow(new Date(entry.timestamp), { addSuffix: true })
+                    : 'just now';
+
+                  return (
+                    <ActivityItem
+                      key={`${entry.type}-${entry.timestamp}-${index}`}
+                      icon={Icon}
+                      title={entry.title}
+                      description={entry.description}
+                      time={time}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

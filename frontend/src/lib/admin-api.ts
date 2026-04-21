@@ -32,6 +32,12 @@ export type AdminDashboardStats = {
     open: number;
     resolved: number;
   };
+  recent_activity?: Array<{
+    type: 'user' | 'payment' | 'forum' | 'report' | string;
+    title: string;
+    description: string;
+    timestamp: string;
+  }>;
 };
 
 export type AdminUser = {
@@ -148,6 +154,11 @@ const requestJson = async <T>(path: string, init: RequestInit = {}): Promise<T> 
       ...(init.headers || {}),
     },
   });
+
+  if (response.status === 401) {
+    window.dispatchEvent(new CustomEvent('api:unauthorized'));
+    throw new Error('Session expired. Please log in again.');
+  }
 
   if (!response.ok) {
     throw new Error(await readErrorMessage(response));
