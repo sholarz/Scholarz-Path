@@ -186,9 +186,9 @@ export function PaymentQueueTable({ onViewDetails }: PaymentQueueTableProps) {
       rejected: 'bg-red-100 text-red-800 border-red-200',
     };
     const labels = {
-      pending: 'Pending',
-      approved: 'Approved',
-      rejected: 'Rejected',
+      pending: 'Menunggu',
+      approved: 'Disetujui',
+      rejected: 'Ditolak',
     };
     return (
       <Badge variant="outline" className={styles[status]}>
@@ -198,14 +198,14 @@ export function PaymentQueueTable({ onViewDetails }: PaymentQueueTableProps) {
   };
 
   const getPlanLabel = (plan: Payment['plan']) => {
-    return plan === 'premium-monthly' ? 'Premium Monthly' : 'Premium Yearly';
+    return plan === 'premium-monthly' ? 'Premium Bulanan' : 'Premium Tahunan';
   };
 
   const getMethodLabel = (method: Payment['paymentMethod']) => {
     const labels = {
-      'bank-transfer': 'Bank Transfer',
+      'bank-transfer': 'Transfer Bank',
       'e-wallet': 'E-Wallet',
-      'retail': 'Retail',
+      'retail': 'Gerai Ritel',
     };
     return labels[method];
   };
@@ -240,7 +240,7 @@ export function PaymentQueueTable({ onViewDetails }: PaymentQueueTableProps) {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Search by name, email, or reference..."
+                placeholder="Cari berdasarkan nama, email, atau referensi..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -255,10 +255,10 @@ export function PaymentQueueTable({ onViewDetails }: PaymentQueueTableProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="all">Semua Status</SelectItem>
+                  <SelectItem value="pending">Menunggu</SelectItem>
+                  <SelectItem value="approved">Disetujui</SelectItem>
+                  <SelectItem value="rejected">Ditolak</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -267,10 +267,10 @@ export function PaymentQueueTable({ onViewDetails }: PaymentQueueTableProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Methods</SelectItem>
-                  <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="all">Semua Metode</SelectItem>
+                  <SelectItem value="bank-transfer">Transfer Bank</SelectItem>
                   <SelectItem value="e-wallet">E-Wallet</SelectItem>
-                  <SelectItem value="retail">Retail</SelectItem>
+                  <SelectItem value="retail">Gerai Ritel</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -280,16 +280,16 @@ export function PaymentQueueTable({ onViewDetails }: PaymentQueueTableProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Time</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="yesterday">Yesterday</SelectItem>
-                  <SelectItem value="week">Last 7 Days</SelectItem>
+                  <SelectItem value="all">Semua Waktu</SelectItem>
+                  <SelectItem value="today">Hari Ini</SelectItem>
+                  <SelectItem value="yesterday">Kemarin</SelectItem>
+                  <SelectItem value="week">7 Hari Terakhir</SelectItem>
                 </SelectContent>
               </Select>
 
               <Button variant="outline" onClick={handleRefresh}>
                 <Download className="h-4 w-4 mr-2" />
-                Export
+                Ekspor
               </Button>
             </div>
           </div>
@@ -300,9 +300,9 @@ export function PaymentQueueTable({ onViewDetails }: PaymentQueueTableProps) {
           <div className="w-16 h-16 bg-[#f5efeb] rounded-full flex items-center justify-center mb-4">
             <FileX className="h-8 w-8 text-[#567c8d]" />
           </div>
-          <h3 className="text-lg font-semibold text-[#2f4156] mb-2">No payments found</h3>
+          <h3 className="text-lg font-semibold text-[#2f4156] mb-2">Tidak ada pembayaran ditemukan</h3>
           <p className="text-gray-500 text-center max-w-md">
-            Try adjusting your search or filter criteria to find what you're looking for.
+            Coba ubah kata kunci pencarian atau filter untuk menemukan data.
           </p>
           <Button
             variant="outline"
@@ -314,7 +314,7 @@ export function PaymentQueueTable({ onViewDetails }: PaymentQueueTableProps) {
             }}
             className="mt-4"
           >
-            Clear Filters
+            Hapus Filter
           </Button>
         </div>
       </div>
@@ -330,7 +330,7 @@ export function PaymentQueueTable({ onViewDetails }: PaymentQueueTableProps) {
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search by name, email, or reference..."
+              placeholder="Cari berdasarkan nama, email, atau referensi..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -345,10 +345,10 @@ export function PaymentQueueTable({ onViewDetails }: PaymentQueueTableProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="pending">Menunggu</SelectItem>
+                <SelectItem value="approved">Disetujui</SelectItem>
+                <SelectItem value="rejected">Ditolak</SelectItem>
               </SelectContent>
             </Select>
 
@@ -357,10 +357,10 @@ export function PaymentQueueTable({ onViewDetails }: PaymentQueueTableProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Methods</SelectItem>
-                <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                <SelectItem value="all">Semua Metode</SelectItem>
+                <SelectItem value="bank-transfer">Transfer Bank</SelectItem>
                 <SelectItem value="e-wallet">E-Wallet</SelectItem>
-                <SelectItem value="retail">Retail</SelectItem>
+                <SelectItem value="retail">Gerai Ritel</SelectItem>
               </SelectContent>
             </Select>
 
@@ -370,16 +370,16 @@ export function PaymentQueueTable({ onViewDetails }: PaymentQueueTableProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Time</SelectItem>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="yesterday">Yesterday</SelectItem>
-                <SelectItem value="week">Last 7 Days</SelectItem>
+                <SelectItem value="all">Semua Waktu</SelectItem>
+                <SelectItem value="today">Hari Ini</SelectItem>
+                <SelectItem value="yesterday">Kemarin</SelectItem>
+                <SelectItem value="week">7 Hari Terakhir</SelectItem>
               </SelectContent>
             </Select>
 
             <Button variant="outline" onClick={handleRefresh}>
               <Download className="h-4 w-4 mr-2" />
-              Export
+              Ekspor
             </Button>
           </div>
         </div>
@@ -389,7 +389,7 @@ export function PaymentQueueTable({ onViewDetails }: PaymentQueueTableProps) {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16 px-4">
           <Loader2 className="h-8 w-8 text-[#567c8d] animate-spin mb-4" />
-          <p className="text-gray-500">Loading payments...</p>
+          <p className="text-gray-500">Memuat pembayaran...</p>
         </div>
       ) : (
         <>

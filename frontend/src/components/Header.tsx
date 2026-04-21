@@ -29,11 +29,11 @@ export function Header() {
 
   const navigationItems = isAuthenticated
     ? [
-        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-        { name: 'Scholarships', href: '/scholarships', icon: Search },
-        { name: 'Calendar', href: '/calendar', icon: Calendar },
-        { name: 'Bookmarks', href: '/bookmarks', icon: Bookmark },
-        { name: 'Test Prep', href: '/tests', icon: BookOpen },
+        { name: 'Dasbor', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'Beasiswa', href: '/scholarships', icon: Search },
+        { name: 'Kalender', href: '/calendar', icon: Calendar },
+        { name: 'Tersimpan', href: '/bookmarks', icon: Bookmark },
+        { name: 'Persiapan Tes', href: '/tests', icon: BookOpen },
         { name: 'Forum', href: '/forum', icon: MessageCircle },
       ]
     : [];
@@ -102,25 +102,25 @@ export function Header() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
                     <UserCircle className="w-4 h-4 mr-2" />
-                    Profile
+                    Profil
                   </DropdownMenuItem>
                   {user?.role === 'admin' && (
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => navigate('/admin/dashboard')} className="cursor-pointer">
                         <LayoutDashboard className="w-4 h-4 mr-2" />
-                        Admin Dashboard
+                        Dasbor Admin
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => navigate('/admin/payments')} className="cursor-pointer">
                         <Shield className="w-4 h-4 mr-2" />
-                        Payment Verification
+                        Verifikasi Pembayaran
                       </DropdownMenuItem>
                     </>
                   )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                     <LogOut className="w-4 h-4 mr-2" />
-                    Logout
+                    Keluar
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -151,7 +151,7 @@ export function Header() {
                     <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
                       <Button variant="ghost" className="w-full justify-start gap-2">
                         <UserCircle className="w-4 h-4" />
-                        Profile
+                        Profil
                       </Button>
                     </Link>
 
@@ -161,13 +161,13 @@ export function Header() {
                         <Link to="/admin/dashboard" onClick={() => setMobileMenuOpen(false)}>
                           <Button variant="ghost" className="w-full justify-start gap-2">
                             <LayoutDashboard className="w-4 h-4" />
-                            Admin Dashboard
+                            Dasbor Admin
                           </Button>
                         </Link>
                         <Link to="/admin/payments" onClick={() => setMobileMenuOpen(false)}>
                           <Button variant="ghost" className="w-full justify-start gap-2">
                             <Shield className="w-4 h-4" />
-                            Payment Verification
+                            Verifikasi Pembayaran
                           </Button>
                         </Link>
                       </>
@@ -185,7 +185,7 @@ export function Header() {
                           className="w-full justify-start gap-2 border-yellow-400 text-yellow-600"
                         >
                           <Crown className="w-4 h-4" />
-                          Upgrade to Premium
+                          Upgrade ke Premium
                         </Button>
                       </>
                     )}
@@ -196,10 +196,10 @@ export function Header() {
           ) : (
             <>
               <Link to="/login" className="hidden sm:block">
-                <Button variant="ghost">Login</Button>
+                <Button variant="ghost">Masuk</Button>
               </Link>
               <Link to="/signup">
-                <Button>Get Started</Button>
+                <Button>Mulai</Button>
               </Link>
             </>
           )}

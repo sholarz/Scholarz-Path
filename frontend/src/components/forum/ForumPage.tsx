@@ -65,15 +65,15 @@ export function ForumPage() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 ml-2">
             <div>
-              <h1 className="text-2xl font-bold mb-1">Community Forum</h1>
+              <h1 className="text-2xl font-bold mb-1">Forum Komunitas</h1>
               <p className="text-muted-foreground text-sm">
-                Share experiences and discuss scholarships
+                Berbagi pengalaman dan diskusi seputar beasiswa di Indonesia
               </p>
             </div>
             <Link to="/forum/create">
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
-                Create Post
+                Buat Postingan
               </Button>
             </Link>
           </div>
@@ -88,7 +88,7 @@ export function ForumPage() {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search posts, topics, or tags..."
+                      placeholder="Cari postingan, topik, atau tag..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10"
@@ -99,7 +99,7 @@ export function ForumPage() {
                   <div className="flex flex-col sm:flex-row gap-3">
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                       <SelectTrigger className="sm:w-[200px]">
-                        <SelectValue placeholder="Category" />
+                        <SelectValue placeholder="Kategori" />
                       </SelectTrigger>
                       <SelectContent>
                         {CATEGORIES.map(category => (
@@ -112,11 +112,11 @@ export function ForumPage() {
 
                     <Select value={sortBy} onValueChange={(value: 'recent' | 'popular') => setSortBy(value)}>
                       <SelectTrigger className="sm:w-[180px]">
-                        <SelectValue placeholder="Sort by" />
+                        <SelectValue placeholder="Urutkan" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="recent">Latest</SelectItem>
-                        <SelectItem value="popular">Most Popular</SelectItem>
+                        <SelectItem value="recent">Terbaru</SelectItem>
+                        <SelectItem value="popular">Paling Populer</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -146,7 +146,7 @@ export function ForumPage() {
                 ) : sortedPosts.length === 0 ? (
                   <Card>
                     <CardContent className="py-12 text-center text-muted-foreground">
-                      No posts found
+                      Tidak ada postingan ditemukan
                     </CardContent>
                   </Card>
                 ) : (
@@ -160,13 +160,13 @@ export function ForumPage() {
                               <RoleBadge role={post.authorRole} size="sm" />
                               {post.status === 'pending' && user?.role === 'admin' && (
                                 <Badge variant="outline" className="text-yellow-600 border-yellow-600">
-                                  Pending
+                                  Menunggu
                                 </Badge>
                               )}
                               {post.isReported && user?.role === 'admin' && (
                                 <Badge variant="destructive" className="gap-1">
                                   <Flag className="h-3 w-3" />
-                                  {post.reportCount} Reports
+                                  {post.reportCount} Laporan
                                 </Badge>
                               )}
                             </div>
@@ -219,7 +219,7 @@ export function ForumPage() {
               {/* Categories */}
               <Card>
                 <CardHeader>
-                  <h3 className="font-semibold">Categories</h3>
+                  <h3 className="font-semibold">Kategori</h3>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
@@ -244,13 +244,13 @@ export function ForumPage() {
               {user?.role === 'admin' && (
                 <Card className="border-yellow-200 bg-yellow-50">
                   <CardHeader>
-                    <h3 className="font-semibold">Admin Panel</h3>
+                    <h3 className="font-semibold">Panel Admin</h3>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <Link to="/forum/reports">
                       <Button variant="outline" className="w-full justify-start" size="sm">
                         <Flag className="h-4 w-4 mr-2" />
-                        Reports ({posts.filter(p => p.isReported).length})
+                        Laporan ({posts.filter(p => p.isReported).length})
                       </Button>
                     </Link>
                   </CardContent>

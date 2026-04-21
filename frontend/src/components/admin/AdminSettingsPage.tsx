@@ -13,7 +13,7 @@ export function AdminSettingsPage() {
     // Platform Settings
     platformName: 'ScholarPath',
     platformEmail: 'support@scholarpath.com',
-    platformDescription: 'Scholarship platform focused on Java, Indonesia',
+    platformDescription: 'Platform beasiswa berfokus pada peluang studi di Indonesia',
     
     // Payment Settings
     monthlyPrice: '49000',
@@ -38,11 +38,11 @@ export function AdminSettingsPage() {
 
   const handleSave = () => {
     // In production, save to backend/database
-    toast.success('Settings saved successfully!');
+    toast.success('Pengaturan berhasil disimpan!');
   };
 
   const handleReset = () => {
-    toast.info('Settings reset to default');
+    toast.info('Pengaturan dikembalikan ke default');
   };
 
   return (
@@ -50,20 +50,20 @@ export function AdminSettingsPage() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-[#2f4156] mb-2">Settings</h1>
-          <p className="text-gray-600">Manage platform configuration and preferences</p>
+          <h1 className="text-3xl font-bold text-[#2f4156] mb-2">Pengaturan</h1>
+          <p className="text-gray-600">Kelola konfigurasi dan preferensi platform</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Platform Settings */}
           <Card className="rounded-2xl border border-gray-200">
             <CardHeader>
-              <CardTitle>Platform Settings</CardTitle>
-              <CardDescription>Basic platform information</CardDescription>
+              <CardTitle>Pengaturan Platform</CardTitle>
+              <CardDescription>Informasi dasar platform</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="platformName">Platform Name</Label>
+                <Label htmlFor="platformName">Nama Platform</Label>
                 <Input
                   id="platformName"
                   value={settings.platformName}
@@ -72,7 +72,7 @@ export function AdminSettingsPage() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="platformEmail">Support Email</Label>
+                <Label htmlFor="platformEmail">Email Dukungan</Label>
                 <Input
                   id="platformEmail"
                   type="email"
@@ -82,7 +82,7 @@ export function AdminSettingsPage() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="platformDescription">Platform Description</Label>
+                <Label htmlFor="platformDescription">Deskripsi Platform</Label>
                 <Textarea
                   id="platformDescription"
                   value={settings.platformDescription}
@@ -96,12 +96,12 @@ export function AdminSettingsPage() {
           {/* Payment Settings */}
           <Card className="rounded-2xl border border-gray-200">
             <CardHeader>
-              <CardTitle>Payment Settings</CardTitle>
-              <CardDescription>Configure subscription pricing and behavior</CardDescription>
+              <CardTitle>Pengaturan Pembayaran</CardTitle>
+              <CardDescription>Atur harga dan perilaku langganan</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="monthlyPrice">Monthly Price (IDR)</Label>
+                <Label htmlFor="monthlyPrice">Harga Bulanan (IDR)</Label>
                 <Input
                   id="monthlyPrice"
                   type="number"
@@ -111,7 +111,7 @@ export function AdminSettingsPage() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="yearlyPrice">Yearly Price (IDR)</Label>
+                <Label htmlFor="yearlyPrice">Harga Tahunan (IDR)</Label>
                 <Input
                   id="yearlyPrice"
                   type="number"
@@ -122,9 +122,9 @@ export function AdminSettingsPage() {
               
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>Auto-Approve Payments</Label>
+                  <Label>Setujui Pembayaran Otomatis</Label>
                   <p className="text-sm text-gray-500">
-                    Automatically approve successful payments
+                    Otomatis menyetujui pembayaran yang berhasil
                   </p>
                 </div>
                 <Switch
@@ -140,15 +140,15 @@ export function AdminSettingsPage() {
           {/* Forum Settings */}
           <Card className="rounded-2xl border border-gray-200">
             <CardHeader>
-              <CardTitle>Forum Settings</CardTitle>
-              <CardDescription>Configure community forum behavior</CardDescription>
+              <CardTitle>Pengaturan Forum</CardTitle>
+              <CardDescription>Atur perilaku forum komunitas</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>Require Post Approval</Label>
+                  <Label>Wajib Persetujuan Postingan</Label>
                   <p className="text-sm text-gray-500">
-                    Posts must be approved before publishing
+                    Postingan harus disetujui sebelum dipublikasikan
                   </p>
                 </div>
                 <Switch
@@ -161,9 +161,9 @@ export function AdminSettingsPage() {
               
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>Allow Anonymous Posts</Label>
+                  <Label>Izinkan Postingan Anonim</Label>
                   <p className="text-sm text-gray-500">
-                    Users can post without showing their name
+                    Pengguna bisa memposting tanpa menampilkan nama
                   </p>
                 </div>
                 <Switch
@@ -175,7 +175,7 @@ export function AdminSettingsPage() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="maxPostLength">Max Post Length (characters)</Label>
+                <Label htmlFor="maxPostLength">Panjang Maksimal Postingan (karakter)</Label>
                 <Input
                   id="maxPostLength"
                   type="number"
@@ -189,15 +189,15 @@ export function AdminSettingsPage() {
           {/* Notification Settings */}
           <Card className="rounded-2xl border border-gray-200">
             <CardHeader>
-              <CardTitle>Notification Settings</CardTitle>
-              <CardDescription>Configure notification preferences</CardDescription>
+              <CardTitle>Pengaturan Notifikasi</CardTitle>
+              <CardDescription>Atur preferensi notifikasi</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>Email Notifications</Label>
+                  <Label>Notifikasi Email</Label>
                   <p className="text-sm text-gray-500">
-                    Send email notifications to users
+                    Kirim notifikasi email ke pengguna
                   </p>
                 </div>
                 <Switch
@@ -210,9 +210,9 @@ export function AdminSettingsPage() {
               
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>Payment Notifications</Label>
+                  <Label>Notifikasi Pembayaran</Label>
                   <p className="text-sm text-gray-500">
-                    Notify users about payment status
+                    Beri tahu pengguna tentang status pembayaran
                   </p>
                 </div>
                 <Switch
@@ -225,9 +225,9 @@ export function AdminSettingsPage() {
               
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>Forum Notifications</Label>
+                  <Label>Notifikasi Forum</Label>
                   <p className="text-sm text-gray-500">
-                    Notify users about forum activity
+                    Beri tahu pengguna tentang aktivitas forum
                   </p>
                 </div>
                 <Switch
@@ -243,16 +243,16 @@ export function AdminSettingsPage() {
           {/* Security Settings */}
           <Card className="rounded-2xl border border-gray-200 lg:col-span-2">
             <CardHeader>
-              <CardTitle>Security Settings</CardTitle>
-              <CardDescription>Configure security and authentication</CardDescription>
+              <CardTitle>Pengaturan Keamanan</CardTitle>
+              <CardDescription>Atur keamanan dan autentikasi</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Require Email Verification</Label>
+                    <Label>Wajib Verifikasi Email</Label>
                     <p className="text-sm text-gray-500">
-                      Users must verify email to register
+                      Pengguna wajib verifikasi email saat mendaftar
                     </p>
                   </div>
                   <Switch
@@ -265,9 +265,9 @@ export function AdminSettingsPage() {
                 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Enable Two-Factor Auth</Label>
+                    <Label>Aktifkan Autentikasi Dua Faktor</Label>
                     <p className="text-sm text-gray-500">
-                      Require 2FA for sensitive actions
+                      Wajibkan 2FA untuk aksi sensitif
                     </p>
                   </div>
                   <Switch
@@ -280,7 +280,7 @@ export function AdminSettingsPage() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
+                <Label htmlFor="sessionTimeout">Batas Waktu Sesi (menit)</Label>
                 <Input
                   id="sessionTimeout"
                   type="number"
@@ -296,10 +296,10 @@ export function AdminSettingsPage() {
         {/* Action Buttons */}
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={handleReset}>
-            Reset to Default
+            Reset ke Default
           </Button>
           <Button onClick={handleSave} className="bg-[#2f4156] hover:bg-[#567c8d]">
-            Save Settings
+            Simpan Pengaturan
           </Button>
         </div>
       </div>

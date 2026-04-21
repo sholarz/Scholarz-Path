@@ -38,12 +38,12 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-  { label: 'Scholarships', href: '/admin/scholarships', icon: GraduationCap },
-  { label: 'Payment Verification', href: '/admin/payments', icon: CreditCard, badge: 12 },
-  { label: 'User Reports', href: '/forum/reports', icon: FileText, badge: 8 },
-  { label: 'Users', href: '/admin/users', icon: Users },
-  { label: 'Settings', href: '/admin/settings', icon: Settings },
+  { label: 'Dasbor', href: '/admin/dashboard', icon: LayoutDashboard },
+  { label: 'Beasiswa', href: '/admin/scholarships', icon: GraduationCap },
+  { label: 'Verifikasi Pembayaran', href: '/admin/payments', icon: CreditCard, badge: 12 },
+  { label: 'Laporan Pengguna', href: '/forum/reports', icon: FileText, badge: 8 },
+  { label: 'Pengguna', href: '/admin/users', icon: Users },
+  { label: 'Pengaturan', href: '/admin/settings', icon: Settings },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {
@@ -92,7 +92,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <div className="hidden md:flex items-center relative">
               <Search className="absolute left-3 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Search..."
+                placeholder="Cari..."
                 className="pl-9 w-64 h-9 bg-[#f5efeb] border-none"
               />
             </div>
@@ -107,7 +107,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80">
                 <DropdownMenuLabel className="flex items-center justify-between">
-                  <span>Notifications</span>
+                  <span>Notifikasi</span>
                   <Badge variant="secondary" className="ml-2">25</Badge>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
@@ -115,37 +115,37 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   <DropdownMenuItem className="flex flex-col items-start gap-1 py-3">
                     <div className="flex items-center gap-2 w-full">
                       <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <span className="font-medium text-sm">New Payment Verification</span>
+                      <span className="font-medium text-sm">Verifikasi Pembayaran Baru</span>
                     </div>
                     <span className="text-xs text-muted-foreground pl-4">
-                      12 new payments pending approval
+                      12 pembayaran baru menunggu persetujuan
                     </span>
-                    <span className="text-xs text-muted-foreground pl-4">2 minutes ago</span>
+                    <span className="text-xs text-muted-foreground pl-4">2 menit lalu</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="flex flex-col items-start gap-1 py-3">
                     <div className="flex items-center gap-2 w-full">
                       <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                      <span className="font-medium text-sm">User Reports</span>
+                      <span className="font-medium text-sm">Laporan Pengguna</span>
                     </div>
                     <span className="text-xs text-muted-foreground pl-4">
-                      8 new user reports to review
+                      8 laporan pengguna baru untuk ditinjau
                     </span>
-                    <span className="text-xs text-muted-foreground pl-4">15 minutes ago</span>
+                    <span className="text-xs text-muted-foreground pl-4">15 menit lalu</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="flex flex-col items-start gap-1 py-3">
                     <div className="flex items-center gap-2 w-full">
                       <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                      <span className="font-medium text-sm">System Update</span>
+                      <span className="font-medium text-sm">Pembaruan Sistem</span>
                     </div>
                     <span className="text-xs text-muted-foreground pl-4">
-                      New admin features available
+                      Fitur admin baru telah tersedia
                     </span>
-                    <span className="text-xs text-muted-foreground pl-4">3 hours ago</span>
+                    <span className="text-xs text-muted-foreground pl-4">3 jam lalu</span>
                   </DropdownMenuItem>
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-center justify-center text-sm text-primary font-medium cursor-pointer">
-                  View All Notifications
+                  Lihat Semua Notifikasi
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -164,16 +164,16 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel>Akun Saya</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>Settings</DropdownMenuItem>
+                <DropdownMenuItem>Profil</DropdownMenuItem>
+                <DropdownMenuItem>Pengaturan</DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleLogout}
                   className="text-red-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
                 >
                   <LogOut className="h-5 w-5" />
-                  Logout
+                  Keluar
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -231,7 +231,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             className="w-full justify-start gap-3 border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
           >
             <LogOut className="h-5 w-5" />
-            Logout
+            Keluar
           </Button>
         </div>
       </aside>

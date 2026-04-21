@@ -12,11 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Search, Calendar, MapPin, GraduationCap, Bookmark, BookmarkCheck, Loader2, AlertCircle } from 'lucide-react';
 
 const LEVEL_OPTIONS = [
-  { value: 'all', label: 'All Levels' },
-  { value: 'bachelor', label: 'Undergraduate / Bachelor' },
-  { value: 'master', label: "Master's" },
-  { value: 'doctorate', label: 'PhD / Doctorate' },
-  { value: 'postdoc', label: 'Post-Doctoral' },
+  { value: 'all', label: 'Semua Jenjang' },
+  { value: 'bachelor', label: 'S1 / Sarjana' },
+  { value: 'master', label: 'S2 / Magister' },
+  { value: 'doctorate', label: 'S3 / Doktor' },
+  { value: 'postdoc', label: 'Pascadoktoral' },
 ];
 
 function ScholarshipCardSkeleton() {
@@ -76,7 +76,7 @@ export function ScholarshipsPage() {
       setTotalCount(result.pagination?.total ?? 0);
       setLastPage(result.pagination?.lastPage ?? 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load scholarships.');
+      setError(err instanceof Error ? err.message : 'Gagal memuat data beasiswa.');
       setScholarships([]);
     } finally {
       setIsLoading(false);
@@ -94,9 +94,9 @@ export function ScholarshipsPage() {
       <main className="container max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="mb-2">Browse Scholarships</h1>
+          <h1 className="mb-2">Jelajahi Beasiswa</h1>
           <p className="text-muted-foreground">
-            Discover scholarship opportunities in Java, Indonesia
+            Temukan peluang beasiswa di seluruh Indonesia
           </p>
         </div>
 
@@ -109,7 +109,7 @@ export function ScholarshipsPage() {
                 <Input
                   id="scholarship-search"
                   type="text"
-                  placeholder="Search by title, description, or keyword..."
+                  placeholder="Cari berdasarkan judul, deskripsi, atau kata kunci..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 h-12"
@@ -119,7 +119,7 @@ export function ScholarshipsPage() {
               <div className="grid md:grid-cols-3 gap-4">
                 <Select value={levelFilter} onValueChange={(v: string) => setLevelFilter(v)}>
                   <SelectTrigger id="level-filter">
-                    <SelectValue placeholder="Education Level" />
+                    <SelectValue placeholder="Jenjang Pendidikan" />
                   </SelectTrigger>
                   <SelectContent>
                     {LEVEL_OPTIONS.map(opt => (
@@ -134,8 +134,8 @@ export function ScholarshipsPage() {
                   {isLoading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
                   <p className="text-sm text-muted-foreground">
                     {isLoading
-                      ? 'Loading...'
-                      : `${totalCount} scholarship${totalCount !== 1 ? 's' : ''} found`}
+                      ? 'Memuat...'
+                      : `${totalCount} beasiswa ditemukan`}
                   </p>
                 </div>
               </div>
@@ -149,10 +149,10 @@ export function ScholarshipsPage() {
             <CardContent className="py-6 flex items-center gap-3 text-destructive">
               <AlertCircle className="w-5 h-5 shrink-0" />
               <div>
-                <p className="font-medium">Failed to load scholarships</p>
+                <p className="font-medium">Gagal memuat data beasiswa</p>
                 <p className="text-sm opacity-80">{error}</p>
                 <Button variant="outline" size="sm" className="mt-2" onClick={fetchScholarships}>
-                  Retry
+                  Coba Lagi
                 </Button>
               </div>
             </CardContent>
@@ -170,7 +170,7 @@ export function ScholarshipsPage() {
           <Card>
             <CardContent className="py-12 text-center">
               <p className="text-muted-foreground">
-                No scholarships found matching your criteria. Try adjusting your filters.
+                Tidak ada beasiswa yang sesuai dengan kriteria kamu. Coba ubah filter.
               </p>
             </CardContent>
           </Card>
@@ -203,7 +203,7 @@ export function ScholarshipsPage() {
                       </Button>
                     </div>
                     <CardDescription className="line-clamp-1">
-                      {scholarship.provider?.name ?? 'Unknown Provider'}
+                      {scholarship.provider?.name ?? 'Penyedia Tidak Diketahui'}
                     </CardDescription>
                   </CardHeader>
 
@@ -220,8 +220,8 @@ export function ScholarshipsPage() {
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="w-4 h-4 shrink-0" />
                         <span>
-                          Deadline:{' '}
-                          {new Date(scholarship.applicationDeadline).toLocaleDateString('en-US', {
+                          Batas akhir:{' '}
+                          {new Date(scholarship.applicationDeadline).toLocaleDateString('id-ID', {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric',
@@ -251,7 +251,7 @@ export function ScholarshipsPage() {
 
                   <CardFooter>
                     <Link to={`/scholarships/${scholarship.id}`} className="w-full">
-                      <Button className="w-full">View Details</Button>
+                      <Button className="w-full">Lihat Detail</Button>
                     </Link>
                   </CardFooter>
                 </Card>
@@ -266,17 +266,17 @@ export function ScholarshipsPage() {
                   disabled={currentPage <= 1 || isLoading}
                   onClick={() => setCurrentPage(p => p - 1)}
                 >
-                  Previous
+                  Sebelumnya
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  Page {currentPage} of {lastPage}
+                  Halaman {currentPage} dari {lastPage}
                 </span>
                 <Button
                   variant="outline"
                   disabled={currentPage >= lastPage || isLoading}
                   onClick={() => setCurrentPage(p => p + 1)}
                 >
-                  Next
+                  Berikutnya
                 </Button>
               </div>
             )}

@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui
 import { Button } from '../ui/button';
 import { Link } from 'react-router';
 import { formatDistanceToNow } from 'date-fns';
+import { id as idLocale } from 'date-fns/locale';
 import { useAuth } from '../../lib/auth-context';
 import { getAdminDashboardStats, type AdminDashboardStats } from '../../lib/admin-api';
 
@@ -36,7 +37,7 @@ export function AdminDashboard() {
         const dashboardStats = await getAdminDashboardStats();
         setStats(dashboardStats);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load admin dashboard');
+        setError(err instanceof Error ? err.message : 'Gagal memuat dasbor admin');
       } finally {
         setIsLoading(false);
       }
@@ -47,25 +48,25 @@ export function AdminDashboard() {
 
   const dashboardStats: DashboardStat[] = [
     {
-      title: 'Total Users',
+      title: 'Total Pengguna',
       value: stats?.users.total ?? '-',
       icon: Users,
       color: 'text-blue-600',
     },
     {
-      title: 'Active Scholarships',
+      title: 'Beasiswa Aktif',
       value: stats?.scholarships.active ?? '-',
       icon: Award,
       color: 'text-green-600',
     },
     {
-      title: 'Open Reports',
+      title: 'Laporan Terbuka',
       value: stats?.reports.open ?? '-',
       icon: AlertTriangle,
       color: 'text-yellow-600',
     },
     {
-      title: 'Featured Scholarships',
+      title: 'Beasiswa Unggulan',
       value: stats?.scholarships.featured ?? '-',
       icon: CreditCard,
       color: 'text-[#567c8d]',
@@ -74,22 +75,22 @@ export function AdminDashboard() {
 
   const quickActions = [
     {
-      title: 'Payment Verification',
-      description: 'Review pending payment submissions',
+      title: 'Verifikasi Pembayaran',
+      description: 'Tinjau pengajuan pembayaran yang menunggu',
       icon: CreditCard,
       href: '/admin/payments',
       badge: stats?.reports.open ?? undefined,
     },
     {
-      title: 'User Reports',
-      description: 'Moderate reported content',
+      title: 'Laporan Pengguna',
+      description: 'Moderasi konten yang dilaporkan',
       icon: AlertTriangle,
       href: '/forum/reports',
       badge: stats?.reports.open ?? undefined,
     },
     {
-      title: 'Subscription Monitor',
-      description: 'View subscription analytics',
+      title: 'Monitor Langganan',
+      description: 'Lihat analitik langganan',
       icon: Activity,
       href: '/subscription-snapshot',
     },
@@ -103,10 +104,10 @@ export function AdminDashboard() {
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-[#2f4156]">
-            Welcome back, {user?.name || 'Admin'}
+            Selamat datang kembali, {user?.name || 'Admin'}
           </h1>
           <p className="text-gray-600 mt-2">
-            Here's what's happening with ScholarPath today
+            Ringkasan aktivitas ScholarPath hari ini
           </p>
         </div>
         <Link to="/dashboard">
@@ -138,7 +139,7 @@ export function AdminDashboard() {
                     <p className="text-3xl font-bold text-[#2f4156] mb-2">
                       {isLoading ? '...' : stat.value}
                     </p>
-                    <span className="text-sm text-gray-500">live backend data</span>
+                    <span className="text-sm text-gray-500">data backend langsung</span>
                   </div>
                   <div className={`w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center ${stat.color}`}>
                     <Icon className="h-6 w-6" />
@@ -152,7 +153,7 @@ export function AdminDashboard() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-xl font-bold text-[#2f4156] mb-4">Quick Actions</h2>
+        <h2 className="text-xl font-bold text-[#2f4156] mb-4">Aksi Cepat</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {quickActions.map((action, index) => {
             const Icon = action.icon;
@@ -188,13 +189,13 @@ export function AdminDashboard() {
 
       {/* Recent Activity */}
       <div>
-        <h2 className="text-xl font-bold text-[#2f4156] mb-4">Recent Activity</h2>
+        <h2 className="text-xl font-bold text-[#2f4156] mb-4">Aktivitas Terbaru</h2>
         <Card className="rounded-2xl border border-gray-200">
           <CardContent className="pt-6">
             {isLoading ? (
-              <p className="text-sm text-gray-500">Loading recent activity...</p>
+              <p className="text-sm text-gray-500">Memuat aktivitas terbaru...</p>
             ) : recentActivity.length === 0 ? (
-              <p className="text-sm text-gray-500">No recent activity yet.</p>
+              <p className="text-sm text-gray-500">Belum ada aktivitas terbaru.</p>
             ) : (
               <div className="space-y-4">
                 {recentActivity.map((entry, index) => {
@@ -207,8 +208,8 @@ export function AdminDashboard() {
 
                   const Icon = iconMap[entry.type] || Activity;
                   const time = entry.timestamp
-                    ? formatDistanceToNow(new Date(entry.timestamp), { addSuffix: true })
-                    : 'just now';
+                    ? formatDistanceToNow(new Date(entry.timestamp), { addSuffix: true, locale: idLocale })
+                    : 'baru saja';
 
                   return (
                     <ActivityItem
