@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback, type MouseEvent } from 'react';
 import { Link } from 'react-router';
 import { Header } from '../Header';
+import { useAuth } from '../../lib/auth-context';
 import { useBookmarks } from '../../lib/bookmark-context';
 import { getScholarships, type Scholarship } from '../../lib/scholarship-api';
+import { performMatching, type ScholarshipMatch } from '../../lib/matching-api';
 import { DeadlineBadge } from '../NotificationSettings';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Search, Calendar, MapPin, GraduationCap, Bookmark, BookmarkCheck, Loader2, AlertCircle } from 'lucide-react';
+import { Search, Calendar, MapPin, GraduationCap, Bookmark, BookmarkCheck, Loader2, AlertCircle, Sparkles } from 'lucide-react';
 
 const LEVEL_OPTIONS = [
   { value: 'all', label: 'All Levels' },
@@ -34,6 +36,7 @@ function ScholarshipCardSkeleton() {
 }
 
 export function ScholarshipsPage() {
+  const { user, isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState('all');
@@ -43,6 +46,10 @@ export function ScholarshipsPage() {
   const [lastPage, setLastPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMatching, setIsMatching] = useState(false);
+  const [matchingError, setMatchingError] = useState<string | null>(null);
+  const [matches, setMatches] = useState<ScholarshipMatch[]>([]);
+  const [matchUsageLabel, setMatchUsageLabel] = useState<string | null>(null);
 
   const { toggleBookmark, isBookmarked } = useBookmarks();
 
@@ -86,6 +93,34 @@ export function ScholarshipsPage() {
   useEffect(() => {
     fetchScholarships();
   }, [fetchScholarships]);
+
+  const runMatching = useCallback(async () => {
+    if (!isAuthenticated) {
+      setMatchingError('Please sign in to run scholarship matching.');
+      return;
+    }
+
+    setIsMatching(true);
+    setMatchingError(null);
+
+    try {
+      const result = await performMatching();
+      setMatches(result.matches);
+
+      if (result.usage?.dailyLimit != null) {
+        setMatchUsageLabel(
+          `Free plan usage: ${result.usage.usedToday}/${result.usage.dailyLimit} today`
+        );
+      } else {
+        setMatchUsageLabel('Premium plan: unlimited matching');
+      }
+    } catch (err) {
+      setMatchingError(err instanceof Error ? err.message : 'Failed to run scholarship matching.');
+      setMatches([]);
+    } finally {
+      setIsMatching(false);
+    }
+  }, [isAuthenticated]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -140,6 +175,79 @@ export function ScholarshipsPage() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Scholarship Matching
+            </CardTitle>
+            <CardDescription>
+              Run profile-based matching with explainable criteria and eligibility guidance.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-muted-foreground">
+                {matchUsageLabel ??
+                  (user?.role === 'free'
+                    ? 'Free plan: 1 matching run/day, up to top 3 results'
+                    : 'Premium/Admin: unlimited matching results')}
+              </div>
+              <Button onClick={runMatching} disabled={isMatching}>
+                {isMatching ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Running Match...
+                  </>
+                ) : (
+                  'Run Matching'
+                )}
+              </Button>
+            </div>
+
+            {matchingError && (
+              <div className="mt-4 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+                {matchingError}
+              </div>
+            )}
+
+            {!matchingError && !isMatching && matches.length === 0 && (
+              <p className="mt-4 text-sm text-muted-foreground">
+                No match results yet. Run matching to see your top scholarships and criteria breakdown.
+              </p>
+            )}
+
+            {matches.length > 0 && (
+              <div className="mt-4 grid gap-3">
+                {matches.slice(0, 5).map((match) => (
+                  <div key={match.scholarship.id} className="rounded-lg border p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium">{match.scholarship.title}</p>
+                        <p className="text-xs text-muted-foreground">{match.scholarship.provider?.name ?? 'Unknown provider'}</p>
+                      </div>
+                      <Badge>{Math.round(match.matchScore)}% match</Badge>
+                    </div>
+
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Met: {match.criteriaMet.slice(0, 2).join(', ') || 'None'}
+                    </div>
+                    {match.criteriaMissing.length > 0 && (
+                      <div className="mt-1 text-xs text-amber-700">
+                        Missing: {match.criteriaMissing.slice(0, 2).join(', ')}
+                      </div>
+                    )}
+                    <p className="mt-2 text-xs">{match.recommendations}</p>
+                    <Link to={`/scholarships/${match.scholarship.id}`} className="inline-block mt-2">
+                      <Button variant="outline" size="sm">Open Scholarship</Button>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

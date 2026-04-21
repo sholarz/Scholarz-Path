@@ -194,6 +194,11 @@ export function TimelinePage() {
             <CardTitle className="text-base">Generate Personalized Roadmap</CardTitle>
           </CardHeader>
           <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">
+              {isPremiumOrAdmin
+                ? 'Premium/Admin: unlimited roadmap generation.'
+                : 'Free plan: 1 roadmap generation every 90 days.'}
+            </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Select value={generateFromScholarshipId} onValueChange={setGenerateFromScholarshipId}>
                 <SelectTrigger id="scholarship-select" className="flex-1">

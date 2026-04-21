@@ -91,7 +91,11 @@ class RoadmapService
 
         $deadline = Carbon::parse($scholarship->application_deadline);
         $today    = Carbon::today();
-        $daysLeft = $today->diffInDays($deadline);
+        $daysLeft = $today->diffInDays($deadline, false);
+
+        if ($daysLeft < 0) {
+            throw new \InvalidArgumentException('Cannot generate roadmap for expired scholarship deadlines.');
+        }
 
         $roadmap = Roadmap::create([
             'user_id'       => $userId,

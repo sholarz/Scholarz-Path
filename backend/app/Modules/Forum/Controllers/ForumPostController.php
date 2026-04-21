@@ -93,7 +93,7 @@ class ForumPostController extends Controller
             'author_id'     => $request->user()->id,
             'forum_category_id' => $request->category_id,
             'title'       => $request->title,
-            'content'     => $request->content,
+            'content'     => $request->text,
             'tags'        => json_encode($normalizedTags, JSON_UNESCAPED_UNICODE),
             'status'      => 'published',
         ]);

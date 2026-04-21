@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\DailyTask;
 use App\Models\Roadmap;
 use App\Modules\Roadmap\Services\RoadmapService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class RoadmapController extends Controller
 {
+    private const FREE_ROADMAP_INTERVAL_DAYS = 90;
+
     public function __construct(private RoadmapService $service) {}
 
     // GET /api/roadmaps — all roadmaps for current user
@@ -31,10 +34,64 @@ class RoadmapController extends Controller
             'scholarship_id' => 'required|uuid|exists:scholarships,id',
         ]);
 
-        $roadmap = $this->service->generateRoadmap(
-            $request->only('scholarship_id'),
-            $request->user()->id
-        );
+        $user = $request->user();
+        $isPremiumOrAdmin = in_array($user->role, ['premium', 'admin'], true);
+
+        $existingForScholarship = Roadmap::where('user_id', $user->id)
+            ->where('scholarship_id', $request->input('scholarship_id'))
+            ->where('status', 'active')
+            ->latest()
+            ->first();
+
+        if ($existingForScholarship) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You already have an active roadmap for this scholarship.',
+                'error' => [
+                    'code' => 'ROADMAP_DUPLICATE',
+                    'details' => ['roadmap_id' => $existingForScholarship->id],
+                ],
+            ], 409);
+        }
+
+        if (!$isPremiumOrAdmin) {
+            $latestRoadmap = Roadmap::where('user_id', $user->id)
+                ->latest('created_at')
+                ->first();
+
+            if ($latestRoadmap) {
+                $daysSinceLastRoadmap = Carbon::parse($latestRoadmap->created_at)->diffInDays(now());
+                if ($daysSinceLastRoadmap < self::FREE_ROADMAP_INTERVAL_DAYS) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Free plan limit reached: you can generate one roadmap every 90 days. Upgrade to Premium for unlimited roadmap generation.',
+                        'error' => [
+                            'code' => 'ROADMAP_LIMIT_REACHED',
+                            'details' => [
+                                'interval_days' => self::FREE_ROADMAP_INTERVAL_DAYS,
+                                'days_since_last' => $daysSinceLastRoadmap,
+                                'days_remaining' => self::FREE_ROADMAP_INTERVAL_DAYS - $daysSinceLastRoadmap,
+                            ],
+                        ],
+                    ], 429);
+                }
+            }
+        }
+
+        try {
+            $roadmap = $this->service->generateRoadmap(
+                $request->only('scholarship_id'),
+                $user->id
+            );
+        } catch (\InvalidArgumentException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+                'error' => [
+                    'code' => 'ROADMAP_INVALID_INPUT',
+                ],
+            ], 422);
+        }
 
         return response()->json([
             'success' => true,

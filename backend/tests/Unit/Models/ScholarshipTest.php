@@ -175,7 +175,7 @@ class ScholarshipTest extends TestCase
         ]);
 
         $scholarships = [];
-        foreach (['bachelor', 'master', 'phd'] as $level) {
+        foreach (['bachelor', 'master', 'doctorate'] as $level) {
             $scholarships[$level] = Scholarship::create([
                 'provider_id' => $provider->id,
                 'title' => "Scholarship - {$level}",
@@ -187,7 +187,7 @@ class ScholarshipTest extends TestCase
 
         $this->assertEquals('bachelor', $scholarships['bachelor']->level);
         $this->assertEquals('master', $scholarships['master']->level);
-        $this->assertEquals('phd', $scholarships['phd']->level);
+        $this->assertEquals('doctorate', $scholarships['doctorate']->level);
     }
 
     /**
@@ -238,16 +238,16 @@ class ScholarshipTest extends TestCase
             'currency' => 'IDR',
         ]);
 
-        $closed = Scholarship::create([
+        $inactive = Scholarship::create([
             'provider_id' => $provider->id,
-            'title' => 'Closed Scholarship',
-            'status' => 'closed',
+            'title' => 'Inactive Scholarship',
+            'status' => 'inactive',
             'amount' => 50000000,
             'currency' => 'IDR',
         ]);
 
         $this->assertEquals('active', $active->status);
-        $this->assertEquals('closed', $closed->status);
+        $this->assertEquals('inactive', $inactive->status);
     }
 
     /**
@@ -295,6 +295,6 @@ class ScholarshipTest extends TestCase
             'application_deadline' => $deadline,
         ]);
 
-        $this->assertEquals($deadline, $scholarship->application_deadline);
+        $this->assertEquals($deadline, $scholarship->application_deadline->toDateString());
     }
 }
