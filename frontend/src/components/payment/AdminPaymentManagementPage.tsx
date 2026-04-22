@@ -21,7 +21,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { formatCurrency } from '../../lib/utils';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { AdminLayout } from '../admin/AdminLayout';
 
@@ -111,6 +111,7 @@ function mapReviewedToAction(payment: PaymentView, adminName: string, adminId: s
 
 export function AdminPaymentManagementPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [payments, setPayments] = useState<PaymentView[]>([]);
   const [selectedPayment, setSelectedPayment] = useState<PaymentView | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -222,12 +223,10 @@ export function AdminPaymentManagementPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <Link to="/dashboard">
-              <Button variant="ghost" className="gap-2 mb-4">
-                <ArrowLeft className="h-4 w-4" />
-                Kembali ke Dashboard
-              </Button>
-            </Link>
+            <Button variant="ghost" className="gap-2 mb-4" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
             <h1 className="text-3xl font-bold">Manajemen Pembayaran</h1>
             <p className="text-muted-foreground">
               Verifikasi dan kelola pembayaran premium users

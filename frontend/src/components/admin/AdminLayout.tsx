@@ -10,6 +10,7 @@ import {
   Menu,
   X,
   Bell,
+  TrendingUp,
   Search,
   GraduationCap
 } from 'lucide-react';
@@ -41,6 +42,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Scholarships', href: '/admin/scholarships', icon: GraduationCap },
   { label: 'Payment Verification', href: '/admin/payments', icon: CreditCard, badge: 12 },
+  { label: 'Subscription Snapshot', href: '/admin/subscriptions', icon: TrendingUp },
+  { label: 'Notification Sync', href: '/admin/notifications', icon: Bell },
   { label: 'User Reports', href: '/forum/reports', icon: FileText, badge: 8 },
   { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'Settings', href: '/admin/settings', icon: Settings },

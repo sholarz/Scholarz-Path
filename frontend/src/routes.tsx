@@ -27,6 +27,7 @@ import { AdminUsersPage } from "./components/admin/AdminUsersPage";
 import { AdminSettingsPage } from "./components/admin/AdminSettingsPage";
 import { AdminScholarshipsPage } from "./components/admin/AdminScholarshipsPage";
 import { SubscriptionSnapshotDemo } from "./components/payment/SubscriptionSnapshotDemo";
+import { NotificationSync } from "./components/admin/NotificationSync";
 import { NotFoundPage } from "./components/NotFoundPage";
 
 export const router = createBrowserRouter([
@@ -182,6 +183,22 @@ export const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <AdminScholarshipsPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "admin/subscriptions",
+        element: (
+          <AdminRoute>
+            <SubscriptionSnapshotDemo />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "admin/notifications",
+        element: (
+          <AdminRoute>
+            <NotificationSync />
           </AdminRoute>
         ),
       },

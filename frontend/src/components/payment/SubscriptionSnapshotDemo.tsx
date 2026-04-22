@@ -4,8 +4,11 @@ import { Button } from '../ui/button';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { apiGet } from '../../lib/api-client';
+import { useNavigate } from 'react-router';
+import { ArrowLeft } from 'lucide-react';
 
 export function SubscriptionSnapshotDemo() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +68,13 @@ export function SubscriptionSnapshotDemo() {
 
   return (
     <div className="container mx-auto py-8 space-y-8 max-w-5xl">
+      <div>
+        <Button variant="outline" onClick={() => navigate(-1)} className="gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Button>
+      </div>
+
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">User Subscription Snapshot</h1>
         <p className="text-muted-foreground">
