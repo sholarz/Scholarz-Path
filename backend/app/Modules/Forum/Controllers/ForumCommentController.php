@@ -26,7 +26,7 @@ class ForumCommentController extends Controller
         $comment = ForumComment::create([
             'post_id' => $post->id,
             'author_id' => $request->user()->id,
-            'content' => $request->content,
+            'content' => $request->input('content'),
         ]);
 
         // Update counter di post
@@ -88,7 +88,7 @@ class ForumCommentController extends Controller
         $reply = ForumReply::create([
             'comment_id' => $comment->id,
             'author_id'  => $request->user()->id,
-            'content'    => $request->content,
+            'content'    => $request->input('content'),
         ]);
 
         $reply->load(['author:id,email,role', 'author.profile:user_id,first_name,last_name']);

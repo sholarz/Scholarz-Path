@@ -51,10 +51,9 @@ class ForumPostController extends Controller
             $query->orderByDesc('created_at'); // default: latest
         }
 
-        $posts = $query->paginate(10);
-
         // Tambahkan info apakah user sudah like/save
-        $posts->getCollection()->transform(function ($post) use ($user) {
+        $posts = $query->paginate(10);
+        foreach ($posts as $post) {
             $post->has_liked = $post->likes()->where('user_id', $user->id)->exists();
             $post->has_saved = $post->saves()->where('user_id', $user->id)->exists();
             // Ambil nama dari user_profiles
@@ -63,8 +62,7 @@ class ForumPostController extends Controller
                 ? $profile->first_name . ' ' . $profile->last_name
                 : explode('@', $post->author->email)[0];
             $post->author_role = $post->author->role;
-            return $post;
-        });
+        }
 
         return response()->json(['data' => $posts]);
     }
@@ -93,7 +91,7 @@ class ForumPostController extends Controller
             'author_id'     => $request->user()->id,
             'forum_category_id' => $request->category_id,
             'title'       => $request->title,
-            'content'     => $request->content,
+            'content'     => $request->input('content'),
             'tags'        => json_encode($normalizedTags, JSON_UNESCAPED_UNICODE),
             'status'      => 'published',
         ]);
