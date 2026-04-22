@@ -39,6 +39,10 @@ export interface MatchResultsResponse {
   matches: ScholarshipMatch[];
   totalMatched: number;
   criteriaUsed: MatchCriteria;
+  usage?: {
+    usedToday: number;
+    dailyLimit: number | null;
+  };
 }
 
 export interface MatchHistoryEntry {
@@ -94,6 +98,10 @@ export async function performMatching(
     }>;
     total_matched: number;
     criteria_used: Record<string, unknown>;
+    usage?: {
+      used_today: number;
+      daily_limit: number | null;
+    };
   }>('/scholarships/match', payload);
 
   // Normalize response keys
@@ -107,6 +115,12 @@ export async function performMatching(
     })),
     totalMatched: raw.total_matched,
     criteriaUsed: criteria,
+    usage: raw.usage
+      ? {
+          usedToday: raw.usage.used_today,
+          dailyLimit: raw.usage.daily_limit,
+        }
+      : undefined,
   };
 }
 

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router';
-import { GraduationCap, Search, Calendar, Bookmark, LayoutDashboard, Menu, LogOut, User, Crown, BookOpen, UserCircle, MessageCircle, Shield } from 'lucide-react';
+import { GraduationCap, Search, Calendar, Bookmark, LayoutDashboard, Menu, LogOut, User, Crown, BookOpen, UserCircle, MessageCircle, Shield, Sparkles } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '../lib/auth-context';
 import { usePayment } from '../lib/payment-context';
@@ -31,6 +31,7 @@ export function Header() {
     ? [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Scholarships', href: '/scholarships', icon: Search },
+        { name: 'Recommendations', href: '/scholarships/recommendations', icon: Sparkles },
         { name: 'Calendar', href: '/calendar', icon: Calendar },
         { name: 'Bookmarks', href: '/bookmarks', icon: Bookmark },
         { name: 'Test Prep', href: '/tests', icon: BookOpen },

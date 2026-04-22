@@ -10,6 +10,7 @@ import { GoogleCallbackPage } from "./components/auth/GoogleCallbackPage";
 import { DashboardPage } from "./components/dashboard/DashboardPage";
 import { ScholarshipsPage } from "./components/scholarships/ScholarshipsPage";
 import { ScholarshipDetailPage } from "./components/scholarships/ScholarshipDetailPage";
+import { RecommendationsPage } from "./components/scholarships/ReccomendationPage";
 import { CalendarPage } from "./components/calendar/CalendarPage";
 import { BookmarksPage } from "./components/bookmarks/BookmarksPage";
 import { TimelinePage } from "./components/timeline/TimelinePage";
@@ -49,6 +50,14 @@ export const router = createBrowserRouter([
       },
       { path: "scholarships", Component: ScholarshipsPage },
       { path: "scholarships/:id", Component: ScholarshipDetailPage },
+      {
+        path: "scholarships/recommendations",
+        element: (
+          <ProtectedRoute>
+            <RecommendationsPage />
+          </ProtectedRoute>
+        )
+      },
       {
         path: "calendar",
         element: (
