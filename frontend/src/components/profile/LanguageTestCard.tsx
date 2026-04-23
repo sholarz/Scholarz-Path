@@ -8,6 +8,7 @@ import { X } from 'lucide-react';
 
 export interface LanguageTest {
   id: string;
+  backendId?: string;
   testType: 'IELTS' | 'TOEFL' | 'Duolingo' | '';
   overallScore: string;
   showAdvanced: boolean;
@@ -77,12 +78,12 @@ export function LanguageTestCard({ test, onUpdate, onRemove, canRemove }: Langua
             onValueChange={(value) => onUpdate(test.id, { testType: value as LanguageTest['testType'] })}
           >
             <SelectTrigger id={`test-type-${test.id}`}>
-              <SelectValue placeholder="Select test type" />
+              <SelectValue placeholder="Pilih jenis tes" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="IELTS">IELTS</SelectItem>
               <SelectItem value="TOEFL">TOEFL iBT</SelectItem>
-              <SelectItem value="Duolingo">Duolingo English Test</SelectItem>
+              <SelectItem value="Duolingo">Tes Bahasa Inggris Duolingo</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -110,7 +111,7 @@ export function LanguageTestCard({ test, onUpdate, onRemove, canRemove }: Langua
           onCheckedChange={(checked) => onUpdate(test.id, { showAdvanced: checked })}
         />
         <Label htmlFor={`advanced-${test.id}`} className="cursor-pointer text-sm">
-          Show detailed scores
+          Tampilkan rincian skor
         </Label>
       </div>
 

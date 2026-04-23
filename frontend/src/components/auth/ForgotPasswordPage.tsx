@@ -12,23 +12,32 @@ export function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [apiMessage, setApiMessage] = useState('');
+  const [apiWarning, setApiWarning] = useState<string | null>(null);
   const { resetPassword } = useAuth();
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email) {
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail) {
       toast.error('Please enter your email');
       return;
     }
 
     setIsLoading(true);
+    setApiWarning(null);
     try {
-      await resetPassword(email);
+      const result = await resetPassword(normalizedEmail);
+      setEmail(normalizedEmail);
+      setApiMessage(result.message);
+      setApiWarning(result.warning ?? null);
       setEmailSent(true);
-      toast.success('Password reset link sent!');
+      toast.success(result.message);
     } catch (error) {
-      toast.error('Failed to send reset link');
+      const message = error instanceof Error ? error.message : 'Failed to send reset link';
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -46,7 +55,7 @@ export function ForgotPasswordPage() {
           <CardTitle>Reset Your Password</CardTitle>
           <CardDescription>
             {emailSent 
-              ? "We've sent you a password reset link" 
+              ? `Reset link request submitted for ${email}`
               : "Enter your email to receive a password reset link"
             }
           </CardDescription>
@@ -60,8 +69,11 @@ export function ForgotPasswordPage() {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                If an account exists for <strong>{email}</strong>, you will receive a password reset link shortly.
+                <strong>{apiMessage}</strong>
               </p>
+              {apiWarning ? (
+                <p className="text-sm text-amber-700">{apiWarning}</p>
+              ) : null}
               <p className="text-sm text-muted-foreground">
                 Please check your email and follow the instructions to reset your password.
               </p>

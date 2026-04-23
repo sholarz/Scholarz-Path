@@ -109,7 +109,7 @@ export type AdminScholarshipPayload = {
 
 const API_BASE_URL = ((import.meta as ImportMeta & {
   env?: { VITE_API_BASE_URL?: string };
-}).env?.VITE_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
+}).env?.VITE_API_BASE_URL || 'http://localhost:8011/api').replace(/\/$/, '');
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('auth_token');

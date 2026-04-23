@@ -45,6 +45,75 @@ export interface MatchResultsResponse {
   };
 }
 
+interface ProfileMeResponse {
+  profile?: {
+    basic?: {
+      nationality?: string | null;
+      current_country?: string | null;
+    };
+    academic?: {
+      gpa?: string | number | null;
+      major?: string | null;
+      field_of_study?: string | null;
+      degree_level?: MatchCriteria['degreeLevel'] | null;
+    };
+  };
+  languages?: Array<{
+    language?: string | null;
+    proficiency_level?: string | null;
+  }>;
+}
+
+interface PreferencesResponse {
+  fields_of_study?: string[] | null;
+}
+
+async function getProfileMatchCriteria(): Promise<MatchCriteria> {
+  try {
+    const [me, prefsWrapped] = await Promise.all([
+      apiGet<ProfileMeResponse>('/profile/me'),
+      apiGet<{ data?: PreferencesResponse } | PreferencesResponse>('/preferences').catch(() => ({} as PreferencesResponse)),
+    ]);
+
+    const prefs = (prefsWrapped as { data?: PreferencesResponse }).data ?? (prefsWrapped as PreferencesResponse);
+    const academic = me.profile?.academic;
+    const basic = me.profile?.basic;
+
+    const profileCriteria: MatchCriteria = {};
+
+    if (academic?.gpa != null && String(academic.gpa).trim() !== '') {
+      const parsedGpa = Number(academic.gpa);
+      if (!Number.isNaN(parsedGpa)) profileCriteria.gpa = parsedGpa;
+    }
+
+    profileCriteria.major =
+      academic?.field_of_study?.trim() ||
+      academic?.major?.trim() ||
+      prefs.fields_of_study?.[0]?.trim() ||
+      undefined;
+
+    if (academic?.degree_level) profileCriteria.degreeLevel = academic.degree_level;
+    if (basic?.nationality) profileCriteria.nationality = basic.nationality;
+    if (basic?.current_country) profileCriteria.currentCountry = basic.current_country;
+
+    const languages = (me.languages ?? [])
+      .filter(l => l.language && l.proficiency_level)
+      .map(l => ({
+        language: l.language as string,
+        proficiencyLevel: l.proficiency_level as string,
+      }));
+
+    if (languages.length > 0) {
+      profileCriteria.languages = languages;
+    }
+
+    return profileCriteria;
+  } catch {
+    // Matching should still run even if profile hydration fails.
+    return {};
+  }
+}
+
 export interface MatchHistoryEntry {
   id: string;
   searchCriteria: MatchCriteria;
@@ -74,15 +143,18 @@ export interface MatchHistoryResponse {
 export async function performMatching(
   criteria: MatchCriteria = {}
 ): Promise<MatchResultsResponse> {
+  const profileCriteria = await getProfileMatchCriteria();
+  const mergedCriteria: MatchCriteria = { ...profileCriteria, ...criteria };
+
   // Convert camelCase to snake_case for backend
   const payload: Record<string, unknown> = {};
-  if (criteria.gpa != null) payload.gpa = criteria.gpa;
-  if (criteria.major) payload.major = criteria.major;
-  if (criteria.degreeLevel) payload.degree_level = criteria.degreeLevel;
-  if (criteria.nationality) payload.nationality = criteria.nationality;
-  if (criteria.currentCountry) payload.current_country = criteria.currentCountry;
-  if (criteria.languages) {
-    payload.languages = criteria.languages.map(l => ({
+  if (mergedCriteria.gpa != null) payload.gpa = mergedCriteria.gpa;
+  if (mergedCriteria.major) payload.major = mergedCriteria.major;
+  if (mergedCriteria.degreeLevel) payload.degree_level = mergedCriteria.degreeLevel;
+  if (mergedCriteria.nationality) payload.nationality = mergedCriteria.nationality;
+  if (mergedCriteria.currentCountry) payload.current_country = mergedCriteria.currentCountry;
+  if (mergedCriteria.languages) {
+    payload.languages = mergedCriteria.languages.map(l => ({
       language: l.language,
       proficiency_level: l.proficiencyLevel,
     }));
@@ -114,7 +186,7 @@ export async function performMatching(
       recommendations: m.recommendations,
     })),
     totalMatched: raw.total_matched,
-    criteriaUsed: criteria,
+    criteriaUsed: mergedCriteria,
     usage: raw.usage
       ? {
           usedToday: raw.usage.used_today,

@@ -72,7 +72,10 @@
     "dev": "vite",
     "dev:frontend": "vite",
     "dev:backend": "cd ../backend && php artisan serve --host=127.0.0.1 --port=8000",
+    "dev:backend:local": "cd ../backend && C:\\laragon\\bin\\php\\php-8.4.12-nts-Win32-vs17-x64\\php.exe artisan serve --host=127.0.0.1 --port=8011",
+    "dev:frontend:local": "cmd /c \"set VITE_API_BASE_URL=http://127.0.0.1:8011/api&& vite --host 127.0.0.1 --port 5174\"",
     "dev:full": "concurrently -k -n BACKEND,FRONTEND -c green,cyan \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:full:local": "concurrently -k -n BACKEND,FRONTEND -c green,cyan \"npm run dev:backend:local\" \"npm run dev:frontend:local\"",
     "build": "vite build",
     "test": "vitest"
   }
