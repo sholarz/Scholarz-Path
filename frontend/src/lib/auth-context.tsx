@@ -22,7 +22,7 @@ interface AuthContextType {
   completeGoogleLogin: (token: string) => Promise<User>;
   signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
-  resetPassword: (email: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<{ message: string; warning?: string | null }>;
   refreshUser: () => Promise<void>;
   clearError: () => void;
 }
@@ -31,7 +31,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_BASE_URL = ((import.meta as ImportMeta & {
   env?: { VITE_API_BASE_URL?: string };
-}).env?.VITE_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
+}).env?.VITE_API_BASE_URL || 'http://localhost:8011/api').replace(/\/$/, '');
 
 type ApiUserPayload = {
   id?: string;
@@ -76,6 +76,16 @@ const readAuthError = async (response: Response): Promise<string> => {
   try {
     const body = (await response.json()) as AuthApiResponse;
 
+    if (body?.error?.details && typeof body.error.details === 'object') {
+      const detailErrors = Object.values(body.error.details as Record<string, unknown>).find(
+        (messages) => Array.isArray(messages) && messages.length > 0 && typeof messages[0] === 'string'
+      ) as string[] | undefined;
+
+      if (detailErrors?.[0]) {
+        return detailErrors[0];
+      }
+    }
+
     if (body?.errors && typeof body.errors === 'object') {
       const firstFieldErrors = Object.values(body.errors).find((messages) => Array.isArray(messages) && messages.length > 0);
       if (firstFieldErrors && firstFieldErrors[0]) {
@@ -85,16 +95,6 @@ const readAuthError = async (response: Response): Promise<string> => {
 
     if (body?.error?.message) {
       return body.error.message;
-    }
-
-    if (body?.error?.details && typeof body.error.details === 'object') {
-      const detailErrors = Object.values(body.error.details as Record<string, unknown>).find(
-        (messages) => Array.isArray(messages) && messages.length > 0 && typeof messages[0] === 'string'
-      ) as string[] | undefined;
-
-      if (detailErrors?.[0]) {
-        return detailErrors[0];
-      }
     }
 
     if (typeof body?.error?.details === 'string') {
@@ -238,13 +238,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: normalizedEmail, password }),
       });
 
       if (!response.ok) {
@@ -252,7 +254,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const payload = (await response.json()) as AuthApiResponse;
-      const apiUser = mapApiUser(payload.data?.user, email, email);
+      const apiUser = mapApiUser(payload.data?.user, normalizedEmail, normalizedEmail);
 
       persistSession(setUser, apiUser, payload.data?.token);
       return apiUser;
@@ -381,9 +383,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (!response.ok) {
-        const body = await response.json().catch(() => ({})) as { message?: string };
+        const errorMessage = await readAuthError(response);
+        throw new Error(errorMessage || 'Failed to send password reset email.');
+      }
+
+      const body = await response.json().catch(() => ({})) as {
+        success?: boolean;
+        message?: string;
+        warning?: string | null;
+      };
+
+      if (body.success === false) {
         throw new Error(body.message ?? 'Failed to send password reset email.');
       }
+
+      return {
+        message: body.message ?? 'Password reset link has been sent.',
+        warning: body.warning ?? null,
+      };
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send password reset email.');
       throw err;

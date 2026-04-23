@@ -19,15 +19,16 @@ export function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    const normalizedEmail = email.trim();
     
-    if (!email || !password) {
-      setError('Please fill in all fields');
+    if (!normalizedEmail || !password) {
+      setError('Silakan isi semua field');
       return;
     }
 
     try {
-      const loggedInUser = await login(email, password);
-      toast.success('Welcome back!');
+      const loggedInUser = await login(normalizedEmail, password);
+      toast.success('Selamat datang kembali!');
       
       // Redirect based on role
       if (loggedInUser?.role === 'admin') {
@@ -36,7 +37,7 @@ export function LoginPage() {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid email or password. Please try again.');
+      setError(err instanceof Error ? err.message : 'Login failed');
     }
   };
 
@@ -44,9 +45,9 @@ export function LoginPage() {
     setError('');
     try {
       await loginWithGoogle();
-      toast.success('Redirecting to Google...');
+      toast.success('Mengarahkan ke Google...');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to login with Google. Please try again.');
+      setError(err instanceof Error ? err.message : 'Gagal masuk dengan Google. Silakan coba lagi.');
     }
   };
 
@@ -59,8 +60,8 @@ export function LoginPage() {
               <GraduationCap className="w-8 h-8 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle>Welcome Back</CardTitle>
-          <CardDescription>Sign in to your ScholarPath account</CardDescription>
+          <CardTitle>Selamat Datang Kembali</CardTitle>
+          <CardDescription>Masuk ke akun ScholarPath Anda</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Error Alert */}
@@ -96,7 +97,7 @@ export function LoginPage() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Continue with Google
+            Lanjutkan dengan Google
           </Button>
 
           <div className="relative">
@@ -104,7 +105,7 @@ export function LoginPage() {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
+              <span className="bg-card px-2 text-muted-foreground">Atau lanjutkan dengan email</span>
             </div>
           </div>
 
@@ -116,7 +117,7 @@ export function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder="anda@contoh.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -127,9 +128,9 @@ export function LoginPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Kata Sandi</Label>
                 <Link to="/forgot-password" className="text-sm text-primary hover:underline">
-                  Forgot?
+                  Lupa?
                 </Link>
               </div>
               <div className="relative">
@@ -147,14 +148,14 @@ export function LoginPage() {
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? 'Sedang masuk...' : 'Masuk'}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
-            Don't have an account?{' '}
+            Belum punya akun?{' '}
             <Link to="/signup" className="text-primary hover:underline">
-              Sign up
+              Daftar
             </Link>
           </p>
         </CardContent>

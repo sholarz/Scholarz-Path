@@ -71,7 +71,7 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(
-        `${((import.meta as ImportMeta & { env?: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '')}/subscriptions/subscribe`,
+        `${((import.meta as ImportMeta & { env?: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL || 'http://localhost:8011/api').replace(/\/$/, '')}/subscriptions/subscribe`,
         {
           method: 'POST',
           headers: {

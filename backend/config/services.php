@@ -37,9 +37,9 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URL'),
         'guzzle' => [
             'verify' => false,
-            'curl' => [
+            'curl' => defined('CURLOPT_IPRESOLVE') ? [
                 CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
-            ],
+            ] : [],
         ],
     ],
 

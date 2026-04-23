@@ -67,8 +67,8 @@ export function ProfileCompletionBanner({ profile }: ProfileCompletionBannerProp
       <Alert className="bg-green-50 border-green-200 mb-6">
         <CheckCircle2 className="h-4 w-4 text-green-600" />
         <AlertDescription className="text-green-900">
-          <strong>Profile Complete!</strong> Your profile is fully filled out. 
-          This helps us provide better scholarship recommendations.
+          <strong>Profil Lengkap!</strong> Profil Anda sudah terisi penuh. 
+          Ini membantu kami memberikan rekomendasi beasiswa yang lebih baik.
         </AlertDescription>
       </Alert>
     );
@@ -94,11 +94,11 @@ export function ProfileCompletionBanner({ profile }: ProfileCompletionBannerProp
           <p className="text-sm text-blue-800">
             {completionPercentage < 100 ? (
               <>
-                Complete your profile to get personalized scholarship recommendations. 
-                {!hasValidLanguageTest && ' Don\'t forget to add your language test scores!'}
+                Lengkapi profil Anda untuk mendapatkan rekomendasi beasiswa yang lebih personal. 
+                {!hasValidLanguageTest && ' Jangan lupa tambahkan skor tes bahasa Anda!'}
               </>
             ) : (
-              'Great! Consider adding preferred countries and fields for better matches.'
+              'Bagus! Coba tambahkan negara dan bidang favorit agar hasil cocokannya lebih baik.'
             )}
           </p>
         </div>
