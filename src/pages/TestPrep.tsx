@@ -297,7 +297,7 @@ export default function TestPrep() {
                       Input Esai Beasiswa
                     </CardTitle>
                     <CardDescription>
-                      Tempelkan draf esai Anda di sini untuk mendapatkan feedback dari Gemini AI.
+                      Tempelkan draf esai Anda di sini untuk mendapatkan feedback dari model Llama 3.3 70B Versatile via Groq.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">

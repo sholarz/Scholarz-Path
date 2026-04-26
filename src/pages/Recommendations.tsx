@@ -81,7 +81,7 @@ export default function Recommendations() {
       await addDoc(collection(db, 'notifications'), {
         userId: user!.uid,
         title: 'Hasil AI Matching Tersedia! 🚀',
-        message: `Hore! Kami menemukan ${results.filter((r:any) => r.score > 70).length} beasiswa yang sangat cocok untuk Anda.`,
+        message: `Hore! Kami menemukan ${results.filter((r:any) => r.score >= 60).length} beasiswa yang cocok untuk Anda.`,
         type: 'match',
         read: false,
         createdAt: serverTimestamp()
@@ -117,7 +117,7 @@ export default function Recommendations() {
       <div className="mb-12 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 italic uppercase">Smart Matching</h1>
-          <p className="mt-2 text-slate-500">Rekomendasi berbasis Gemini Flash 1.5 khusus untuk profil akademik Anda.</p>
+          <p className="mt-2 text-slate-500">Rekomendasi berbasis model Llama 3.3 70B Versatile via Groq khusus untuk profil akademik Anda.</p>
         </div>
         
         <Button 
@@ -193,7 +193,7 @@ export default function Recommendations() {
                         </div>
                         <DialogTitle className="text-xl font-bold tracking-tight">Kenapa Anda Cocok?</DialogTitle>
                         <DialogDescription className="text-slate-500 font-medium pt-2">
-                          Analisis AI ScholarsPath untuk beasiswa <strong>{scholarship.title}</strong>
+                          Analisis AI ScholarPath untuk beasiswa <strong>{scholarship.title}</strong>
                         </DialogDescription>
                       </DialogHeader>
                       <div className="mt-6 space-y-6">

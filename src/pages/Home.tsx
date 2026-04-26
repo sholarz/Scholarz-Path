@@ -126,51 +126,6 @@ export default function Home() {
       </section>
 
       {/* AI Stats Section */}
-      <section className="bg-white py-24 relative overflow-hidden">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col lg:flex-row items-center gap-20">
-            <div className="lg:w-1/2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold mb-6 uppercase tracking-widest">
-                <Sparkles size={14} className="text-slate-900" />
-                Kekuatan Gemini AI
-              </div>
-              <h2 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl mb-8 leading-tight">
-                Data Akurat, <br />
-                Peluang <span className="italic text-slate-500">Meningkat.</span>
-              </h2>
-              <p className="text-lg text-slate-500 mb-10 leading-relaxed">
-                Kami mengekstrak ribuan halaman dokumen manual beasiswa PDF menggunakan teknologi AI terkini untuk memastikan Anda mendapatkan informasi terbaru.
-              </p>
-              <div className="grid grid-cols-2 gap-6">
-                {[
-                  { label: "Ekstraksi AI", value: "99.8%" },
-                  { label: "Beasiswa Lokal", value: "Aktif" },
-                  { label: "Proyeksi Roadmap", value: "Dinamis" },
-                  { label: "Pengguna", value: "10k+" }
-                ].map((stat, i) => (
-                  <div key={i} className="p-4 border-l-2 border-slate-900 bg-slate-50/50 rounded-r-xl">
-                    <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
-                    <p className="text-xs text-slate-400 font-bold uppercase tracking-tight">{stat.label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="lg:w-1/2 relative">
-               <div className="aspect-square rounded-[40px] bg-slate-900 overflow-hidden shadow-2xl relative border-8 border-slate-50">
-                  <div className="absolute inset-0 bg-gradient-to-br from-slate-600/20 to-transparent"></div>
-                  <div className="p-12 h-full flex flex-col justify-end text-white">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-10 h-1 bg-white/40 rounded-full"></div>
-                      <span className="text-xs uppercase tracking-widest text-slate-400 font-bold">AI Analytics</span>
-                    </div>
-                    <h3 className="text-3xl font-bold mb-4 tracking-tight leading-tight">Optimalkan Profil Anda dengan Gemini 1.5 Pro</h3>
-                    <p className="text-slate-300 leading-relaxed font-medium">Dapatkan feedback esai yang mendalam yang dirancang khusus untuk Anda.</p>
-                  </div>
-               </div>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

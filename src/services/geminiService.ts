@@ -33,14 +33,44 @@ async function generateJsonObject<T>(prompt: string, model = "llama-3.3-70b-vers
   return JSON.parse(extractJson(content)) as T;
 }
 
-export async function matchScholarships(userProfile: any, scholarships: any[]) {
-  const prompt = `Cocokkan profil pengguna berikut dengan daftar beasiswa yang tersedia.
-Penting: Berikan alasan (reason) dalam Bahasa Indonesia yang menjelaskan mengapa beasiswa tersebut cocok dengan profil pengguna (berdasarkan IPK, bidang studi, negara tujuan, dll).
+function normalizeMatchScore(value: unknown) {
+  const numericValue = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(numericValue)) return 0;
+  return Math.max(0, Math.min(100, Math.round(numericValue)));
+}
 
-Kembalikan JSON object dengan format:
+function normalizeMatchItems(items: Array<{ scholarshipId: string; score: unknown; reason: string }>) {
+  return items
+    .map((item) => ({
+      scholarshipId: item.scholarshipId,
+      score: normalizeMatchScore(item.score),
+      reason: item.reason,
+    }))
+    .sort((left, right) => right.score - left.score);
+}
+
+export async function matchScholarships(userProfile: any, scholarships: any[]) {
+  const prompt = `Evaluate how well each scholarship matches the user profile.
+
+Use this scoring rubric strictly:
+- 90-100: excellent match, user clearly satisfies most requirements
+- 75-89: strong match, only minor gaps or flexible requirements
+- 60-74: moderate match, relevant and plausible but with notable gaps
+- 40-59: weak match, partially relevant but several requirements are missing
+- 0-39: poor match, user is unlikely to qualify or it is not relevant
+
+Important scoring rules:
+- Do not be overly conservative. If the scholarship is broadly compatible, the score should usually be at least 60.
+- Consider all available profile signals: GPA, field, country, language, institution, target degree, experience, achievements, and English score.
+- Consider scholarship signals: eligibility, field, country, deadline, and general program fit.
+- Give higher scores when the user clearly fits the eligibility and study direction.
+- Return all scores as integers from 0 to 100.
+- Write the reason in Bahasa Indonesia and keep it specific to the profile and scholarship.
+
+Return valid JSON with this exact shape:
 {
   "items": [
-    { "scholarshipId": "string", "score": number, "reason": "string" }
+    { "scholarshipId": "string", "score": 0, "reason": "string" }
   ]
 }
 
@@ -48,7 +78,7 @@ User Profile: ${JSON.stringify(userProfile)}
 Scholarships: ${JSON.stringify(scholarships)}`;
 
   const parsed = await generateJsonObject<{ items: Array<{ scholarshipId: string; score: number; reason: string }> }>(prompt);
-  return parsed.items ?? [];
+  return normalizeMatchItems(parsed.items ?? []);
 }
 
 export async function generateRoadmap(userProfile: any, scholarship: any) {

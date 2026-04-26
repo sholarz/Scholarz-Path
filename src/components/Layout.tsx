@@ -186,7 +186,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </div>
             ScholarPath
           </div>
-          <p className="text-xs text-slate-400 font-medium">© 2026 ScholarPath Indonesia. Built with AI Intelligence.</p>
+          <p className="text-xs text-slate-400 font-medium">© 2026 ScholarPath Indonesia.</p>
           <div className="flex gap-6">
             <a href="#" className="font-bold uppercase tracking-widest text-[10px] text-slate-400 hover:text-slate-900 transition-colors">Privacy</a>
             <a href="#" className="font-bold uppercase tracking-widest text-[10px] text-slate-400 hover:text-slate-900 transition-colors">Terms</a>
