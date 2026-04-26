@@ -1,0 +1,183 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile with role and scholarship matching criteria",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["free", "premium", "admin"] },
+        "gpa": { "type": "number" },
+        "field": { "type": "string" },
+        "country": { "type": "string" },
+        "language": { "type": "string" },
+        "institution": { "type": "string" },
+        "targetDegree": { "type": "string" },
+        "englishScore": { "type": "string" },
+        "experience": { "type": "string" },
+        "achievements": { "type": "string" },
+        "matchCount": { "type": "integer" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Scholarship": {
+      "title": "Scholarship",
+      "description": "Scholarship information and eligibility",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "deadline": { "type": "string", "format": "date-time" },
+        "eligibility": { "type": "string" },
+        "country": { "type": "string" },
+        "field": { "type": "string" },
+        "link": { "type": "string" },
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["title", "description", "deadline"]
+    },
+    "Roadmap": {
+      "title": "Roadmap",
+      "description": "Personalized scholarship application roadmap",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "scholarshipId": { "type": "string" },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "date": { "type": "string" },
+              "completed": { "type": "boolean" }
+            }
+          }
+        }
+      },
+      "required": ["userId", "scholarshipId"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "App notification",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "message", "read", "createdAt"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Premium subscription payment proof",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "proofUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "proofUrl", "status"]
+    },
+    "ForumPost": {
+      "title": "Forum Post",
+      "description": "User shared experience or question",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "content", "createdAt"]
+    },
+    "TestResult": {
+      "title": "Test Result",
+      "description": "A simulation test result for a user",
+      "type": "object",
+      "properties": {
+        "testId": { "type": "string" },
+        "testTitle": { "type": "string" },
+        "score": { "type": "integer" },
+        "totalQuestions": { "type": "integer" },
+        "percentage": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["testId", "testTitle", "score", "totalQuestions", "percentage", "createdAt"]
+    },
+    "Bookmark": {
+      "title": "Bookmark",
+      "description": "A bookmarked scholarship",
+      "type": "object",
+      "properties": {
+        "scholarshipId": { "type": "string" },
+        "title": { "type": "string" },
+        "deadline": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["scholarshipId", "title", "createdAt"]
+    },
+    "EssayResult": {
+      "title": "Essay Analysis Result",
+      "description": "AI analysis feedback for a scholarship essay",
+      "type": "object",
+      "properties": {
+        "essayContent": { "type": "string" },
+        "overallScore": { "type": "number" },
+        "feedback": { "type": "string" },
+        "strengths": { "type": "array", "items": { "type": "string" } },
+        "weaknesses": { "type": "array", "items": { "type": "string" } },
+        "suggestions": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["essayContent", "overallScore", "feedback", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Root user profile document"
+    },
+    "/users/{userId}/testResults/{resultId}": {
+      "schema": "TestResult",
+      "description": "History of simulation tests"
+    },
+    "/users/{userId}/bookmarks/{scholarshipId}": {
+      "schema": "Bookmark",
+      "description": "User saved scholarships"
+    },
+    "/users/{userId}/essayResults/{resultId}": {
+      "schema": "EssayResult",
+      "description": "History of AI essay analyses"
+    },
+    "/scholarships/{scholarshipId}": {
+      "schema": "Scholarship",
+      "description": "Scholarship details"
+    },
+    "/roadmaps/{roadmapId}": {
+      "schema": "Roadmap",
+      "description": "Roadmap for a specific user and scholarship"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "System or match notifications"
+    },
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Subscription payment requests"
+    },
+    "/forumPosts/{postId}": {
+      "schema": "ForumPost",
+      "description": "Public forum discussions"
+    },
+    "/forumPosts/{postId}/comments/{commentId}": {
+      "schema": "ForumPost",
+      "description": "Replies to forum posts"
+    }
+  }
+}

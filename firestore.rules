@@ -1,0 +1,104 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 1. Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    // Check if user is the admin
+    function isAdmin() { 
+      let adminEmails = ['salwanettayumna@gmail.com', 'admin@scholarship.com', 'ikanbakargorengenak@gmail.com'];
+      return isSignedIn() && (
+        (request.auth.token.get('email', '') in adminEmails) || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'free') == 'admin')
+      );
+    }
+
+    // 2. User Profiles
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isSignedIn() && (isAdmin() || isOwner(userId));
+
+      // Subcollections
+      match /testResults/{resultId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+      }
+
+      match /essayResults/{resultId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+      }
+
+      match /bookmarks/{scholarshipId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId);
+      }
+    }
+
+    // 3. Scholarship Data
+    match /scholarships/{scholarshipId} {
+      allow read: if true; 
+      allow write: if isAdmin();
+    }
+
+    // 4. Roadmaps
+    match /roadmaps/{roadmapId} {
+      allow read: if (isSignedIn() && (resource.data.userId == request.auth.uid)) || isAdmin();
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        isAdmin()
+      );
+    }
+
+    // 5. Notifications
+    match /notifications/{notificationId} {
+      allow read: if (isSignedIn() && (resource.data.userId == request.auth.uid)) || isAdmin();
+      allow create: if isSignedIn() && (incoming().userId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        isAdmin()
+      );
+    }
+
+    // 6. Forum
+    match /forumPosts/{postId} {
+      allow read: if true;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        isAdmin()
+      );
+
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+        allow delete: if isSignedIn() && (
+          resource.data.userId == request.auth.uid || 
+          get(/databases/$(database)/documents/forumPosts/$(postId)).data.userId == request.auth.uid ||
+          isAdmin()
+        );
+      }
+    }
+
+    // 7. Payments
+    match /payments/{paymentId} {
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow read, update: if (isSignedIn() && (resource.data.userId == request.auth.uid)) || isAdmin();
+    }
+  }
+}
