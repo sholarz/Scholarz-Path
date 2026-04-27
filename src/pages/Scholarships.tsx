@@ -192,7 +192,7 @@ export default function Scholarships() {
                     <BookOpen size={14} className="text-indigo-500" />
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Kategori Bidang</label>
                   </div>
-                  <Select value={selectedField} onValueChange={setSelectedField}>
+                  <Select value={selectedField} onValueChange={(value) => setSelectedField(value ?? 'all')}>
                     <SelectTrigger className="h-14 rounded-2xl border-slate-100 bg-slate-50/50 focus:ring-indigo-500/20 font-bold text-slate-700 hover:bg-white transition-all px-5 shadow-sm">
                       <SelectValue placeholder="Semua Bidang" />
                     </SelectTrigger>
@@ -211,7 +211,7 @@ export default function Scholarships() {
                     <MapPin size={14} className="text-indigo-500" />
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Wilayah / Negara</label>
                   </div>
-                  <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                  <Select value={selectedCountry} onValueChange={(value) => setSelectedCountry(value ?? 'all')}>
                     <SelectTrigger className="h-14 rounded-2xl border-slate-100 bg-slate-50/50 focus:ring-indigo-500/20 font-bold text-slate-700 hover:bg-white transition-all px-5 shadow-sm">
                       <SelectValue placeholder="Pilih Negara" />
                     </SelectTrigger>
