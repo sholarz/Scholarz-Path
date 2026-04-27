@@ -38,6 +38,33 @@ export interface Roadmap {
   steps: RoadmapStep[];
 }
 
+export interface SmartMatchItem {
+  scholarshipId: string;
+  score: number;
+  reason: string;
+}
+
+export interface SmartMatchProfileSnapshot {
+  displayName?: string;
+  gpa?: number | null;
+  field?: string;
+  country?: string;
+  language?: string;
+  institution?: string;
+  targetDegree?: string;
+  englishScore?: string;
+  experience?: string;
+  achievements?: string;
+}
+
+export interface SmartMatchDocument {
+  userId: string;
+  recommendations: SmartMatchItem[];
+  profileSnapshot: SmartMatchProfileSnapshot;
+  generatedAt?: unknown;
+  updatedAt?: unknown;
+}
+
 export interface ForumPost {
   id: string;
   userId: string;
@@ -46,6 +73,7 @@ export interface ForumPost {
   category?: string;
   createdAt: string;
   role?: string;
+  likes?: string[];
 }
 
 export interface PaymentRequest {

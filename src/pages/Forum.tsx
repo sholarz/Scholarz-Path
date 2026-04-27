@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, orderBy, onSnapshot, addDoc, limit, deleteDoc, doc, where, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, limit, deleteDoc, doc, where, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { useAuth } from '../lib/auth';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../components/ui/card';
@@ -208,6 +208,7 @@ export default function Forum() {
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostCategory, setNewPostCategory] = useState('General Discussion');
   const [sending, setSending] = useState(false);
+  const [likingPosts, setLikingPosts] = useState<Record<string, boolean>>({});
   
   const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
 
@@ -244,6 +245,37 @@ export default function Forum() {
     setExpandedPosts(prev => ({ ...prev, [postId]: !prev[postId] }));
   };
 
+  const handleToggleLike = async (post: ForumPost) => {
+    if (!post.id || likingPosts[post.id]) return;
+    if (!user) {
+      toast.error('Silakan login untuk memberikan like');
+      return;
+    }
+
+    const currentLikes = Array.isArray(post.likes) ? post.likes : [];
+    const hasLiked = currentLikes.includes(user.uid);
+    const nextLikes = hasLiked
+      ? currentLikes.filter((uid) => uid !== user.uid)
+      : Array.from(new Set([...currentLikes, user.uid]));
+
+    // Optimistic update so the UI responds instantly.
+    setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, likes: nextLikes } : p)));
+    setLikingPosts(prev => ({ ...prev, [post.id!]: true }));
+
+    try {
+      await updateDoc(doc(db, 'forumPosts', post.id), {
+        likes: hasLiked ? arrayRemove(user.uid) : arrayUnion(user.uid),
+      });
+    } catch (error) {
+      // Roll back optimistic state if the write fails.
+      setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, likes: currentLikes } : p)));
+      handleFirestoreError(error, OperationType.UPDATE, `forumPosts/${post.id}`);
+      toast.error('Gagal memperbarui like');
+    } finally {
+      setLikingPosts(prev => ({ ...prev, [post.id!]: false }));
+    }
+  };
+
   const handlePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPostContent.trim() || sending) return;
@@ -256,7 +288,8 @@ export default function Forum() {
         content: newPostContent,
         category: newPostCategory,
         createdAt: new Date().toISOString(),
-        role: profile?.role || 'free'
+        role: profile?.role || 'free',
+        likes: []
       });
       setNewPostContent('');
       setNewPostCategory('General Discussion');
@@ -299,12 +332,12 @@ export default function Forum() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
+    <div className="sp-page-container">
       {/* Header section as seen in screenshot */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+      <div className="sp-page-header flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <h1 className="text-3xl font-black italic tracking-tight text-slate-900 uppercase">Community Forum</h1>
-          <p className="text-slate-500 font-medium">Share experiences and discuss scholarships</p>
+          <h1 className="sp-page-title">Community Forum</h1>
+          <p className="sp-page-subtitle">Share experiences and discuss scholarships</p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -321,7 +354,7 @@ export default function Forum() {
             <form onSubmit={handlePost} className="space-y-6 pt-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Category</label>
-                <Select value={newPostCategory} onValueChange={setNewPostCategory}>
+                <Select value={newPostCategory} onValueChange={(value) => setNewPostCategory(value ?? 'General Discussion')}>
                   <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-100">
                     <SelectValue placeholder="Select Category" />
                   </SelectTrigger>
@@ -368,7 +401,7 @@ export default function Forum() {
                 />
               </div>
               <div className="flex gap-4">
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value ?? 'All')}>
                   <SelectTrigger className="flex-1 h-12 rounded-xl bg-slate-50 border-slate-100 font-bold text-slate-700">
                     <div className="flex items-center gap-2">
                       <Filter size={14} className="text-slate-400" />
@@ -382,7 +415,7 @@ export default function Forum() {
                   </SelectContent>
                 </Select>
                 
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select value={sortBy} onValueChange={(value) => setSortBy(value ?? 'latest')}>
                   <SelectTrigger className="flex-1 h-12 rounded-xl bg-slate-50 border-slate-100 font-bold text-slate-700">
                     <div className="flex items-center gap-2">
                       <ArrowUpDown size={14} className="text-slate-400" />
@@ -433,7 +466,13 @@ export default function Forum() {
             </div>
           ) : (
             <div className="space-y-6">
-              {filteredPosts.map((post) => (
+              {filteredPosts.map((post) => {
+                const likesCount = Array.isArray(post.likes) ? post.likes.length : 0;
+                const hasLiked = !!user && Array.isArray(post.likes) && post.likes.includes(user.uid);
+                const likesLabel = `${likesCount} ${likesCount === 1 ? 'Like' : 'Likes'}`;
+                const likeTooltip = hasLiked ? 'Unlike' : 'Like';
+
+                return (
                 <Card key={post.id} className="border-slate-100 shadow-sm hover:shadow-md transition-all rounded-3xl overflow-hidden group">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
@@ -499,9 +538,10 @@ export default function Forum() {
                       {post.content}
                     </div>
                     
-                    <div className="mt-8 pt-4 border-t border-slate-50 flex items-center justify-between">
+                    <div className="relative z-10 mt-8 pt-4 border-t border-slate-50 flex items-center justify-between pointer-events-auto">
                       <div className="flex items-center gap-6">
                         <button 
+                          type="button"
                           onClick={() => toggleComments(post.id!)}
                           className={`flex items-center gap-2 text-xs font-bold transition-colors ${expandedPosts[post.id!] ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
                         >
@@ -509,13 +549,22 @@ export default function Forum() {
                           <span>Komentar</span>
                         </button>
                         
-                        <button className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-red-500 transition-colors">
-                          <Heart size={16} className="text-slate-400" />
-                          <span>Likes</span>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleLike(post)}
+                          disabled={!!likingPosts[post.id!]}
+                          aria-pressed={hasLiked}
+                          className={`group/like relative z-20 inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs font-bold transition-all duration-200 pointer-events-auto disabled:opacity-60 active:scale-95 ${hasLiked ? 'text-red-500' : 'text-slate-500 hover:text-red-500'}`}
+                        >
+                          <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-slate-900 px-2 py-1 text-[10px] font-bold text-white opacity-0 shadow-sm transition-all duration-200 group-hover/like:-translate-y-0.5 group-hover/like:opacity-100">
+                            {likeTooltip}
+                          </span>
+                          <Heart size={16} className={hasLiked ? 'fill-red-500 text-red-500' : 'text-slate-400'} />
+                          <span>{likesLabel}</span>
                         </button>
                       </div>
                       
-                      <button onClick={() => toggleComments(post.id!)} className="text-slate-300 hover:text-indigo-500">
+                      <button type="button" onClick={() => toggleComments(post.id!)} className="text-slate-300 hover:text-indigo-500">
                         <ChevronRight size={18} />
                       </button>
                     </div>
@@ -525,7 +574,8 @@ export default function Forum() {
                     )}
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

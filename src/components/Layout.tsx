@@ -69,7 +69,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white">
                       <GraduationCap size={18} />
                     </div>
-                    ScholarPath Indonesia
+                    ScholarzPath
                   </SheetTitle>
                 </SheetHeader>
                 <div className="p-4 space-y-1">
@@ -97,7 +97,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white italic">
                <GraduationCap size={18} className="not-italic" />
             </div>
-            <span className="hidden sm:inline">ScholarPath Indonesia</span>
+            <span className="hidden sm:inline">ScholarzPath</span>
           </Link>
           
           {user && (
@@ -184,9 +184,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <div className="w-6 h-6 bg-slate-900 rounded flex items-center justify-center text-white text-xs italic">
                <GraduationCap size={14} className="not-italic" />
             </div>
-            ScholarPath
+            ScholarzPath
           </div>
-          <p className="text-xs text-slate-400 font-medium">© 2026 ScholarPath Indonesia.</p>
+          <p className="text-xs text-slate-400 font-medium">© 2026 ScholarzPath.</p>
           <div className="flex gap-6">
             <a href="#" className="font-bold uppercase tracking-widest text-[10px] text-slate-400 hover:text-slate-900 transition-colors">Privacy</a>
             <a href="#" className="font-bold uppercase tracking-widest text-[10px] text-slate-400 hover:text-slate-900 transition-colors">Terms</a>

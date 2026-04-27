@@ -255,7 +255,7 @@ export default function TestPrep() {
 
   if (currentStep === 3) {
     return (
-      <div className="max-w-6xl mx-auto py-8">
+      <div className="mx-auto w-full max-w-7xl px-6 lg:px-8 pt-6 md:pt-8 pb-12">
         <div className="mb-8 flex items-center justify-between">
           <Button variant="ghost" onClick={() => {
             setCurrentStep(0);
@@ -548,57 +548,59 @@ export default function TestPrep() {
   if (activeTest && currentStep === 1) {
     const question = activeTest.questions[currentQuestionIdx];
     return (
-      <div className="max-w-2xl mx-auto py-8">
-        <div className="mb-8 flex items-center justify-between">
-          <Button variant="ghost" onClick={() => setActiveTest(null)} className="gap-2 text-slate-500">
-            <ArrowLeft size={16} /> Keluar
-          </Button>
-          <div className="text-xs font-bold text-slate-400">
-            SOAL {currentQuestionIdx + 1} DARI {activeTest.questions.length}
+      <div className="mx-auto w-full max-w-7xl px-6 lg:px-8 pt-6 md:pt-8 pb-12">
+        <div className="mx-auto w-full max-w-2xl">
+          <div className="mb-8 flex items-center justify-between">
+            <Button variant="ghost" onClick={() => setActiveTest(null)} className="gap-2 text-slate-500">
+              <ArrowLeft size={16} /> Keluar
+            </Button>
+            <div className="text-xs font-bold text-slate-400">
+              SOAL {currentQuestionIdx + 1} DARI {activeTest.questions.length}
+            </div>
           </div>
-        </div>
 
-        <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900 mb-8 leading-relaxed">
-            {question.text}
-          </h2>
+          <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
+            <h2 className="text-lg font-bold text-slate-900 mb-8 leading-relaxed">
+              {question.text}
+            </h2>
 
-          <div className="space-y-3">
-            {question.options.map((opt, i) => (
-              <button
-                key={i}
-                onClick={() => handleAnswerSelect(i)}
-                className={`w-full text-left p-4 rounded-2xl border transition-all text-sm font-medium ${
-                  answers[currentQuestionIdx] === i 
-                    ? 'border-slate-900 bg-slate-900 text-white' 
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'
-                }`}
+            <div className="space-y-3">
+              {question.options.map((opt, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleAnswerSelect(i)}
+                  className={`w-full text-left p-4 rounded-2xl border transition-all text-sm font-medium ${
+                    answers[currentQuestionIdx] === i 
+                      ? 'border-slate-900 bg-slate-900 text-white' 
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                     <span>{opt}</span>
+                     {answers[currentQuestionIdx] === i && <CheckCircle2 size={16} />}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-10 flex justify-between">
+              <Button 
+                 variant="outline" 
+                 disabled={currentQuestionIdx === 0}
+                 onClick={() => setCurrentQuestionIdx(currentQuestionIdx - 1)}
+                 className="rounded-xl px-6"
               >
-                <div className="flex items-center justify-between">
-                   <span>{opt}</span>
-                   {answers[currentQuestionIdx] === i && <CheckCircle2 size={16} />}
-                </div>
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-10 flex justify-between">
-            <Button 
-               variant="outline" 
-               disabled={currentQuestionIdx === 0}
-               onClick={() => setCurrentQuestionIdx(currentQuestionIdx - 1)}
-               className="rounded-xl px-6"
-            >
-              <ChevronLeft className="mr-2" size={16} /> Kembali
-            </Button>
-            <Button 
-               disabled={answers[currentQuestionIdx] === undefined}
-               onClick={handleNext}
-               className="bg-slate-900 text-white rounded-xl px-8"
-            >
-              {currentQuestionIdx === activeTest.questions.length - 1 ? "Selesai" : "Lanjut"} 
-              <ChevronRight className="ml-2" size={16} />
-            </Button>
+                <ChevronLeft className="mr-2" size={16} /> Kembali
+              </Button>
+              <Button 
+                 disabled={answers[currentQuestionIdx] === undefined}
+                 onClick={handleNext}
+                 className="bg-slate-900 text-white rounded-xl px-8"
+              >
+                {currentQuestionIdx === activeTest.questions.length - 1 ? "Selesai" : "Lanjut"} 
+                <ChevronRight className="ml-2" size={16} />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -607,8 +609,9 @@ export default function TestPrep() {
 
   if (activeTest && currentStep === 2) {
     return (
-      <div className="max-w-md mx-auto py-12 text-center">
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+      <div className="mx-auto w-full max-w-7xl px-6 lg:px-8 pt-6 md:pt-8 pb-12">
+        <div className="mx-auto w-full max-w-md text-center">
+         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
           <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 size={48} />
           </div>
@@ -616,37 +619,38 @@ export default function TestPrep() {
           <p className="text-slate-500 mb-8">Hasil performa simulasi beasiswa Anda.</p>
 
           <Card className="border-slate-100 shadow-sm rounded-3xl mb-8 overflow-hidden">
-             <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Skor Akhir</span>
-                <Badge className="bg-emerald-100 text-emerald-700">{score}/{activeTest.questions.length}</Badge>
-             </div>
-             <CardContent className="p-8">
-                <div className="text-5xl font-black text-slate-900 mb-2">
-                   {Math.round((score / activeTest.questions.length) * 100)}%
-                </div>
-                <p className="text-xs text-slate-400 font-medium italic">"Terus berlatih untuk mencapai target IELTS 7.5+"</p>
-             </CardContent>
+            <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Skor Akhir</span>
+              <Badge className="bg-emerald-100 text-emerald-700">{score}/{activeTest.questions.length}</Badge>
+            </div>
+            <CardContent className="p-8">
+              <div className="text-5xl font-black text-slate-900 mb-2">
+                {Math.round((score / activeTest.questions.length) * 100)}%
+              </div>
+              <p className="text-xs text-slate-400 font-medium italic">"Terus berlatih untuk mencapai target IELTS 7.5+"</p>
+            </CardContent>
           </Card>
 
           <div className="flex gap-4">
-             <Button onClick={() => handleStartTest(activeTest.id)} variant="outline" className="flex-1 rounded-xl gap-2 font-bold py-6">
-                <RotateCcw size={16} /> Ulangi
-             </Button>
-             <Button onClick={() => setActiveTest(null)} className="flex-1 bg-slate-900 text-white rounded-xl font-bold py-6">
-                Dashboard Tes
-             </Button>
+            <Button onClick={() => handleStartTest(activeTest.id)} variant="outline" className="flex-1 rounded-xl gap-2 font-bold py-6">
+              <RotateCcw size={16} /> Ulangi
+            </Button>
+            <Button onClick={() => setActiveTest(null)} className="flex-1 bg-slate-900 text-white rounded-xl font-bold py-6">
+              Dashboard Tes
+            </Button>
           </div>
-        </motion.div>
+         </motion.div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 pb-12">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+     <div className="sp-page-container space-y-8">
+      <div className="sp-page-header flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 italic">Test Preparation Hub</h1>
-          <p className="text-slate-500 mt-1">Siapkan diri Anda untuk seleksi beasiswa dengan simulasi dan AI Coaching.</p>
+          <h1 className="sp-page-title">Test Preparation Hub</h1>
+          <p className="sp-page-subtitle">Siapkan diri Anda untuk seleksi beasiswa dengan simulasi dan AI Coaching.</p>
         </div>
         {!isPremium && (
           <Button className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200 gap-2 font-bold px-6">
@@ -656,7 +660,7 @@ export default function TestPrep() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {tests.map((test, idx) => (
           <motion.div
             key={idx}

@@ -103,11 +103,11 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="sp-page-container space-y-8">
       {/* Welcome Header */}
-      <div className="pt-4">
-        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Welcome back, {user?.displayName || 'User'}!</h1>
-        <p className="text-slate-500 text-sm mt-1">Here's an overview of your scholarship journey</p>
+      <div className="sp-page-header">
+        <h1 className="sp-page-title">Welcome back, {user?.displayName || 'User'}!</h1>
+        <p className="sp-page-subtitle text-sm">Here's an overview of your scholarship journey</p>
       </div>
 
       {/* Premium Upgrade Banner */}
