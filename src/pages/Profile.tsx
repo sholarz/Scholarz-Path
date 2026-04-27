@@ -67,16 +67,16 @@ export default function Profile() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="mb-8 flex items-center gap-4">
+    <div className="sp-page-container max-w-4xl">
+      <div className="sp-page-header flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
           <Link to="/dashboard">
             <ArrowLeft className="w-5 h-5" />
           </Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Lengkapi Profil</h1>
-          <p className="text-slate-500 font-medium">Berikan detail lengkap agar AI kami bisa memberikan rekomendasi beasiswa yang 100% akurat.</p>
+          <h1 className="sp-page-title">Lengkapi Profil</h1>
+          <p className="sp-page-subtitle">Berikan detail lengkap agar AI kami bisa memberikan rekomendasi beasiswa yang 100% akurat.</p>
         </div>
       </div>
 

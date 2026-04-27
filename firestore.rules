@@ -78,7 +78,29 @@ service cloud.firestore {
     match /forumPosts/{postId} {
       allow read: if true;
       allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin() ||
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) &&
+          request.resource.data.get('likes', []) is list &&
+          resource.data.get('likes', []) is list &&
+          (
+            (
+              !(request.auth.uid in resource.data.get('likes', [])) &&
+              request.auth.uid in request.resource.data.get('likes', []) &&
+              request.resource.data.get('likes', []).size() == resource.data.get('likes', []).size() + 1 &&
+              request.resource.data.get('likes', []).hasAll(resource.data.get('likes', []))
+            ) ||
+            (
+              request.auth.uid in resource.data.get('likes', []) &&
+              !(request.auth.uid in request.resource.data.get('likes', [])) &&
+              request.resource.data.get('likes', []).size() == resource.data.get('likes', []).size() - 1 &&
+              resource.data.get('likes', []).hasAll(request.resource.data.get('likes', []))
+            )
+          )
+        )
+      );
       allow delete: if isSignedIn() && (
         resource.data.userId == request.auth.uid || 
         isAdmin()
@@ -95,7 +117,12 @@ service cloud.firestore {
       }
     }
 
-    // 7. Payments
+    // 7. Smart Matching
+    match /smart_matches/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    // 8. Payments
     match /payments/{paymentId} {
       allow create: if isSignedIn() && incoming().userId == request.auth.uid;
       allow read, update: if (isSignedIn() && (resource.data.userId == request.auth.uid)) || isAdmin();

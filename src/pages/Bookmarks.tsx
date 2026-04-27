@@ -74,16 +74,16 @@ export default function Bookmarks() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-12">
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
+    <div className="sp-page-container">
+      <div className="sp-page-header">
+        <h1 className="sp-page-title flex items-center gap-3">
           <Bookmark className="text-indigo-600" />
           Beasiswa Disimpan
           {useAuth().isPremium && (
             <Badge className="bg-amber-100 text-amber-700 border-amber-200 ml-2">Unlimited Capacity</Badge>
           )}
         </h1>
-        <p className="text-slate-500 mt-2">Daftar beasiswa yang Anda simpan untuk dipantau lebih lanjut.</p>
+        <p className="sp-page-subtitle">Daftar beasiswa yang Anda simpan untuk dipantau lebih lanjut.</p>
       </div>
 
       {loading ? (

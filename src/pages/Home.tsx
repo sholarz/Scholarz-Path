@@ -65,7 +65,7 @@ export default function Home() {
               <GraduationCap className="h-4 w-4 text-slate-900" />
               <span>Jalur Masa Depan Pendidikan Indonesia</span>
             </div>
-            <h1 className="mx-auto max-w-4xl text-4xl font-bold tracking-tight text-slate-900 sm:text-7xl">
+            <h1 className="mx-auto max-w-4xl text-4xl font-bold italic tracking-tight text-slate-900 sm:text-7xl">
               Beasiswa Sempurna untuk <br className="hidden sm:block" />
               <span className="text-slate-500 italic">Masa Depan Anda</span>
             </h1>

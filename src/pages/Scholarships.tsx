@@ -143,11 +143,11 @@ export default function Scholarships() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
-      <div className="mb-10 flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
+    <div className="sp-page-container">
+      <div className="sp-page-header flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 italic">Jelajahi Beasiswa</h1>
-          <p className="mt-3 text-slate-500 max-w-lg leading-relaxed">Temukan ribuan peluang pendidikan dari berbagai institusi terbaik di Indonesia.</p>
+          <h1 className="sp-page-title">Jelajahi Beasiswa</h1>
+          <p className="sp-page-subtitle max-w-lg leading-relaxed">Temukan ribuan peluang pendidikan dari berbagai institusi terbaik di Indonesia.</p>
         </div>
         
         <div className="flex w-full max-w-xl items-center gap-3">
@@ -175,7 +175,7 @@ export default function Scholarships() {
             } />
             <SheetContent className="sm:max-w-md border-l border-slate-100 flex flex-col p-0">
               <SheetHeader className="p-6 pb-6 border-b border-slate-100">
-                <SheetTitle className="text-xl font-black italic uppercase tracking-tight flex items-center gap-3">
+                <SheetTitle className="text-xl font-black italic tracking-tight flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
                     <Filter className="h-5 w-5" />
                   </div>

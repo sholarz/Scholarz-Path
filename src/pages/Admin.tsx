@@ -194,11 +194,11 @@ export default function Admin() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="sp-page-container">
+      <div className="sp-page-header flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Admin Control Tower</h1>
-          <p className="text-slate-500">Kelola database beasiswa dan verifikasi pembayaran.</p>
+          <h1 className="sp-page-title">Admin Control Tower</h1>
+          <p className="sp-page-subtitle">Kelola database beasiswa dan verifikasi pembayaran.</p>
         </div>
       </div>
 

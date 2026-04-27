@@ -73,11 +73,11 @@ export default function Premium() {
 
   if (isPremium) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-20 text-center">
+      <div className="sp-page-container max-w-2xl text-center">
         <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
           <Zap size={40} fill="currentColor" />
         </div>
-        <h1 className="text-3xl font-bold text-slate-900 mb-4">Anda adalah Member Premium!</h1>
+        <h1 className="sp-page-title mb-4">Anda adalah Member Premium!</h1>
         <p className="text-slate-500 mb-8 font-medium">Terima kasih telah mendukung ScholarPath. Nikmati akses tak terbatas ke semua fitur AI kami.</p>
         <Button asChild className="rounded-xl px-8 bg-slate-900 h-12">
           <Link to="/dashboard">Kembali ke Dashboard</Link>
@@ -87,8 +87,8 @@ export default function Premium() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
-      <div className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="sp-page-container max-w-4xl">
+      <div className="sp-page-header flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
             <Link to="/dashboard">
@@ -96,8 +96,8 @@ export default function Premium() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Upgrade ke Premium</h1>
-            <p className="text-slate-500 font-medium italic">Buka potensi penuh Anda dengan dukungan AI ScholarPath (IDR 49.000 / bln).</p>
+            <h1 className="sp-page-title">Upgrade ke Premium</h1>
+            <p className="sp-page-subtitle">Buka potensi penuh Anda dengan dukungan AI ScholarPath (IDR 49.000 / bln).</p>
           </div>
         </div>
         {pendingRequest && (
