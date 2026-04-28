@@ -2,7 +2,7 @@ export interface UserProfile {
   uid: string;
   email: string;
   displayName: string;
-  role: 'free' | 'premium' | 'admin';
+  role: "free" | "premium" | "admin";
   gpa?: number;
   field?: string;
   country?: string;
@@ -74,12 +74,14 @@ export interface ForumPost {
   createdAt: string;
   role?: string;
   likes?: string[];
+  commentsCount?: number;
+  editedAt?: string;
 }
 
 export interface PaymentRequest {
   id: string;
   userId: string;
   proofUrl: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   createdAt: string;
 }

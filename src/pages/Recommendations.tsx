@@ -1,32 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { collection, query, getDocs, limit, doc, getDoc, setDoc, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { useAuth } from '../lib/auth';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { 
-  Sparkles, 
-  Loader2, 
-  Lock, 
-  CheckCircle2, 
-  Calendar, 
-  User as UserIcon,
-  Zap,
-  ArrowRight,
-  ExternalLink
-} from 'lucide-react';
-import { matchScholarships } from '../services/geminiService';
-import { Scholarship, SmartMatchDocument, SmartMatchItem, SmartMatchProfileSnapshot } from '../types';
-import { toast } from 'sonner';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "../components/ui/dialog";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { collection, query, getDocs, limit, doc, getDoc, setDoc, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { useAuth } from "../lib/auth";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Sparkles, Loader2, Lock, CheckCircle2, Calendar, User as UserIcon, Zap, ArrowRight, ExternalLink } from "lucide-react";
+import { matchScholarships } from "../services/geminiService";
+import { Scholarship, SmartMatchDocument, SmartMatchItem, SmartMatchProfileSnapshot } from "../types";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
 
 export default function Recommendations() {
   const { user, profile, isPremium } = useAuth();
@@ -42,37 +25,37 @@ export default function Recommendations() {
 
     let parsedDate: Date | null = null;
 
-    if (typeof value?.toDate === 'function') {
+    if (typeof value?.toDate === "function") {
       parsedDate = value.toDate();
     } else if (value instanceof Date) {
       parsedDate = value;
-    } else if (typeof value === 'string' || typeof value === 'number') {
+    } else if (typeof value === "string" || typeof value === "number") {
       parsedDate = new Date(value);
-    } else if (typeof value?.seconds === 'number') {
+    } else if (typeof value?.seconds === "number") {
       parsedDate = new Date(value.seconds * 1000);
     }
 
     if (!parsedDate || Number.isNaN(parsedDate.getTime())) return null;
 
-    return new Intl.DateTimeFormat('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Intl.DateTimeFormat("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     }).format(parsedDate);
   };
 
   useEffect(() => {
     const fetchScholarships = async () => {
       try {
-        const q = query(collection(db, 'scholarships'), limit(50));
+        const q = query(collection(db, "scholarships"), limit(50));
         const snapshot = await getDocs(q);
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Scholarship[];
+        const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Scholarship[];
         setScholarships(data);
       } catch (error) {
-        console.error('Error loading scholarships:', error);
-        toast.error('Gagal memuat data beasiswa.');
+        console.error("Error loading scholarships:", error);
+        toast.error("Gagal memuat data beasiswa.");
       } finally {
         setScholarshipsLoading(false);
       }
@@ -92,7 +75,7 @@ export default function Recommendations() {
 
       setSavedMatchLoading(true);
       try {
-        const savedMatchRef = doc(db, 'smart_matches', user.uid);
+        const savedMatchRef = doc(db, "smart_matches", user.uid);
         const savedMatchSnap = await getDoc(savedMatchRef);
 
         if (savedMatchSnap.exists()) {
@@ -104,8 +87,8 @@ export default function Recommendations() {
           setLastUpdatedText(null);
         }
       } catch (error) {
-        console.error('Error loading saved smart match:', error);
-        toast.error('Gagal memuat Smart Matching tersimpan. Anda tetap bisa membuat hasil baru.');
+        console.error("Error loading saved smart match:", error);
+        toast.error("Gagal memuat Smart Matching tersimpan. Anda tetap bisa membuat hasil baru.");
         setMatches([]);
         setLastUpdatedText(null);
       } finally {
@@ -119,26 +102,26 @@ export default function Recommendations() {
   const isInitialLoading = scholarshipsLoading || savedMatchLoading;
 
   const buildProfileSnapshot = (): SmartMatchProfileSnapshot => ({
-    displayName: profile?.displayName || '',
+    displayName: profile?.displayName || "",
     gpa: profile?.gpa ?? null,
-    field: profile?.field || '',
-    country: profile?.country || '',
-    language: profile?.language || '',
-    institution: (profile as any)?.institution || '',
-    targetDegree: (profile as any)?.targetDegree || '',
-    englishScore: (profile as any)?.englishScore || '',
-    experience: (profile as any)?.experience || '',
-    achievements: (profile as any)?.achievements || '',
+    field: profile?.field || "",
+    country: profile?.country || "",
+    language: profile?.language || "",
+    institution: (profile as any)?.institution || "",
+    targetDegree: (profile as any)?.targetDegree || "",
+    englishScore: (profile as any)?.englishScore || "",
+    experience: (profile as any)?.experience || "",
+    achievements: (profile as any)?.achievements || "",
   });
 
   const handleRunMatching = async () => {
     if (!profile || !user) return;
     if (scholarshipsLoading || savedMatchLoading) {
-      toast.info('Mohon tunggu hingga data selesai dimuat.');
+      toast.info("Mohon tunggu hingga data selesai dimuat.");
       return;
     }
     if (!isPremium && profile.matchCount >= 3) {
-      toast.error('Batas limit matching tercapai untuk akun gratis. Silakan Upgrade!');
+      toast.error("Batas limit matching tercapai untuk akun gratis. Silakan Upgrade!");
       return;
     }
 
@@ -148,7 +131,7 @@ export default function Recommendations() {
       setMatches(results);
 
       try {
-        const smartMatchRef = doc(db, 'smart_matches', user.uid);
+        const smartMatchRef = doc(db, "smart_matches", user.uid);
         const smartMatchPayload: SmartMatchDocument = {
           userId: user.uid,
           recommendations: results,
@@ -160,36 +143,40 @@ export default function Recommendations() {
         await setDoc(smartMatchRef, smartMatchPayload);
         setLastUpdatedText(formatSavedTimestamp(new Date()));
       } catch (saveError) {
-        console.error('Error saving smart match:', saveError);
-        toast.error('Hasil berhasil dibuat, tetapi gagal disimpan ke Firestore.');
+        console.error("Error saving smart match:", saveError);
+        toast.error("Hasil berhasil dibuat, tetapi gagal disimpan ke Firestore.");
       }
 
       try {
-        const userRef = doc(db, 'users', user.uid);
-        await setDoc(userRef, {
-          matchCount: (profile.matchCount || 0) + 1
-        }, { merge: true });
+        const userRef = doc(db, "users", user.uid);
+        await setDoc(
+          userRef,
+          {
+            matchCount: (profile.matchCount || 0) + 1,
+          },
+          { merge: true },
+        );
       } catch (countError) {
-        console.error('Error updating match count:', countError);
+        console.error("Error updating match count:", countError);
       }
 
       try {
-        await addDoc(collection(db, 'notifications'), {
+        await addDoc(collection(db, "notifications"), {
           userId: user.uid,
-          title: 'Hasil AI Matching Tersedia! 🚀',
+          title: "Hasil AI Matching Tersedia! 🚀",
           message: `Hore! Kami menemukan ${results.filter((r) => r.score >= 60).length} beasiswa yang cocok untuk Anda.`,
-          type: 'match',
+          type: "match",
           read: false,
-          createdAt: serverTimestamp()
+          createdAt: serverTimestamp(),
         });
       } catch (notificationError) {
-        console.error('Error creating matching notification:', notificationError);
+        console.error("Error creating matching notification:", notificationError);
       }
 
-      toast.success('Matching selesai!');
+      toast.success("Matching selesai!");
     } catch (error) {
-      console.error('Error generating smart match:', error);
-      toast.error('Gagal melakukan matching AI. Hasil lokal tetap tersedia di halaman ini.');
+      console.error("Error generating smart match:", error);
+      toast.error("Gagal melakukan matching AI. Hasil lokal tetap tersedia di halaman ini.");
     } finally {
       setMatching(false);
     }
@@ -203,9 +190,7 @@ export default function Recommendations() {
             <UserIcon className="h-10 w-10 text-slate-300" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 italic">Lengkapi Profil</h2>
-          <p className="mt-4 text-slate-500 text-sm leading-relaxed">
-            Kami membutuhkan data IPK dan bidang studi Anda untuk memberikan rekomendasi AI yang akurat.
-          </p>
+          <p className="mt-4 text-slate-500 text-sm leading-relaxed">Kami membutuhkan data IPK dan bidang studi Anda untuk memberikan rekomendasi AI yang akurat.</p>
           <Button asChild className="mt-8 bg-indigo-600 rounded-xl px-10 font-bold shadow-lg shadow-indigo-100">
             <Link to="/dashboard">Buka Fokus Profil</Link>
           </Button>
@@ -220,20 +205,13 @@ export default function Recommendations() {
         <div>
           <h1 className="sp-page-title">Smart Matching</h1>
           <p className="sp-page-subtitle">Rekomendasi berbasis model Llama 3.3 70B Versatile via Groq khusus untuk profil akademik Anda.</p>
-          {lastUpdatedText && (
-            <p className="mt-2 text-xs font-medium text-slate-400">Last updated: {lastUpdatedText}</p>
-          )}
+          {lastUpdatedText && <p className="mt-2 text-xs font-medium text-slate-400">Last updated: {lastUpdatedText}</p>}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-          <Button 
-            onClick={handleRunMatching} 
-            disabled={matching || isInitialLoading}
-            size="lg"
-            className="bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-100 rounded-xl px-8 font-bold"
-          >
+          <Button onClick={handleRunMatching} disabled={matching || isInitialLoading} size="lg" className="bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-100 rounded-xl px-8 font-bold">
             {matching || isInitialLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-            {matching ? 'Memproses...' : isInitialLoading ? 'Memuat Data...' : matches.length > 0 ? 'Regenerate Recommendations' : 'Luncurkan AI Matching'}
+            {matching ? "Memproses..." : isInitialLoading ? "Memuat Data..." : matches.length > 0 ? "Regenerate Recommendations" : "Luncurkan AI Matching"}
           </Button>
         </div>
       </div>
@@ -248,23 +226,19 @@ export default function Recommendations() {
       ) : matches.length > 0 ? (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {matches.map((m, idx) => {
-            const scholarship = scholarships.find(s => s.id === m.scholarshipId);
+            const scholarship = scholarships.find((s) => s.id === m.scholarshipId);
             if (!scholarship) return null;
 
             return (
               <Card key={idx} className="group flex flex-col border-slate-200 bg-white rounded-2xl transition-all hover:border-indigo-200 hover:shadow-xl overflow-hidden relative">
                 <div className="p-1.5 absolute top-0 right-0 z-10">
-                  <div className="bg-indigo-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">
-                    {m.score}% Cocok
-                  </div>
+                  <div className="bg-indigo-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">{m.score}% Cocok</div>
                 </div>
                 <CardHeader className="pb-2">
                   <div className="mb-2">
                     <Sparkles className="h-5 w-5 text-indigo-500" />
                   </div>
-                  <CardTitle className="text-lg font-bold line-clamp-1 group-hover:text-indigo-600 transition-colors">
-                    {scholarship.title}
-                  </CardTitle>
+                  <CardTitle className="text-lg font-bold line-clamp-1 group-hover:text-indigo-600 transition-colors">{scholarship.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex-grow pt-2">
                   <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl mb-4">
@@ -277,11 +251,13 @@ export default function Recommendations() {
                 </CardContent>
                 <CardFooter className="pt-0 border-t border-slate-50 p-4">
                   <Dialog>
-                    <DialogTrigger render={
-                      <Button variant="ghost" className="w-full text-indigo-600 font-bold hover:bg-indigo-50 group-hover:bg-indigo-50/50 flex items-center justify-center gap-2">
-                        Lihat Analisis Detail <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                      </Button>
-                    } />
+                    <DialogTrigger
+                      render={
+                        <Button variant="ghost" className="w-full text-indigo-600 font-bold hover:bg-indigo-50 group-hover:bg-indigo-50/50 flex items-center justify-center gap-2">
+                          Lihat Analisis Detail <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </Button>
+                      }
+                    />
                     <DialogContent className="sm:max-w-md rounded-3xl">
                       <DialogHeader>
                         <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600 mb-4">
@@ -289,7 +265,7 @@ export default function Recommendations() {
                         </div>
                         <DialogTitle className="text-xl font-bold tracking-tight">Kenapa Anda Cocok?</DialogTitle>
                         <DialogDescription className="text-slate-500 font-medium pt-2">
-                          Analisis AI ScholarPath untuk beasiswa <strong>{scholarship.title}</strong>
+                          Analisis AI ScholarzPath untuk beasiswa <strong>{scholarship.title}</strong>
                         </DialogDescription>
                       </DialogHeader>
                       <div className="mt-6 space-y-6">
@@ -297,9 +273,7 @@ export default function Recommendations() {
                           <h4 className="text-sm font-bold text-indigo-900 mb-2 flex items-center gap-2">
                             <CheckCircle2 size={16} /> Skor Kesesuaian: {m.score}%
                           </h4>
-                          <p className="text-sm text-indigo-800 leading-relaxed font-medium">
-                            {m.reason}
-                          </p>
+                          <p className="text-sm text-indigo-800 leading-relaxed font-medium">{m.reason}</p>
                         </div>
 
                         <div className="space-y-4">
@@ -307,11 +281,11 @@ export default function Recommendations() {
                           <div className="grid grid-cols-2 gap-4">
                             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                               <p className="text-[10px] text-slate-400 font-bold uppercase">Akademik</p>
-                              <p className="text-xs font-bold text-slate-700 mt-1">{scholarship.field || 'General'}</p>
+                              <p className="text-xs font-bold text-slate-700 mt-1">{scholarship.field || "General"}</p>
                             </div>
                             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                               <p className="text-[10px] text-slate-400 font-bold uppercase">Lokasi</p>
-                              <p className="text-xs font-bold text-slate-700 mt-1">{scholarship.country || 'Indonesia'}</p>
+                              <p className="text-xs font-bold text-slate-700 mt-1">{scholarship.country || "Indonesia"}</p>
                             </div>
                           </div>
                         </div>
@@ -355,9 +329,7 @@ export default function Recommendations() {
               <Sparkles className="h-12 w-12 text-indigo-200" />
             </div>
             <h3 className="text-2xl font-bold text-slate-900 italic tracking-tight">Siap Untuk Sukses?</h3>
-            <p className="mt-4 text-slate-500 max-w-sm text-sm font-medium leading-relaxed">
-              Klik tombol di atas untuk menjalankan analisis AI pada data akademik Anda dan temukan beasiswa impian.
-            </p>
+            <p className="mt-4 text-slate-500 max-w-sm text-sm font-medium leading-relaxed">Klik tombol di atas untuk menjalankan analisis AI pada data akademik Anda dan temukan beasiswa impian.</p>
           </div>
         </>
       )}

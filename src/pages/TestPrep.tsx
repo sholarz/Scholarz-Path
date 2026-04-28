@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { BookOpen, Headphones, PenTool, MessageSquare, FileText, Lock, Sparkles, ChevronRight, ChevronLeft, CheckCircle2, RotateCcw, ArrowLeft, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { useAuth } from '../lib/auth';
-import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, where } from 'firebase/firestore';
-import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
-import { toast } from 'sonner';
-import { reviewEssay } from '../services/geminiService';
-import { Textarea } from '../components/ui/textarea';
+import React, { useState } from "react";
+import { useLocation } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { BookOpen, Headphones, PenTool, MessageSquare, FileText, Lock, Sparkles, ChevronRight, ChevronLeft, CheckCircle2, RotateCcw, ArrowLeft, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { useAuth } from "../lib/auth";
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, where } from "firebase/firestore";
+import { db, auth, handleFirestoreError, OperationType } from "../lib/firebase";
+import { toast } from "sonner";
+import { reviewEssay } from "../services/geminiService";
+import { Textarea } from "../components/ui/textarea";
 
 interface Question {
   id: number;
@@ -29,143 +30,120 @@ const ghostBtn = "text-slate-500 hover:bg-slate-200";
 
 const MOCK_TESTS: Record<string, TestData> = {
   ielts: {
-    id: 'ielts',
-    title: 'IELTS Reading Simulation',
+    id: "ielts",
+    title: "IELTS Reading Simulation",
     questions: [
       {
         id: 1,
         text: "What is the primary purpose of an abstract in a research paper?",
-        options: [
-          "To provide a list of references",
-          "To summarize the entire study",
-          "To introduce the researchers",
-          "To display all data charts"
-        ],
-        correct: 1
+        options: ["To provide a list of references", "To summarize the entire study", "To introduce the researchers", "To display all data charts"],
+        correct: 1,
       },
       {
         id: 2,
         text: "In IELTS Reading, 'Skimming' refers to:",
-        options: [
-          "Reading every word carefully",
-          "Looking for specific names or dates",
-          "Reading quickly to get the general idea",
-          "Translating the text into your native language"
-        ],
-        correct: 2
+        options: ["Reading every word carefully", "Looking for specific names or dates", "Reading quickly to get the general idea", "Translating the text into your native language"],
+        correct: 2,
       },
       {
         id: 3,
         text: "Wait... does 'Not Given' in T/F/NG questions mean the information is false?",
-        options: [
-          "Yes, definitely",
-          "No, it means the text doesn't mention it",
-          "It's the same as 'False'",
-          "It's only for academic tests"
-        ],
-        correct: 1
-      }
-    ]
+        options: ["Yes, definitely", "No, it means the text doesn't mention it", "It's the same as 'False'", "It's only for academic tests"],
+        correct: 1,
+      },
+    ],
   },
   toefl: {
-    id: 'toefl',
-    title: 'TOEFL Listening Practice',
+    id: "toefl",
+    title: "TOEFL Listening Practice",
     questions: [
       {
         id: 1,
         text: "Listen to the lecture. Why does the professor mention the Renaissance?",
-        options: [
-          "To complain about student grades",
-          "To provide a historical context for the movement",
-          "To show that he is smart",
-          "To suggest a field trip"
-        ],
-        correct: 1
+        options: ["To complain about student grades", "To provide a historical context for the movement", "To show that he is smart", "To suggest a field trip"],
+        correct: 1,
       },
       {
         id: 2,
         text: "Main idea of the conversation:",
-        options: [
-          "Student wants to drop a class",
-          "Student needs help with a lab report",
-          "Professor is retiring",
-          "Cafeteria food is bad"
-        ],
-        correct: 1
-      }
-    ]
-  }
+        options: ["Student wants to drop a class", "Student needs help with a lab report", "Professor is retiring", "Cafeteria food is bad"],
+        correct: 1,
+      },
+    ],
+  },
 };
 
 export default function TestPrep() {
+  const location = useLocation();
   const { user, isPremium } = useAuth();
   const [activeTest, setActiveTest] = useState<TestData | null>(null);
   const [currentStep, setCurrentStep] = useState(0); // 0: intro, 1: questions, 2: result
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [score, setScore] = useState(0);
-  const [essayContent, setEssayContent] = useState('');
+  const [essayContent, setEssayContent] = useState("");
   const [essayFeedback, setEssayFeedback] = useState<any | null>(null);
   const [checkingEssay, setCheckingEssay] = useState(false);
   const [essayHistory, setEssayHistory] = useState<any[]>([]);
   const [viewingHistoryItem, setViewingHistoryItem] = useState<any | null>(null);
-  const [activeEssayTab, setActiveEssayTab] = useState<'write' | 'history'>('write');
+  const [activeEssayTab, setActiveEssayTab] = useState<"write" | "history">("write");
 
   // Fetch Essay History
   React.useEffect(() => {
     if (!user || currentStep !== 3) return;
 
     const essayResultsPath = `users/${user.uid}/essayResults`;
-    const q = query(
-      collection(db, essayResultsPath),
-      orderBy('createdAt', 'desc')
-    );
+    const q = query(collection(db, essayResultsPath), orderBy("createdAt", "desc"));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const history = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setEssayHistory(history);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, essayResultsPath);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const history = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setEssayHistory(history);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, essayResultsPath);
+      },
+    );
 
     return () => unsubscribe();
   }, [user, currentStep]);
 
   const tests = [
     {
-      id: 'ielts',
+      id: "ielts",
       title: "IELTS Full Simulation",
       duration: "2h 45m",
       questions: "4 Sections",
       type: "Academic",
       icon: FileText,
-      premium: false
+      premium: false,
     },
     {
-      id: 'toefl',
+      id: "toefl",
       title: "TOEFL iBT Practice",
       duration: "3h",
       questions: "Reading & Listening",
       type: "Internet Based",
       icon: Headphones,
-      premium: false
+      premium: false,
     },
     {
-      id: 'essay',
+      id: "essay",
       title: "Essay Review AI",
       duration: "Instant",
       questions: "Unlimited",
       type: "Writing",
       icon: PenTool,
-      premium: true
-    }
+      premium: true,
+    },
   ];
 
   const handleStartTest = (testId: string) => {
-    if (testId === 'essay') {
+    if (testId === "essay") {
       setCurrentStep(3); // 3: essay mode
       return;
     }
@@ -192,10 +170,10 @@ export default function TestPrep() {
       activeTest!.questions.forEach((q, i) => {
         if (answers[i] === q.correct) finalScore++;
       });
-      
+
       const percentage = Math.round((finalScore / activeTest!.questions.length) * 100);
       setScore(finalScore);
-      
+
       // Save to Firebase
       if (user) {
         const resultsPath = `users/${user.uid}/testResults`;
@@ -206,13 +184,13 @@ export default function TestPrep() {
             score: finalScore,
             totalQuestions: activeTest!.questions.length,
             percentage: percentage,
-            createdAt: serverTimestamp()
+            createdAt: serverTimestamp(),
           });
         } catch (error) {
           handleFirestoreError(error, OperationType.WRITE, resultsPath);
         }
       }
-      
+
       setCurrentStep(2);
     }
   };
@@ -222,7 +200,7 @@ export default function TestPrep() {
       toast.error("Silakan masukkan esai Anda terlebih dahulu.");
       return;
     }
-    
+
     setCheckingEssay(true);
     try {
       const feedback = await reviewEssay(essayContent);
@@ -239,7 +217,7 @@ export default function TestPrep() {
             strengths: feedback.strengths,
             weaknesses: feedback.weaknesses,
             suggestions: feedback.suggestions,
-            createdAt: serverTimestamp()
+            createdAt: serverTimestamp(),
           });
         } catch (error) {
           handleFirestoreError(error, OperationType.WRITE, essayResultsPath);
@@ -253,90 +231,89 @@ export default function TestPrep() {
     }
   };
 
+  React.useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const requestedTest = searchParams.get("test");
+    if (!requestedTest) return;
+
+    if (requestedTest === "ielts" || requestedTest === "toefl" || requestedTest === "essay") {
+      handleStartTest(requestedTest);
+    }
+  }, [location.search]);
+
   if (currentStep === 3) {
     return (
       <div className="mx-auto w-full max-w-7xl px-6 lg:px-8 pt-6 md:pt-8 pb-12">
         <div className="mb-8 flex items-center justify-between">
-          <Button variant="ghost" onClick={() => {
-            setCurrentStep(0);
-            setViewingHistoryItem(null);
-            setEssayFeedback(null);
-          }} className="gap-2 text-slate-500">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setCurrentStep(0);
+              setViewingHistoryItem(null);
+              setEssayFeedback(null);
+            }}
+            className="gap-2 text-slate-500"
+          >
             <ArrowLeft size={16} /> Kembali ke Menu
           </Button>
           <div className="flex bg-slate-100 p-1 rounded-xl">
-            <Button 
-              variant={activeEssayTab === 'write' ? 'secondary' : 'ghost'} 
+            <Button
+              variant={activeEssayTab === "write" ? "secondary" : "ghost"}
               size="sm"
               onClick={() => {
-                setActiveEssayTab('write');
+                setActiveEssayTab("write");
                 setViewingHistoryItem(null);
               }}
-              className={`rounded-lg px-6 font-bold ${activeEssayTab === 'write' ? 'bg-white shadow-sm' : ''}`}
+              className={`rounded-lg px-6 font-bold ${activeEssayTab === "write" ? "bg-white shadow-sm" : ""}`}
             >
               Cek Esai
             </Button>
-            <Button 
-              variant={activeEssayTab === 'history' ? 'secondary' : 'ghost'} 
-              size="sm"
-              onClick={() => setActiveEssayTab('history')}
-              className={`rounded-lg px-6 font-bold ${activeEssayTab === 'history' ? 'bg-white shadow-sm' : ''}`}
-            >
+            <Button variant={activeEssayTab === "history" ? "secondary" : "ghost"} size="sm" onClick={() => setActiveEssayTab("history")} className={`rounded-lg px-6 font-bold ${activeEssayTab === "history" ? "bg-white shadow-sm" : ""}`}>
               Riwayat ({essayHistory.length})
             </Button>
           </div>
         </div>
 
-        {activeEssayTab === 'write' ? (
+        {activeEssayTab === "write" ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="space-y-6">
               <Card className="rounded-[32px] border-slate-100 shadow-sm overflow-hidden">
                 <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-6">
-                    <CardTitle className="text-xl font-bold flex items-center gap-2">
-                      <PenTool className="text-slate-900" size={20} />
-                      Input Esai Beasiswa
-                    </CardTitle>
-                    <CardDescription>
-                      Tempelkan draf esai Anda di sini untuk mendapatkan feedback dari model Llama 3.3 70B Versatile via Groq.
-                    </CardDescription>
+                  <CardTitle className="text-xl font-bold flex items-center gap-2">
+                    <PenTool className="text-slate-900" size={20} />
+                    Input Esai Beasiswa
+                  </CardTitle>
+                  <CardDescription>Tempelkan draf esai Anda di sini untuk mendapatkan feedback dari model Llama 3.3 70B Versatile via Groq.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">
-                    <Textarea 
-                      placeholder="Tulis atau tempelkan esai Anda di sini..."
-                      className="min-h-[400px] rounded-2xl bg-white border-slate-200 focus:ring-slate-900/10 resize-none font-medium leading-relaxed"
-                      value={essayContent}
-                      onChange={(e) => setEssayContent(e.target.value)}
-                    />
+                  <Textarea
+                    placeholder="Tulis atau tempelkan esai Anda di sini..."
+                    className="min-h-[400px] rounded-2xl bg-white border-slate-200 focus:ring-slate-900/10 resize-none font-medium leading-relaxed"
+                    value={essayContent}
+                    onChange={(e) => setEssayContent(e.target.value)}
+                  />
                 </CardContent>
                 <CardFooter className="bg-slate-50/50 border-t border-slate-100 p-6">
-                    <Button 
-                      onClick={handleCheckEssay} 
-                      disabled={checkingEssay || !essayContent.trim()}
-                      className="w-full bg-slate-900 text-white hover:bg-slate-800 rounded-xl h-12 font-bold transition-all shadow-lg shadow-slate-200"
-                    >
-                      {checkingEssay ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Sedang Menganalisis...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="mr-2 h-4 w-4" />
-                          Dapatkan Feedback AI
-                        </>
-                      )}
-                    </Button>
+                  <Button onClick={handleCheckEssay} disabled={checkingEssay || !essayContent.trim()} className="w-full bg-slate-900 text-white hover:bg-slate-800 rounded-xl h-12 font-bold transition-all shadow-lg shadow-slate-200">
+                    {checkingEssay ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sedang Menganalisis...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Dapatkan Feedback AI
+                      </>
+                    )}
+                  </Button>
                 </CardFooter>
               </Card>
             </div>
 
             <div className="space-y-6">
               {essayFeedback ? (
-                <motion.div 
-                  initial={{ opacity: 0, x: 20 }} 
-                  animate={{ opacity: 1, x: 0 }}
-                  className="space-y-6"
-                >
+                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
                   <Card className="rounded-[32px] border-slate-100 shadow-sm overflow-hidden">
                     <CardHeader className="bg-emerald-50/50 border-b border-emerald-100 pb-6">
                       <div className="flex justify-between items-center">
@@ -344,17 +321,13 @@ export default function TestPrep() {
                           <CheckCircle2 size={20} />
                           Hasil Analisis AI
                         </CardTitle>
-                        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
-                          Skor: {essayFeedback.overallScore}/100
-                        </Badge>
+                        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Skor: {essayFeedback.overallScore}/100</Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="p-6 space-y-8">
                       <div>
                         <h4 className="text-sm font-black uppercase text-slate-400 tracking-widest mb-3">Ringkasan</h4>
-                        <p className="text-slate-700 font-medium leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                          {essayFeedback.feedback}
-                        </p>
+                        <p className="text-slate-700 font-medium leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100">{essayFeedback.feedback}</p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -387,9 +360,7 @@ export default function TestPrep() {
                         <ul className="space-y-2">
                           {(essayFeedback.suggestions || []).map((item: string, i: number) => (
                             <li key={i} className="flex items-start gap-3 text-sm font-bold text-indigo-900">
-                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[10px] font-black shadow-sm shrink-0">
-                                {i + 1}
-                              </span>
+                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[10px] font-black shadow-sm shrink-0">{i + 1}</span>
                               {item}
                             </li>
                           ))}
@@ -427,22 +398,14 @@ export default function TestPrep() {
                       key={item.id}
                       onClick={() => setViewingHistoryItem(item)}
                       className={`w-full text-left p-4 rounded-2xl border transition-all ${
-                        viewingHistoryItem?.id === item.id 
-                        ? 'border-slate-900 bg-slate-900 text-white shadow-lg' 
-                        : 'border-slate-100 bg-white hover:border-slate-300 text-slate-600'
+                        viewingHistoryItem?.id === item.id ? "border-slate-900 bg-slate-900 text-white shadow-lg" : "border-slate-100 bg-white hover:border-slate-300 text-slate-600"
                       }`}
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <Badge className={`${viewingHistoryItem?.id === item.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                          Skor: {item.overallScore || 0}
-                        </Badge>
-                        <span className={`text-[10px] font-bold ${viewingHistoryItem?.id === item.id ? 'text-slate-300' : 'text-slate-400'}`}>
-                          {item.createdAt?.toDate().toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                        </span>
+                        <Badge className={`${viewingHistoryItem?.id === item.id ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"}`}>Skor: {item.overallScore || 0}</Badge>
+                        <span className={`text-[10px] font-bold ${viewingHistoryItem?.id === item.id ? "text-slate-300" : "text-slate-400"}`}>{item.createdAt?.toDate().toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</span>
                       </div>
-                      <p className={`text-xs font-bold line-clamp-2 leading-relaxed ${viewingHistoryItem?.id === item.id ? 'text-white' : 'text-slate-900'}`}>
-                        {item.essayContent}
-                      </p>
+                      <p className={`text-xs font-bold line-clamp-2 leading-relaxed ${viewingHistoryItem?.id === item.id ? "text-white" : "text-slate-900"}`}>{item.essayContent}</p>
                     </button>
                   ))
                 )}
@@ -451,41 +414,26 @@ export default function TestPrep() {
 
             <div className="lg:col-span-2">
               {viewingHistoryItem ? (
-                <motion.div 
-                  key={viewingHistoryItem.id}
-                  initial={{ opacity: 0, y: 10 }} 
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-6"
-                >
+                <motion.div key={viewingHistoryItem.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                   <Card className="rounded-[32px] border-slate-100 shadow-sm overflow-hidden">
                     <CardHeader className="bg-slate-50 border-b border-slate-100 pb-6">
                       <div className="flex justify-between items-center">
                         <div>
-                          <CardTitle className="text-xl font-bold flex items-center gap-2">
-                            Detail Riwayat Analisis
-                          </CardTitle>
-                          <CardDescription>
-                            Dianalisis pada {viewingHistoryItem.createdAt?.toDate().toLocaleString('id-ID')}
-                          </CardDescription>
+                          <CardTitle className="text-xl font-bold flex items-center gap-2">Detail Riwayat Analisis</CardTitle>
+                          <CardDescription>Dianalisis pada {viewingHistoryItem.createdAt?.toDate().toLocaleString("id-ID")}</CardDescription>
                         </div>
-                        <Badge className="bg-slate-900 text-white h-8 px-4 text-base rounded-full">
-                          Skor: {viewingHistoryItem.overallScore}/100
-                        </Badge>
+                        <Badge className="bg-slate-900 text-white h-8 px-4 text-base rounded-full">Skor: {viewingHistoryItem.overallScore}/100</Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="p-6 space-y-8">
-                       <div>
+                      <div>
                         <h4 className="text-sm font-black uppercase text-slate-400 tracking-widest mb-3">Teks Esai</h4>
-                        <div className="text-slate-600 text-sm font-medium leading-relaxed bg-slate-50 p-6 rounded-3xl border border-slate-100 max-h-[300px] overflow-y-auto italic">
-                          "{viewingHistoryItem.essayContent}"
-                        </div>
+                        <div className="text-slate-600 text-sm font-medium leading-relaxed bg-slate-50 p-6 rounded-3xl border border-slate-100 max-h-[300px] overflow-y-auto italic">"{viewingHistoryItem.essayContent}"</div>
                       </div>
 
                       <div>
                         <h4 className="text-sm font-black uppercase text-slate-400 tracking-widest mb-3">Feedback AI</h4>
-                        <p className="text-slate-700 font-bold leading-relaxed">
-                          {viewingHistoryItem.feedback}
-                        </p>
+                        <p className="text-slate-700 font-bold leading-relaxed">{viewingHistoryItem.feedback}</p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -518,9 +466,7 @@ export default function TestPrep() {
                         <ul className="space-y-2">
                           {(viewingHistoryItem.suggestions || []).map((item: string, i: number) => (
                             <li key={i} className="flex items-start gap-3 text-sm font-bold text-indigo-900">
-                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[10px] font-black shadow-sm shrink-0">
-                                {i + 1}
-                              </span>
+                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[10px] font-black shadow-sm shrink-0">{i + 1}</span>
                               {item}
                             </li>
                           ))}
@@ -560,9 +506,7 @@ export default function TestPrep() {
           </div>
 
           <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900 mb-8 leading-relaxed">
-              {question.text}
-            </h2>
+            <h2 className="text-lg font-bold text-slate-900 mb-8 leading-relaxed">{question.text}</h2>
 
             <div className="space-y-3">
               {question.options.map((opt, i) => (
@@ -570,34 +514,23 @@ export default function TestPrep() {
                   key={i}
                   onClick={() => handleAnswerSelect(i)}
                   className={`w-full text-left p-4 rounded-2xl border transition-all text-sm font-medium ${
-                    answers[currentQuestionIdx] === i 
-                      ? 'border-slate-900 bg-slate-900 text-white' 
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'
+                    answers[currentQuestionIdx] === i ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-slate-400"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                     <span>{opt}</span>
-                     {answers[currentQuestionIdx] === i && <CheckCircle2 size={16} />}
+                    <span>{opt}</span>
+                    {answers[currentQuestionIdx] === i && <CheckCircle2 size={16} />}
                   </div>
                 </button>
               ))}
             </div>
 
             <div className="mt-10 flex justify-between">
-              <Button 
-                 variant="outline" 
-                 disabled={currentQuestionIdx === 0}
-                 onClick={() => setCurrentQuestionIdx(currentQuestionIdx - 1)}
-                 className="rounded-xl px-6"
-              >
+              <Button variant="outline" disabled={currentQuestionIdx === 0} onClick={() => setCurrentQuestionIdx(currentQuestionIdx - 1)} className="rounded-xl px-6">
                 <ChevronLeft className="mr-2" size={16} /> Kembali
               </Button>
-              <Button 
-                 disabled={answers[currentQuestionIdx] === undefined}
-                 onClick={handleNext}
-                 className="bg-slate-900 text-white rounded-xl px-8"
-              >
-                {currentQuestionIdx === activeTest.questions.length - 1 ? "Selesai" : "Lanjut"} 
+              <Button disabled={answers[currentQuestionIdx] === undefined} onClick={handleNext} className="bg-slate-900 text-white rounded-xl px-8">
+                {currentQuestionIdx === activeTest.questions.length - 1 ? "Selesai" : "Lanjut"}
                 <ChevronRight className="ml-2" size={16} />
               </Button>
             </div>
@@ -611,42 +544,42 @@ export default function TestPrep() {
     return (
       <div className="mx-auto w-full max-w-7xl px-6 lg:px-8 pt-6 md:pt-8 pb-12">
         <div className="mx-auto w-full max-w-md text-center">
-         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-          <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 size={48} />
-          </div>
-          <h2 className="text-3xl font-bold text-slate-900 mb-2">Simulasi Selesai!</h2>
-          <p className="text-slate-500 mb-8">Hasil performa simulasi beasiswa Anda.</p>
-
-          <Card className="border-slate-100 shadow-sm rounded-3xl mb-8 overflow-hidden">
-            <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Skor Akhir</span>
-              <Badge className="bg-emerald-100 text-emerald-700">{score}/{activeTest.questions.length}</Badge>
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+            <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle2 size={48} />
             </div>
-            <CardContent className="p-8">
-              <div className="text-5xl font-black text-slate-900 mb-2">
-                {Math.round((score / activeTest.questions.length) * 100)}%
-              </div>
-              <p className="text-xs text-slate-400 font-medium italic">"Terus berlatih untuk mencapai target IELTS 7.5+"</p>
-            </CardContent>
-          </Card>
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">Simulasi Selesai!</h2>
+            <p className="text-slate-500 mb-8">Hasil performa simulasi beasiswa Anda.</p>
 
-          <div className="flex gap-4">
-            <Button onClick={() => handleStartTest(activeTest.id)} variant="outline" className="flex-1 rounded-xl gap-2 font-bold py-6">
-              <RotateCcw size={16} /> Ulangi
-            </Button>
-            <Button onClick={() => setActiveTest(null)} className="flex-1 bg-slate-900 text-white rounded-xl font-bold py-6">
-              Dashboard Tes
-            </Button>
-          </div>
-         </motion.div>
+            <Card className="border-slate-100 shadow-sm rounded-3xl mb-8 overflow-hidden">
+              <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Skor Akhir</span>
+                <Badge className="bg-emerald-100 text-emerald-700">
+                  {score}/{activeTest.questions.length}
+                </Badge>
+              </div>
+              <CardContent className="p-8">
+                <div className="text-5xl font-black text-slate-900 mb-2">{Math.round((score / activeTest.questions.length) * 100)}%</div>
+                <p className="text-xs text-slate-400 font-medium italic">"Terus berlatih untuk mencapai target IELTS 7.5+"</p>
+              </CardContent>
+            </Card>
+
+            <div className="flex gap-4">
+              <Button onClick={() => handleStartTest(activeTest.id)} variant="outline" className="flex-1 rounded-xl gap-2 font-bold py-6">
+                <RotateCcw size={16} /> Ulangi
+              </Button>
+              <Button onClick={() => setActiveTest(null)} className="flex-1 bg-slate-900 text-white rounded-xl font-bold py-6">
+                Dashboard Tes
+              </Button>
+            </div>
+          </motion.div>
         </div>
       </div>
     );
   }
 
   return (
-     <div className="sp-page-container space-y-8">
+    <div className="sp-page-container space-y-8">
       <div className="sp-page-header flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="sp-page-title">Test Preparation Hub</h1>
@@ -662,20 +595,17 @@ export default function TestPrep() {
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {tests.map((test, idx) => (
-          <motion.div
-            key={idx}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.1 }}
-          >
+          <motion.div key={idx} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }}>
             <Card className="h-full border-slate-200 hover:border-slate-300 transition-all group rounded-[24px] overflow-hidden bg-white">
               <CardHeader>
                 <div className="flex justify-between items-start mb-2">
-                  <div className={`p-2.5 rounded-xl ${test.premium ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-500'}`}>
+                  <div className={`p-2.5 rounded-xl ${test.premium ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-500"}`}>
                     <test.icon size={20} />
                   </div>
                   {test.premium && (
-                    <Badge variant="secondary" className="bg-amber-100 text-amber-700 text-[10px] font-bold border-amber-200">PREMIUM</Badge>
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-700 text-[10px] font-bold border-amber-200">
+                      PREMIUM
+                    </Badge>
                   )}
                 </div>
                 <CardTitle className="text-lg font-bold group-hover:text-slate-900 transition-colors tracking-tight">{test.title}</CardTitle>
@@ -692,13 +622,15 @@ export default function TestPrep() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button 
+                <Button
                   onClick={() => handleStartTest(test.id)}
-                  disabled={test.premium && !isPremium} 
-                  className={`w-full font-bold text-xs h-10 rounded-xl transition-all ${test.premium && !isPremium ? 'bg-slate-100 text-slate-400' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
+                  disabled={test.premium && !isPremium}
+                  className={`w-full font-bold text-xs h-10 rounded-xl transition-all ${test.premium && !isPremium ? "bg-slate-100 text-slate-400" : "bg-slate-900 text-white hover:bg-slate-800"}`}
                 >
                   {test.premium && !isPremium ? (
-                    <span className="flex items-center gap-2"><Lock size={12} /> Ambil Premium</span>
+                    <span className="flex items-center gap-2">
+                      <Lock size={12} /> Ambil Premium
+                    </span>
                   ) : (
                     "Mulai simulasi"
                   )}
