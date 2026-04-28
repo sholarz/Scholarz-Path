@@ -184,27 +184,29 @@ export default function RoadmapCalendar() {
         <p className="mt-2 text-slate-500">Ikuti langkah-langkah strategis untuk melamar beasiswa impian Anda.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-start">
         {/* Left: Calendar & Shortcuts */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="space-y-6 lg:col-span-5">
           <Card className="border-slate-200">
-            <CardHeader className="pb-0">
+            <CardHeader className="pb-3">
               <CardTitle className="text-lg">Kalender Planner</CardTitle>
             </CardHeader>
-            <CardContent className="p-4">
-              <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} className="rounded-md border-0" />
+            <CardContent className="px-4 pb-4 pt-0">
+              <div className="flex justify-center">
+                <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} className="mx-auto w-fit rounded-md border-0" />
+              </div>
             </CardContent>
           </Card>
 
           <Card className="bg-slate-900 text-white border-0">
-            <CardHeader>
+            <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-amber-400" />
                 Buat Roadmap AI
               </CardTitle>
               <CardDescription className="text-slate-400">AI akan membantu merancang timeline pendaftaran Anda.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               {generating ? (
                 <div className="flex flex-col items-center py-4">
                   <Loader2 className="h-8 w-8 animate-spin text-amber-400 mb-2" />
@@ -230,7 +232,7 @@ export default function RoadmapCalendar() {
         </div>
 
         {/* Right: Active Roadmaps */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="space-y-6 lg:col-span-7">
           {loading ? (
             <div className="flex h-64 items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-slate-300" />
