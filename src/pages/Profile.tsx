@@ -48,15 +48,29 @@ export default function Profile() {
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    
+    // Guard clause: validate GPA range before attempting to save
+    const gpaStr = String(formData.gpa ?? "").trim();
+    if (gpaStr) {
+      const gpaNum = parseFloat(gpaStr);
+      if (Number.isNaN(gpaNum) || gpaNum < 0 || gpaNum > 4) {
+        toast.error("IPK harus berada di rentang 0.0 - 4.0");
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       const docRef = doc(db, 'users', user.uid);
-      await updateDoc(docRef, {
+      const payload: Record<string, unknown> = {
         ...formData,
-        gpa: formData.gpa ? Number(formData.gpa) : null,
         updatedAt: new Date().toISOString()
-      });
+      };
+
+      if (gpaStr) {
+        payload.gpa = parseFloat(gpaStr);
+      }
+
+      await updateDoc(docRef, payload);
       toast.success("Profil berhasil diperbarui!");
     } catch (error) {
       console.error("Error updating profile:", error);
