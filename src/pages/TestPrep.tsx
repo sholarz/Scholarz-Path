@@ -25,6 +25,27 @@ interface TestData {
   questions: Question[];
 }
 
+interface EssayFeedback {
+  overallScore: number;
+  feedback: string;
+  strengths: string[];
+  weaknesses: string[];
+  suggestions: string[];
+}
+
+function isEssayFeedback(value: unknown): value is EssayFeedback {
+  if (!value || typeof value !== "object") return false;
+
+  const candidate = value as Partial<EssayFeedback>;
+  return (
+    Number.isFinite(Number(candidate.overallScore)) &&
+    typeof candidate.feedback === "string" &&
+    Array.isArray(candidate.strengths) &&
+    Array.isArray(candidate.weaknesses) &&
+    Array.isArray(candidate.suggestions)
+  );
+}
+
 const whiteBtn = "bg-white text-slate-900 hover:bg-slate-50 shadow-sm";
 const ghostBtn = "text-slate-500 hover:bg-slate-200";
 
@@ -82,11 +103,13 @@ export default function TestPrep() {
   const [answers, setAnswers] = useState<number[]>([]);
   const [score, setScore] = useState(0);
   const [essayContent, setEssayContent] = useState("");
-  const [essayFeedback, setEssayFeedback] = useState<any | null>(null);
+  const [essayFeedback, setEssayFeedback] = useState<EssayFeedback | null>(null);
   const [checkingEssay, setCheckingEssay] = useState(false);
   const [essayHistory, setEssayHistory] = useState<any[]>([]);
   const [viewingHistoryItem, setViewingHistoryItem] = useState<any | null>(null);
   const [activeEssayTab, setActiveEssayTab] = useState<"write" | "history">("write");
+
+  const safeEssayFeedback = isEssayFeedback(essayFeedback) ? essayFeedback : null;
 
   // Fetch Essay History
   React.useEffect(() => {
@@ -225,6 +248,8 @@ export default function TestPrep() {
       }
     } catch (error) {
       console.error("Essay review error:", error);
+      // Reset feedback to avoid rendering partial/invalid state
+      setEssayFeedback(null);
       toast.error("Gagal meninjau esai. Silakan coba lagi.");
     } finally {
       setCheckingEssay(false);
@@ -312,7 +337,14 @@ export default function TestPrep() {
             </div>
 
             <div className="space-y-6">
-              {essayFeedback ? (
+              {checkingEssay ? (
+                <div className="h-full flex items-center justify-center p-12">
+                  <div className="text-center">
+                    <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-slate-400" />
+                    <div className="text-sm font-medium text-slate-500">Sedang menganalisis esai... Mohon tunggu.</div>
+                  </div>
+                </div>
+              ) : safeEssayFeedback ? (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
                   <Card className="rounded-[32px] border-slate-100 shadow-sm overflow-hidden">
                     <CardHeader className="bg-emerald-50/50 border-b border-emerald-100 pb-6">
@@ -321,20 +353,20 @@ export default function TestPrep() {
                           <CheckCircle2 size={20} />
                           Hasil Analisis AI
                         </CardTitle>
-                        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Skor: {essayFeedback.overallScore}/100</Badge>
+                        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Skor: {safeEssayFeedback.overallScore}/100</Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="p-6 space-y-8">
                       <div>
                         <h4 className="text-sm font-black uppercase text-slate-400 tracking-widest mb-3">Ringkasan</h4>
-                        <p className="text-slate-700 font-medium leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100">{essayFeedback.feedback}</p>
+                        <p className="text-slate-700 font-medium leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100">{safeEssayFeedback.feedback}</p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-3">
                           <h4 className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">Kelebihan</h4>
                           <ul className="space-y-2">
-                            {(essayFeedback.strengths || []).map((item: string, i: number) => (
+                            {safeEssayFeedback.strengths.map((item: string, i: number) => (
                               <li key={i} className="flex items-start gap-2 text-sm font-medium text-slate-600">
                                 <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
                                 {item}
@@ -345,7 +377,7 @@ export default function TestPrep() {
                         <div className="space-y-3">
                           <h4 className="text-[10px] font-black uppercase text-amber-600 tracking-widest">Kekurangan</h4>
                           <ul className="space-y-2">
-                            {(essayFeedback.weaknesses || []).map((item: string, i: number) => (
+                            {safeEssayFeedback.weaknesses.map((item: string, i: number) => (
                               <li key={i} className="flex items-start gap-2 text-sm font-medium text-slate-600">
                                 <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
                                 {item}
@@ -358,7 +390,7 @@ export default function TestPrep() {
                       <div className="p-5 bg-indigo-50 rounded-2xl border border-indigo-100">
                         <h4 className="text-[10px] font-black uppercase text-indigo-600 tracking-widest mb-3">Saran Pengembangan</h4>
                         <ul className="space-y-2">
-                          {(essayFeedback.suggestions || []).map((item: string, i: number) => (
+                          {safeEssayFeedback.suggestions.map((item: string, i: number) => (
                             <li key={i} className="flex items-start gap-3 text-sm font-bold text-indigo-900">
                               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[10px] font-black shadow-sm shrink-0">{i + 1}</span>
                               {item}

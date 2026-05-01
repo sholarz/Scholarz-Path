@@ -204,11 +204,28 @@ export async function reviewEssay(essay: string) {
   }
   Essay Content: ${essay}`;
 
-  return generateJsonObject<{
-    overallScore: number;
-    feedback: string;
-    strengths: string[];
-    weaknesses: string[];
-    suggestions: string[];
-  }>(prompt);
+  try {
+    const parsed = await generateJsonObject<{
+      overallScore: number;
+      feedback: string;
+      strengths: string[];
+      weaknesses: string[];
+      suggestions: string[];
+    }>(prompt);
+
+    // Basic validation / normalization to avoid rendering crashes downstream
+    const safe = {
+      overallScore: Number(parsed?.overallScore ?? 0),
+      feedback: parsed?.feedback ?? "",
+      strengths: Array.isArray(parsed?.strengths) ? parsed!.strengths : [],
+      weaknesses: Array.isArray(parsed?.weaknesses) ? parsed!.weaknesses : [],
+      suggestions: Array.isArray(parsed?.suggestions) ? parsed!.suggestions : [],
+    };
+
+    return safe;
+  } catch (err) {
+    console.error("reviewEssay error:", err);
+    // Re-throw so callers can handle and show a friendly fallback UI
+    throw err;
+  }
 }
