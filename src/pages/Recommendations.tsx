@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { collection, query, getDocs, limit, doc, getDoc, setDoc, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, getDocs, limit, doc, getDoc, setDoc, addDoc, serverTimestamp, runTransaction } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../components/ui/card";
@@ -16,9 +16,12 @@ export default function Recommendations() {
   const [scholarships, setScholarships] = useState<Scholarship[]>([]);
   const [matches, setMatches] = useState<SmartMatchItem[]>([]);
   const [matching, setMatching] = useState(false);
+  const [matchCount, setMatchCount] = useState<number>(profile?.matchCount || 0);
+  const [aiBlockedMessage, setAiBlockedMessage] = useState<string | null>(null);
   const [scholarshipsLoading, setScholarshipsLoading] = useState(true);
   const [savedMatchLoading, setSavedMatchLoading] = useState(true);
   const [lastUpdatedText, setLastUpdatedText] = useState<string | null>(null);
+  const activeRequestRef = useRef<{ controller: AbortController | null; requestId: number }>({ controller: null, requestId: 0 });
 
   const formatSavedTimestamp = (value: any): string | null => {
     if (!value) return null;
@@ -45,6 +48,10 @@ export default function Recommendations() {
       minute: "2-digit",
     }).format(parsedDate);
   };
+
+  useEffect(() => {
+    setMatchCount(profile?.matchCount || 0);
+  }, [profile?.matchCount]);
 
   useEffect(() => {
     const fetchScholarships = async () => {
@@ -99,7 +106,15 @@ export default function Recommendations() {
     loadSavedMatch();
   }, [user?.uid, profile?.gpa, profile?.field]);
 
+  useEffect(() => {
+    return () => {
+      activeRequestRef.current.controller?.abort();
+    };
+  }, []);
+
   const isInitialLoading = scholarshipsLoading || savedMatchLoading;
+  const hasReachedFreeLimit = !isPremium && matchCount >= 3;
+  const isAiBlocked = Boolean(aiBlockedMessage);
 
   const buildProfileSnapshot = (): SmartMatchProfileSnapshot => ({
     displayName: profile?.displayName || "",
@@ -116,18 +131,34 @@ export default function Recommendations() {
 
   const handleRunMatching = async () => {
     if (!profile || !user) return;
+    if (matching) {
+      return;
+    }
     if (scholarshipsLoading || savedMatchLoading) {
       toast.info("Mohon tunggu hingga data selesai dimuat.");
       return;
     }
-    if (!isPremium && profile.matchCount >= 3) {
+    if (aiBlockedMessage) {
+      toast.error(aiBlockedMessage);
+      return;
+    }
+    if (hasReachedFreeLimit) {
       toast.error("Batas limit matching tercapai untuk akun gratis. Silakan Upgrade!");
       return;
     }
 
+    activeRequestRef.current.controller?.abort();
+    const controller = new AbortController();
+    const requestId = activeRequestRef.current.requestId + 1;
+    activeRequestRef.current = { controller, requestId };
     setMatching(true);
     try {
-      const results = await matchScholarships(profile, scholarships);
+      const results = await matchScholarships(profile, scholarships, { signal: controller.signal, retries: 2 });
+
+      if (controller.signal.aborted || activeRequestRef.current.requestId !== requestId) {
+        return;
+      }
+
       setMatches(results);
 
       try {
@@ -147,17 +178,33 @@ export default function Recommendations() {
         toast.error("Hasil berhasil dibuat, tetapi gagal disimpan ke Firestore.");
       }
 
-      try {
-        const userRef = doc(db, "users", user.uid);
-        await setDoc(
-          userRef,
-          {
-            matchCount: (profile.matchCount || 0) + 1,
-          },
-          { merge: true },
-        );
-      } catch (countError) {
-        console.error("Error updating match count:", countError);
+      if (!isPremium) {
+        try {
+          const userRef = doc(db, "users", user.uid);
+          const nextMatchCount = await runTransaction(db, async (transaction) => {
+            const userSnap = await transaction.get(userRef);
+            const currentCount = Number(userSnap.data()?.matchCount || 0);
+
+            if (currentCount >= 3) {
+              throw new Error("Batas limit matching tercapai untuk akun gratis. Silakan Upgrade!");
+            }
+
+            transaction.set(
+              userRef,
+              {
+                matchCount: currentCount + 1,
+              },
+              { merge: true },
+            );
+
+            return currentCount + 1;
+          });
+
+          setMatchCount(nextMatchCount);
+        } catch (countError) {
+          console.error("Error updating match count:", countError);
+          throw countError;
+        }
       }
 
       try {
@@ -174,11 +221,20 @@ export default function Recommendations() {
       }
 
       toast.success("Matching selesai!");
-    } catch (error) {
+    } catch (error: any) {
+      if (controller.signal.aborted || error?.name === "AbortError") {
+        return;
+      }
       console.error("Error generating smart match:", error);
-      toast.error("Gagal melakukan matching AI. Hasil lokal tetap tersedia di halaman ini.");
+      if (/kuota ai groq sedang habis/i.test(String(error?.message || ""))) {
+        setAiBlockedMessage(error.message);
+      }
+      toast.error(error?.message || "Gagal melakukan matching AI. Hasil lokal tetap tersedia di halaman ini.");
     } finally {
-      setMatching(false);
+      if (activeRequestRef.current.requestId === requestId) {
+        activeRequestRef.current.controller = null;
+        setMatching(false);
+      }
     }
   };
 
@@ -209,12 +265,18 @@ export default function Recommendations() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-          <Button onClick={handleRunMatching} disabled={matching || isInitialLoading} size="lg" className="bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-100 rounded-xl px-8 font-bold">
+          <Button onClick={handleRunMatching} disabled={matching || isInitialLoading || hasReachedFreeLimit || isAiBlocked} size="lg" className="bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-100 rounded-xl px-8 font-bold">
             {matching || isInitialLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-            {matching ? "Memproses..." : isInitialLoading ? "Memuat Data..." : matches.length > 0 ? "Regenerate Recommendations" : "Luncurkan AI Matching"}
+            {matching ? "Memproses..." : isInitialLoading ? "Memuat Data..." : isAiBlocked ? "AI Unavailable" : matches.length > 0 ? "Regenerate Recommendations" : "Luncurkan AI Matching"}
           </Button>
         </div>
       </div>
+
+      {aiBlockedMessage && (
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {aiBlockedMessage}
+        </div>
+      )}
 
       {isInitialLoading ? (
         <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-slate-100 bg-white shadow-sm">
@@ -306,7 +368,7 @@ export default function Recommendations() {
         </div>
       ) : (
         <>
-          {!isPremium && profile.matchCount >= 3 && matches.length === 0 && (
+          {!isPremium && matchCount >= 3 && matches.length === 0 && (
             <div className="mb-12 bg-slate-900 rounded-3xl p-8 flex flex-col md:flex-row items-center gap-8 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-10">
                 <Zap size={80} />
