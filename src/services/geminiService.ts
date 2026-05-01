@@ -1,7 +1,7 @@
 import Groq from "groq-sdk";
 
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY,
+  apiKey: import.meta.env.VITE_GROQ_API_KEY,
   dangerouslyAllowBrowser: true,
 });
 
@@ -10,27 +10,128 @@ function extractJson(text: string) {
   return (fencedMatch?.[1] ?? text).trim();
 }
 
-async function generateJsonObject<T>(prompt: string, model = "llama-3.3-70b-versatile") {
-  const response = await groq.chat.completions.create({
-    model,
-    temperature: 0.2,
-    response_format: { type: "json_object" },
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are a precise scholarship assistant. Return valid JSON only. Do not include markdown or extra commentary. All narrative output values must be in Bahasa Indonesia unless explicitly requested otherwise.",
-      },
-      { role: "user", content: prompt },
-    ],
-  });
+type GenerateJsonOptions = {
+  signal?: AbortSignal;
+  retries?: number;
+};
 
-  const content = response.choices[0]?.message?.content;
-  if (!content) {
-    throw new Error("Groq returned empty response.");
+function isAbortError(error: unknown) {
+  return (
+    !!error &&
+    typeof error === "object" &&
+    ((error as { name?: string }).name === "AbortError" ||
+      (error as { code?: string }).code === "ABORT_ERR" ||
+      /aborted/i.test((error as { message?: string }).message || ""))
+  );
+}
+
+function isTransientAiError(error: unknown) {
+  const status = typeof error === "object" && error && "status" in error ? Number((error as { status?: unknown }).status) : undefined;
+  return status === 429 || status === 500 || status === 503;
+}
+
+function isRateLimitError(error: unknown) {
+  const status = typeof error === "object" && error && "status" in error ? Number((error as { status?: unknown }).status) : undefined;
+  const code = typeof error === "object" && error && "code" in error ? String((error as { code?: unknown }).code) : "";
+  const message = String((error as { message?: string })?.message || "");
+
+  return status === 429 || code === "rate_limit_exceeded" || /rate limit/i.test(message) || /tokens per day/i.test(message);
+}
+
+function delay(ms: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+
+    const onAbort = () => {
+      window.clearTimeout(timer);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+
+    if (signal) {
+      if (signal.aborted) {
+        window.clearTimeout(timer);
+        reject(new DOMException("Aborted", "AbortError"));
+        return;
+      }
+
+      signal.addEventListener("abort", onAbort, { once: true });
+    }
+  });
+}
+
+function parseJsonContent<T>(content: string): T {
+  const raw = extractJson(content);
+  const parsed = JSON.parse(raw) as T;
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("AI response was not a valid JSON object.");
+  }
+  return parsed;
+}
+
+async function generateJsonObject<T>(prompt: string, model = "llama-3.3-70b-versatile", options: GenerateJsonOptions = {}) {
+  const { signal, retries = 2 } = options;
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("VITE_GROQ_API_KEY is missing from the environment.");
   }
 
-  return JSON.parse(extractJson(content)) as T;
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    if (signal?.aborted) {
+      throw new DOMException("Aborted", "AbortError");
+    }
+
+    try {
+      const response = await groq.chat.completions.create({
+        model,
+        temperature: 0.2,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a precise scholarship assistant. Return valid JSON only. Do not include markdown or extra commentary. All narrative output values must be in Bahasa Indonesia unless explicitly requested otherwise.",
+          },
+          { role: "user", content: prompt },
+        ],
+      } as any);
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error("Groq returned an empty response.");
+      }
+
+      return parseJsonContent<T>(content);
+    } catch (error) {
+      lastError = error;
+
+      if (isAbortError(error)) {
+        throw error;
+      }
+
+      if (isRateLimitError(error)) {
+        throw new Error("Kuota AI Groq sedang habis. Coba lagi nanti atau gunakan model lain.");
+      }
+
+      const shouldRetry = attempt < retries && (isTransientAiError(error) || error instanceof SyntaxError || /JSON/i.test(String((error as { message?: string })?.message || "")));
+      if (!shouldRetry) {
+        break;
+      }
+
+      await delay(250 * (attempt + 1), signal);
+    }
+  }
+
+  if (lastError instanceof Error) {
+    throw new Error(`Gagal memproses respons AI: ${lastError.message}`);
+  }
+
+  throw new Error("Gagal memproses respons AI.");
 }
 
 function normalizeMatchScore(value: unknown) {
@@ -41,6 +142,7 @@ function normalizeMatchScore(value: unknown) {
 
 function normalizeMatchItems(items: Array<{ scholarshipId: string; score: unknown; reason: string }>) {
   return items
+    .filter((item) => typeof item?.scholarshipId === "string" && item.scholarshipId.length > 0)
     .map((item) => ({
       scholarshipId: item.scholarshipId,
       score: normalizeMatchScore(item.score),
@@ -49,7 +151,15 @@ function normalizeMatchItems(items: Array<{ scholarshipId: string; score: unknow
     .sort((left, right) => right.score - left.score);
 }
 
-export async function matchScholarships(userProfile: any, scholarships: any[]) {
+export async function matchScholarships(userProfile: any, scholarships: any[], options: GenerateJsonOptions = {}) {
+  if (!userProfile) {
+    throw new Error("User profile tidak tersedia untuk matching.");
+  }
+
+  if (!Array.isArray(scholarships) || scholarships.length === 0) {
+    throw new Error("Daftar beasiswa kosong. Tidak ada yang bisa dicocokkan.");
+  }
+
   const prompt = `Evaluate how well each scholarship matches the user profile.
 
 Use this scoring rubric strictly:
@@ -77,8 +187,8 @@ Return valid JSON with this exact shape:
 User Profile: ${JSON.stringify(userProfile)}
 Scholarships: ${JSON.stringify(scholarships)}`;
 
-  const parsed = await generateJsonObject<{ items: Array<{ scholarshipId: string; score: number; reason: string }> }>(prompt);
-  return normalizeMatchItems(parsed.items ?? []);
+  const parsed = await generateJsonObject<{ items: Array<{ scholarshipId: string; score: number; reason: string }> }>(prompt, "llama-3.3-70b-versatile", options);
+  return normalizeMatchItems(Array.isArray(parsed.items) ? parsed.items : []);
 }
 
 export async function generateRoadmap(userProfile: any, scholarship: any) {
