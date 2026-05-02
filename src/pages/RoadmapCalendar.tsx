@@ -1,13 +1,38 @@
 import React, { useEffect, useState } from "react";
-import { collection, query, where, getDocs, doc, getDoc, updateDoc, limit } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  getDoc,
+  updateDoc,
+  limit,
+} from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/auth";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../components/ui/card";
+import { getActiveUpcomingDeadlines } from "../lib/utils";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Calendar } from "../components/ui/calendar";
 import { Badge } from "../components/ui/badge";
 import { Roadmap as RoadmapType, Scholarship, RoadmapStep } from "../types";
-import { CheckCircle2, Circle, Calendar as CalendarIcon, Loader2, Sparkles, ChevronRight, ArrowRight } from "lucide-react";
+import {
+  CheckCircle2,
+  Circle,
+  Calendar as CalendarIcon,
+  Loader2,
+  Sparkles,
+  ChevronRight,
+  ArrowRight,
+} from "lucide-react";
 import { generateRoadmap } from "../services/geminiService";
 import { toast } from "sonner";
 
@@ -16,20 +41,31 @@ declare const google: any;
 export default function RoadmapCalendar() {
   const { user, profile, isPremium } = useAuth();
   const [roadmaps, setRoadmaps] = useState<any[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    new Date(),
+  );
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [scholarships, setScholarships] = useState<Scholarship[]>([]);
 
   const CLIENT_ID = import.meta.env.VITE_CLIENT_ID;
-  const SCOPES = ["openid", "email", "profile", "https://www.googleapis.com/auth/calendar.events"].join(" ");
+  const SCOPES = [
+    "openid",
+    "email",
+    "profile",
+    "https://www.googleapis.com/auth/calendar.events",
+  ].join(" ");
 
   const getAccessToken = (): Promise<string> => {
     return new Promise((resolve, reject) => {
       try {
         if (!CLIENT_ID) {
-          return reject(new Error("VITE_CLIENT_ID belum dikonfigurasi. Silakan hubungi admin."));
+          return reject(
+            new Error(
+              "VITE_CLIENT_ID belum dikonfigurasi. Silakan hubungi admin.",
+            ),
+          );
         }
         const client = google.accounts.oauth2.initTokenClient({
           client_id: CLIENT_ID,
@@ -38,7 +74,12 @@ export default function RoadmapCalendar() {
             if (response.access_token) {
               resolve(response.access_token);
             } else {
-              reject(new Error("Gagal mendapatkan access token: " + (response.error || "Unknown error")));
+              reject(
+                new Error(
+                  "Gagal mendapatkan access token: " +
+                    (response.error || "Unknown error"),
+                ),
+              );
             }
           },
         });
@@ -57,7 +98,9 @@ export default function RoadmapCalendar() {
       const events = roadmap.steps.map((step: any) => {
         // Basic check if date is ISO format YYYY-MM-DD
         const isISO = /^\d{4}-\d{2}-\d{2}$/.test(step.date);
-        const startDate = isISO ? step.date : new Date().toISOString().split("T")[0];
+        const startDate = isISO
+          ? step.date
+          : new Date().toISOString().split("T")[0];
 
         return {
           summary: `[Beasiswa] ${step.title}`,
@@ -75,22 +118,29 @@ export default function RoadmapCalendar() {
 
       // Create events sequentially to avoid rate limits and keep it simple
       for (const event of events) {
-        const response = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
+        const response = await fetch(
+          "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(event),
           },
-          body: JSON.stringify(event),
-        });
+        );
 
         if (!response.ok) {
           const errData = await response.json();
-          throw new Error(`Gagal menyimpan event: ${errData.error?.message || response.statusText}`);
+          throw new Error(
+            `Gagal menyimpan event: ${errData.error?.message || response.statusText}`,
+          );
         }
       }
 
-      toast.success(`Berhasil menambahkan ${events.length} jadwal ke Google Calendar!`);
+      toast.success(
+        `Berhasil menambahkan ${events.length} jadwal ke Google Calendar!`,
+      );
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || "Gagal sinkronisasi dengan Google Calendar");
@@ -102,24 +152,49 @@ export default function RoadmapCalendar() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const roadmapQ = query(collection(db, "roadmaps"), where("userId", "==", user?.uid));
+        const roadmapQ = query(
+          collection(db, "roadmaps"),
+          where("userId", "==", user?.uid),
+        );
         const roadmapSnap = await getDocs(roadmapQ);
         setRoadmaps(roadmapSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
 
         // Get bookmarks to show relevant scholarships
-        const bookmarksQ = query(collection(db, `users/${user?.uid}/bookmarks`));
+        const bookmarksQ = query(
+          collection(db, `users/${user?.uid}/bookmarks`),
+        );
         const bookmarksSnap = await getDocs(bookmarksQ);
         const bookmarkedIds = bookmarksSnap.docs.map((d) => d.id);
 
         if (bookmarkedIds.length > 0) {
           const schSnap = await getDocs(query(collection(db, "scholarships")));
-          const allSch = schSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as Scholarship[];
-          setScholarships(allSch.filter((s) => bookmarkedIds.includes(s.id!)));
+          const allSch = schSnap.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+          })) as Scholarship[];
+          const bookmarkedScholarships = allSch.filter((s) =>
+            bookmarkedIds.includes(s.id!),
+          );
+          // BUG-004 FIX: Filter by active upcoming deadlines to encourage applications
+          const activeUpcomingScholarships = getActiveUpcomingDeadlines(
+            bookmarkedScholarships,
+            30,
+          );
+          setScholarships(activeUpcomingScholarships);
         } else {
-          // Fallback to top 3 if no bookmarks
-          const schQ = query(collection(db, "scholarships"), limit(3));
+          // Fallback to top scholarships with upcoming deadlines if no bookmarks
+          const schQ = query(collection(db, "scholarships"), limit(50));
           const schSnap = await getDocs(schQ);
-          setScholarships(schSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as Scholarship[]);
+          const allSch = schSnap.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+          })) as Scholarship[];
+          // BUG-004 FIX: Filter by active upcoming deadlines
+          const activeUpcomingScholarships = getActiveUpcomingDeadlines(
+            allSch,
+            30,
+          );
+          setScholarships(activeUpcomingScholarships.slice(0, 3));
         }
       } catch (error) {
         console.error(error);
@@ -132,7 +207,9 @@ export default function RoadmapCalendar() {
 
   const handleGenerate = async (scholarshipId: string) => {
     if (!isPremium && roadmaps.length >= 1) {
-      toast.error("Limit roadmap gratis tercapai (1 per 3 bulan). Silakan Upgrade!");
+      toast.error(
+        "Limit roadmap gratis tercapai (1 per 3 bulan). Silakan Upgrade!",
+      );
       return;
     }
 
@@ -171,7 +248,11 @@ export default function RoadmapCalendar() {
         steps: newSteps,
       });
 
-      setRoadmaps(roadmaps.map((r) => (r.id === roadmapId ? { ...r, steps: newSteps } : r)));
+      setRoadmaps(
+        roadmaps.map((r) =>
+          r.id === roadmapId ? { ...r, steps: newSteps } : r,
+        ),
+      );
     } catch (error) {
       toast.error("Gagal memperbarui status");
     }
@@ -180,8 +261,12 @@ export default function RoadmapCalendar() {
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="mb-12">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 italic">Roadmap & Kalender Beasiswa</h1>
-        <p className="mt-2 text-slate-500">Ikuti langkah-langkah strategis untuk melamar beasiswa impian Anda.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900 italic">
+          Roadmap & Kalender Beasiswa
+        </h1>
+        <p className="mt-2 text-slate-500">
+          Ikuti langkah-langkah strategis untuk melamar beasiswa impian Anda.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-start">
@@ -193,7 +278,12 @@ export default function RoadmapCalendar() {
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
               <div className="flex justify-center">
-                <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} className="mx-auto w-fit rounded-md border-0" />
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  className="mx-auto w-fit rounded-md border-0"
+                />
               </div>
             </CardContent>
           </Card>
@@ -204,7 +294,9 @@ export default function RoadmapCalendar() {
                 <Sparkles className="h-5 w-5 text-amber-400" />
                 Buat Roadmap AI
               </CardTitle>
-              <CardDescription className="text-slate-400">AI akan membantu merancang timeline pendaftaran Anda.</CardDescription>
+              <CardDescription className="text-slate-400">
+                AI akan membantu merancang timeline pendaftaran Anda.
+              </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
               {generating ? (
@@ -214,16 +306,26 @@ export default function RoadmapCalendar() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <p className="text-xs text-slate-400 italic">Pilih dari beasiswa yang Anda simpan (Bookmarks) untuk membuat timeline.</p>
+                  <p className="text-xs text-slate-400 italic">
+                    Pilih dari beasiswa yang Anda simpan (Bookmarks) untuk
+                    membuat timeline.
+                  </p>
                   {scholarships.length > 0 ? (
                     scholarships.map((s) => (
-                      <Button key={s.id} variant="outline" onClick={() => handleGenerate(s.id)} className="w-full justify-between border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700">
+                      <Button
+                        key={s.id}
+                        variant="outline"
+                        onClick={() => handleGenerate(s.id)}
+                        className="w-full justify-between border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
+                      >
                         <span className="truncate">{s.title}</span>
                         <ChevronRight className="h-4 w-4 shrink-0" />
                       </Button>
                     ))
                   ) : (
-                    <p className="text-xs text-slate-500 text-center py-4 italic">Belum ada beasiswa di bookmarks Anda.</p>
+                    <p className="text-xs text-slate-500 text-center py-4 italic">
+                      Belum ada beasiswa di bookmarks Anda.
+                    </p>
                   )}
                 </div>
               )}
@@ -242,49 +344,98 @@ export default function RoadmapCalendar() {
               <div className="rounded-full bg-slate-50 p-6 mb-4">
                 <CalendarIcon className="h-10 w-10 text-slate-300" />
               </div>
-              <h3 className="text-xl font-semibold text-slate-900">Belum ada Roadmap Aktif</h3>
-              <p className="mt-2 text-slate-500 max-w-sm">Mulailah dengan membuat roadmap dari daftar beasiswa yang tersedia.</p>
+              <h3 className="text-xl font-semibold text-slate-900">
+                Belum ada Roadmap Aktif
+              </h3>
+              <p className="mt-2 text-slate-500 max-w-sm">
+                Mulailah dengan membuat roadmap dari daftar beasiswa yang
+                tersedia.
+              </p>
             </div>
           ) : (
             roadmaps.map((roadmap) => (
-              <Card key={roadmap.id} className="border-slate-200 overflow-hidden">
+              <Card
+                key={roadmap.id}
+                className="border-slate-200 overflow-hidden"
+              >
                 <CardHeader className="bg-slate-50/50 border-b">
                   <div className="flex items-center justify-between">
                     <div>
-                      <Badge className="mb-2 bg-slate-900">Active Roadmap</Badge>
-                      <CardTitle className="text-xl">{roadmap.scholarshipTitle}</CardTitle>
+                      <Badge className="mb-2 bg-slate-900">
+                        Active Roadmap
+                      </Badge>
+                      <CardTitle className="text-xl">
+                        {roadmap.scholarshipTitle}
+                      </CardTitle>
                     </div>
                     <div className="text-right">
-                      <span className="text-2xl font-bold text-slate-900">{Math.round((roadmap.steps.filter((s: any) => s.completed).length / roadmap.steps.length) * 100)}%</span>
-                      <p className="text-xs text-slate-500 uppercase tracking-widest font-bold">Progress</p>
+                      <span className="text-2xl font-bold text-slate-900">
+                        {Math.round(
+                          (roadmap.steps.filter((s: any) => s.completed)
+                            .length /
+                            roadmap.steps.length) *
+                            100,
+                        )}
+                        %
+                      </span>
+                      <p className="text-xs text-slate-500 uppercase tracking-widest font-bold">
+                        Progress
+                      </p>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="divide-y divide-slate-100">
                     {roadmap.steps.map((step: any, idx: number) => (
-                      <div key={idx} className={`flex items-start gap-4 p-5 transition-colors cursor-pointer hover:bg-slate-50/50 group ${step.completed ? "opacity-60" : ""}`} onClick={() => toggleStep(roadmap.id, idx)}>
-                        <div className="mt-1">{step.completed ? <CheckCircle2 className="h-6 w-6 text-emerald-500" /> : <Circle className="h-6 w-6 text-slate-300 group-hover:text-slate-400" />}</div>
+                      <div
+                        key={idx}
+                        className={`flex items-start gap-4 p-5 transition-colors cursor-pointer hover:bg-slate-50/50 group ${step.completed ? "opacity-60" : ""}`}
+                        onClick={() => toggleStep(roadmap.id, idx)}
+                      >
+                        <div className="mt-1">
+                          {step.completed ? (
+                            <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                          ) : (
+                            <Circle className="h-6 w-6 text-slate-300 group-hover:text-slate-400" />
+                          )}
+                        </div>
                         <div className="flex-grow">
                           <div className="flex items-center justify-between">
-                            <h4 className={`font-bold ${step.completed ? "line-through text-slate-400" : "text-slate-900"}`}>{step.title}</h4>
-                            <span className="text-xs font-mono text-slate-500">{step.date}</span>
+                            <h4
+                              className={`font-bold ${step.completed ? "line-through text-slate-400" : "text-slate-900"}`}
+                            >
+                              {step.title}
+                            </h4>
+                            <span className="text-xs font-mono text-slate-500">
+                              {step.date}
+                            </span>
                           </div>
-                          {step.description && <p className="mt-1 text-sm text-slate-500">{step.description}</p>}
+                          {step.description && (
+                            <p className="mt-1 text-sm text-slate-500">
+                              {step.description}
+                            </p>
+                          )}
                         </div>
                       </div>
                     ))}
                   </div>
                 </CardContent>
                 <CardFooter className="bg-slate-50/30 p-4 border-t">
-                  <Button variant="ghost" className="w-full text-slate-500 hover:text-slate-900" onClick={() => syncToGoogleCalendar(roadmap)} disabled={syncingId === roadmap.id}>
+                  <Button
+                    variant="ghost"
+                    className="w-full text-slate-500 hover:text-slate-900"
+                    onClick={() => syncToGoogleCalendar(roadmap)}
+                    disabled={syncingId === roadmap.id}
+                  >
                     {syncingId === roadmap.id ? (
                       <span className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" /> Menghubungkan...
+                        <Loader2 className="h-4 w-4 animate-spin" />{" "}
+                        Menghubungkan...
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
-                        Unduh Jadwal ke Google Calendar <ArrowRight className="h-4 w-4" />
+                        Unduh Jadwal ke Google Calendar{" "}
+                        <ArrowRight className="h-4 w-4" />
                       </span>
                     )}
                   </Button>
