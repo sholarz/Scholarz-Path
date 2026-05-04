@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
-import { Search, MapPin, Calendar, BookOpen, ExternalLink, SlidersHorizontal, Loader2, Bookmark, BookmarkCheck, X, Filter, Check, GraduationCap } from "lucide-react";
+import { Search, MapPin, Calendar, BookOpen, ExternalLink, SlidersHorizontal, Loader2, Bookmark, BookmarkCheck, X, Filter, Check, GraduationCap, ArrowUpDown } from "lucide-react";
 import { Scholarship } from "../types";
 import { toast } from "sonner";
 import Markdown from "react-markdown";
@@ -51,6 +51,9 @@ export default function Scholarships() {
   const [fieldSearchQuery, setFieldSearchQuery] = useState("");
   const [countrySearchQuery, setCountrySearchQuery] = useState("");
   const [showAllFilterChips, setShowAllFilterChips] = useState(false);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [failedImageMap, setFailedImageMap] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -99,8 +102,22 @@ export default function Scholarships() {
       result = result.filter((scholarship) => selectedCountries.includes(scholarship.country || ""));
     }
 
+    if (startDate) {
+      result = result.filter((scholarship) => new Date(scholarship.deadline) >= new Date(startDate));
+    }
+
+    if (endDate) {
+      result = result.filter((scholarship) => new Date(scholarship.deadline) <= new Date(endDate));
+    }
+
+    result.sort((a, b) => {
+      const dateA = new Date(a.deadline).getTime();
+      const dateB = new Date(b.deadline).getTime();
+      return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+    });
+
     setFiltered(result);
-  }, [search, selectedFields, selectedCountries, scholarships]);
+  }, [search, selectedFields, selectedCountries, scholarships, startDate, endDate, sortOrder]);
 
   const countries = Array.from(new Set([...DEFAULT_COUNTRIES, ...scholarships.map((scholarship) => scholarship.country).filter(Boolean)])).sort((a, b) => a.localeCompare(b));
   const filteredFieldOptions = STANDARD_FIELDS.filter((field) => field.toLowerCase().includes(fieldSearchQuery.trim().toLowerCase()));
@@ -146,6 +163,9 @@ export default function Scholarships() {
     setSelectedCountries([]);
     setFieldSearchQuery("");
     setCountrySearchQuery("");
+    setStartDate("");
+    setEndDate("");
+    setSortOrder("asc");
     setShowAllFilterChips(false);
   };
 
@@ -157,7 +177,12 @@ export default function Scholarships() {
     setSelectedCountries((prev) => (prev.includes(country) ? prev.filter((item) => item !== country) : [...prev, country]));
   };
 
-  const activeFilterItems = [...selectedFields.map((field) => ({ type: "field" as const, value: field })), ...selectedCountries.map((country) => ({ type: "country" as const, value: country }))];
+  const activeFilterItems = [
+    ...selectedFields.map((field) => ({ type: "field" as const, value: field })),
+    ...selectedCountries.map((country) => ({ type: "country" as const, value: country })),
+    ...(startDate || endDate ? [{ type: "date" as const, value: `${startDate ? startDate : ""} - ${endDate ? endDate : ""}` }] : []),
+    ...(sortOrder === "desc" ? [{ type: "sort" as const, value: "Terjauh" }] : [{ type: "sort" as const, value: "Terdekat" }]),
+  ];
 
   const compactPreviewItems = activeFilterItems.slice(0, 2);
   const hiddenFilterCount = Math.max(activeFilterItems.length - compactPreviewItems.length, 0);
@@ -192,12 +217,12 @@ export default function Scholarships() {
               render={
                 <Button
                   variant="outline"
-                  className={`h-12 px-5 rounded-2xl border-slate-200 bg-white shadow-sm shrink-0 font-bold flex items-center gap-2 hover:border-indigo-200 hover:bg-white transition-all relative ${selectedFields.length > 0 || selectedCountries.length > 0 ? "border-indigo-400 ring-2 ring-indigo-500/10 bg-indigo-50/10" : ""}`}
+                  className={`h-12 px-5 rounded-2xl border-slate-200 bg-white shadow-sm shrink-0 font-bold flex items-center gap-2 hover:border-indigo-200 hover:bg-white transition-all relative ${activeFilterItems.length > 0 ? "border-indigo-400 ring-2 ring-indigo-500/10 bg-indigo-50/10" : ""}`}
                 >
-                  <SlidersHorizontal className={`h-4 w-4 ${selectedFields.length > 0 || selectedCountries.length > 0 ? "text-indigo-600" : "text-slate-600"}`} />
-                  <span className={selectedFields.length > 0 || selectedCountries.length > 0 ? "text-indigo-700" : "text-slate-700"}>Filter</span>
-                  {(selectedFields.length > 0 || selectedCountries.length > 0) && (
-                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white ring-2 ring-white">{selectedFields.length + selectedCountries.length}</span>
+                  <SlidersHorizontal className={`h-4 w-4 ${activeFilterItems.length > 0 ? "text-indigo-600" : "text-slate-600"}`} />
+                  <span className={activeFilterItems.length > 0 ? "text-indigo-700" : "text-slate-700"}>Filter</span>
+                  {activeFilterItems.length > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white ring-2 ring-white">{activeFilterItems.length}</span>
                   )}
                 </Button>
               }
@@ -275,6 +300,48 @@ export default function Scholarships() {
                   </div>
                   <p className="text-[11px] text-slate-400 font-medium">Bisa pilih lebih dari satu negara.</p>
                 </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar size={14} className="text-indigo-500" />
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Batas Akhir / Deadline</label>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[10px] font-semibold text-slate-500">Mulai dari</label>
+                      <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-11 rounded-xl border-slate-100 bg-white text-sm" />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[10px] font-semibold text-slate-500">Sampai dengan</label>
+                      <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-11 rounded-xl border-slate-100 bg-white text-sm" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ArrowUpDown size={14} className="text-indigo-500" />
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Urutkan Berdasarkan</label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setSortOrder("asc")}
+                      className={`h-11 rounded-xl text-sm font-semibold transition-all ${sortOrder === "asc" ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-slate-200 text-slate-600"}`}
+                    >
+                      Terdekat
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setSortOrder("desc")}
+                      className={`h-11 rounded-xl text-sm font-semibold transition-all ${sortOrder === "desc" ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-slate-200 text-slate-600"}`}
+                    >
+                      Terjauh
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               <SheetFooter className="p-6 border-t border-slate-100 flex-row gap-3 bg-slate-50/50">
@@ -288,7 +355,7 @@ export default function Scholarships() {
         </div>
       </div>
 
-      {(selectedFields.length > 0 || selectedCountries.length > 0 || search) && (
+      {(activeFilterItems.length > 0 || search) && (
         <div className="mb-8 rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
             <div className="flex items-center gap-2 shrink-0">
@@ -311,10 +378,18 @@ export default function Scholarships() {
 
                 {(showAllFilterChips ? activeFilterItems : compactPreviewItems).map((item) => (
                   <Badge key={`${item.type}-${item.value}`} variant="secondary" className="pl-3 pr-1 py-1 rounded-full bg-indigo-50 text-indigo-700 border-indigo-100/70 flex items-center gap-2 shadow-sm text-[10px] font-bold">
-                    {item.type === "field" ? <BookOpen size={11} className="text-indigo-400" /> : <MapPin size={11} className="text-indigo-400" />}
+                    {item.type === "field" ? <BookOpen size={11} className="text-indigo-400" /> : item.type === "country" ? <MapPin size={11} className="text-indigo-400" /> : item.type === "sort" ? <ArrowUpDown size={11} className="text-indigo-400" /> : <Calendar size={11} className="text-indigo-400" />}
                     <span className="uppercase tracking-tight whitespace-nowrap">{item.value}</span>
                     <button
-                      onClick={() => (item.type === "field" ? toggleFieldSelection(item.value) : toggleCountrySelection(item.value))}
+                      onClick={() => {
+                        if (item.type === "field") toggleFieldSelection(item.value);
+                        else if (item.type === "country") toggleCountrySelection(item.value);
+                        else if (item.type === "sort") setSortOrder("asc");
+                        else {
+                          setStartDate("");
+                          setEndDate("");
+                        }
+                      }}
                       className="p-1 rounded-full hover:bg-indigo-100 transition-colors text-indigo-400 hover:text-indigo-700"
                     >
                       <X size={11} strokeWidth={3} />
