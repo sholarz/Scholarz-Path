@@ -107,6 +107,18 @@ export default function Admin() {
 
   const handleAddManual = async (e: React.FormEvent) => {
     e.preventDefault();
+      if (!manualData.title.trim()) {
+        toast.error('Judul beasiswa tidak boleh kosong');
+        return;
+      }
+      if (!manualData.deadline) {
+        toast.error('Deadline tidak boleh kosong');
+        return;
+      }
+      if (!manualData.link.trim()) {
+        toast.error('Link tidak boleh kosong');
+        return;
+      }
     try {
       await addDoc(collection(db, 'scholarships'), manualData);
       toast.success('Beasiswa berhasil ditambahkan');
@@ -295,7 +307,7 @@ export default function Admin() {
                       </TabsContent>
 
                       <TabsContent value="manual">
-                        <form onSubmit={handleAddManual} className="space-y-4">
+                      <form onSubmit={handleAddManual} className="space-y-4">
                           <div className="space-y-1">
                             <Label htmlFor="title" className="text-xs">Judul Beasiswa</Label>
                             <Input id="title" className="h-9" value={manualData.title} onChange={e => setManualData({...manualData, title: e.target.value})} placeholder="Contoh: Beasiswa LPDP 2024" required />
