@@ -288,10 +288,8 @@ export default function RoadmapCalendar() {
   }, [user]);
 
   const handleGenerate = async (scholarshipId: string) => {
-    if (!isPremium && roadmaps.length >= 1) {
-      toast.error(
-        "Limit roadmap gratis tercapai (1 per 3 bulan). Silakan Upgrade!",
-      );
+    if (!isPremium) {
+      toast.error("Fitur Roadmap AI hanya tersedia untuk pengguna Premium.");
       return;
     }
 
@@ -535,6 +533,16 @@ export default function RoadmapCalendar() {
                 <div className="flex flex-col items-center py-4">
                   <Loader2 className="h-8 w-8 animate-spin text-amber-400 mb-2" />
                   <p className="text-xs text-slate-300">Merancang roadmap...</p>
+                </div>
+              ) : !isPremium ? (
+                <div className="flex flex-col items-center py-6 text-center">
+                  <div className="h-12 w-12 rounded-full bg-amber-400/20 flex items-center justify-center mb-3">
+                    <Sparkles className="h-6 w-6 text-amber-400" />
+                  </div>
+                  <h4 className="font-bold text-slate-200 mb-1">Fitur Premium</h4>
+                  <p className="text-xs text-slate-400 max-w-[200px] mx-auto">
+                    Upgrade ke Premium untuk membuat roadmap otomatis menggunakan AI.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">

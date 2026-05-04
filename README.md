@@ -32,6 +32,7 @@ ScholarzPath combines:
 
 ### 3) Roadmap and Calendar
 
+- **Premium Exclusive**: Generating new AI roadmaps is restricted to Premium users.
 - Generate application roadmaps from profile + selected scholarship
 - Interactive calendar visualization with color-coded task status:
   - Blue dots for pending tasks
@@ -59,9 +60,14 @@ ScholarzPath combines:
 
 - Users submit payment proof via URL
 - Admin verifies payment status
-- User role is upgraded to premium
+- User role is upgraded to premium (unlocks AI Roadmap generation and unlimited bookmarks)
 
 ## Recent Features & Enhancements
+
+### Scholarship Search Enhancements
+
+- **Advanced Filtering**: Users can now filter scholarships by exact deadline date ranges alongside categories and countries.
+- **Deadline Sorting**: Added the ability to sort search results dynamically by deadline proximity (Terdekat or Terjauh).
 
 ### Roadmap UI/UX Improvements
 
