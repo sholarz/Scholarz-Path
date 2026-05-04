@@ -67,7 +67,7 @@ ScholarzPath combines:
 ### Scholarship Search Enhancements
 
 - **Advanced Filtering**: Users can now filter scholarships by exact deadline date ranges alongside categories and countries.
-- **Deadline Sorting**: Added the ability to sort search results dynamically by deadline proximity (Terdekat or Terjauh).
+- **Deadline Sorting**: Added the ability to sort search results dynamically by deadline proximity (Terdekat or Terjauh). The default sorting order is "Terjauh" (furthest deadline).
 
 ### Roadmap UI/UX Improvements
 
@@ -75,11 +75,12 @@ ScholarzPath combines:
 - **Interactive Calendar**: Color-coded event indicators (blue/green/red dots) with task counts. Click on dates to jump to specific tasks. Tooltip shows task titles on hover.
 - **AI-Powered Rerouting**: When a task date is changed, AI analyzes the roadmap and suggests optimal rescheduling for dependent tasks. Users can accept or dismiss suggestions with a single click.
 - **Overdue Detection**: Automatically detects scholarships past their deadline and generates roadmaps for the next year with motivational messaging.
-- **Bookmarked Scholarship Integration**: Roadmap generation prioritizes scholarships saved to user's bookmarks, making it easy to generate timelines for interested scholarships.
+- **Bookmarked Scholarship Integration**: Roadmap generation prioritizes scholarships saved to user's bookmarks, making it easy to generate timelines for interested scholarships. The roadmap generator explicitly displays the scholarship title instead of raw database IDs.
 - **Date Picker Per Step**: Inline date picker for each task allows quick rescheduling with real-time Firestore updates.
 
 ### Technical Improvements
 
+- **React State Immutability**: Fixed an in-place array mutation bug during scholarship sorting, ensuring predictable state updates and correct UI re-renders without mutating original data.
 - **Local Date Formatting**: Fixed timezone offset issues by using local date calculations (YYYY-MM-DD) instead of UTC ISO strings.
 - **Real-Time Firestore Sync**: onSnapshot listeners ensure roadmaps update instantly across devices.
 - **Stable Step IDs**: Auto-generates crypto.randomUUID for steps on first load if missing, enabling reliable date change tracking.
