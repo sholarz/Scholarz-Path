@@ -33,8 +33,15 @@ ScholarzPath combines:
 ### 3) Roadmap and Calendar
 
 - Generate application roadmaps from profile + selected scholarship
+- Interactive calendar visualization with color-coded task status:
+  - Blue dots for pending tasks
+  - Green dots for completed tasks
+  - Red dots for overdue tasks
+- Collapsible roadmap list showing scholarship title and progress percentage
+- Per-step date picker with AI-powered rescheduling suggestions
 - Track progress with per-step checklist
 - Sync roadmap steps to Google Calendar (OAuth)
+- Automatic detection of overdue scholarships with motivational messaging
 
 ### 4) Test Prep and Essay Review
 
@@ -53,6 +60,24 @@ ScholarzPath combines:
 - Users submit payment proof via URL
 - Admin verifies payment status
 - User role is upgraded to premium
+
+## Recent Features & Enhancements
+
+### Roadmap UI/UX Improvements
+
+- **Collapsible Roadmap List**: Active roadmaps now display as a compact list showing scholarship title and progress percentage. Click the header to expand and view steps, with smooth ChevronRight icon rotation animation.
+- **Interactive Calendar**: Color-coded event indicators (blue/green/red dots) with task counts. Click on dates to jump to specific tasks. Tooltip shows task titles on hover.
+- **AI-Powered Rerouting**: When a task date is changed, AI analyzes the roadmap and suggests optimal rescheduling for dependent tasks. Users can accept or dismiss suggestions with a single click.
+- **Overdue Detection**: Automatically detects scholarships past their deadline and generates roadmaps for the next year with motivational messaging.
+- **Bookmarked Scholarship Integration**: Roadmap generation prioritizes scholarships saved to user's bookmarks, making it easy to generate timelines for interested scholarships.
+- **Date Picker Per Step**: Inline date picker for each task allows quick rescheduling with real-time Firestore updates.
+
+### Technical Improvements
+
+- **Local Date Formatting**: Fixed timezone offset issues by using local date calculations (YYYY-MM-DD) instead of UTC ISO strings.
+- **Real-Time Firestore Sync**: onSnapshot listeners ensure roadmaps update instantly across devices.
+- **Stable Step IDs**: Auto-generates crypto.randomUUID for steps on first load if missing, enabling reliable date change tracking.
+- **Requirement-Driven Prompts**: AI roadmap generation analyzes scholarship requirements (test scores, GPA, essays, documents, etc.) and matches them against user profile gaps.
 
 ## Tech Stack
 
@@ -73,8 +98,8 @@ ScholarzPath combines:
   - /dashboard
   - /scholarships
   - /recommendations
-  - /calendar
-  - /bookmarks
+  - /roadmap (AI roadmap generation, calendar visualization, and Google Calendar sync)
+  - /bookmarks (scholarship bookmarking for roadmap generation)
   - /test-prep
   - /forum
   - /profile
@@ -188,12 +213,13 @@ Even though the file name remains geminiService.ts for import compatibility, the
 
 Main functions:
 
-- matchScholarships
-- generateRoadmap
-- extractScholarshipFromText
-- searchScholarshipOnWeb
-- extractFromUrl
-- reviewEssay
+- `matchScholarships(userProfile, scholarships)`: Ranks scholarships by fit score
+- `generateRoadmap(userProfile, scholarship, isOverdue)`: Creates 10-15 customized roadmap steps with requirement analysis
+- `rerouteRoadmap(roadmapState, changedTask)`: Suggests optimal rescheduling when task dates change
+- `extractScholarshipFromText`: Parses raw text for scholarship details
+- `searchScholarshipOnWeb`: Searches web for scholarship information
+- `extractFromUrl`: Extracts scholarship data from URLs
+- `reviewEssay`: Provides AI essay feedback (score, strengths, weaknesses)
 
 ## Firestore Rules
 
