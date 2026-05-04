@@ -39,7 +39,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
     { label: 'Scholarships', icon: Search, path: '/scholarships' },
     { label: 'Recommendations', icon: Sparkles, path: '/recommendations' },
-    { label: 'Calendar', icon: CalendarIcon, path: '/calendar' },
+    { label: 'Roadmap', icon: CalendarIcon, path: '/roadmap' },
     { label: 'Bookmarks', icon: Bookmark, path: '/bookmarks' },
     { label: 'Test Prep', icon: BookOpenCheck, path: '/test-prep' },
     { label: 'Forum', icon: MessageSquare, path: '/forum' },

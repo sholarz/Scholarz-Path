@@ -191,20 +191,125 @@ Scholarships: ${JSON.stringify(scholarships)}`;
   return normalizeMatchItems(Array.isArray(parsed.items) ? parsed.items : []);
 }
 
-export async function generateRoadmap(userProfile: any, scholarship: any) {
-  const prompt = `Generate a personalized application roadmap for this scholarship.
-  User: ${JSON.stringify(userProfile)}
-  Scholarship: ${JSON.stringify(scholarship)}
-  Include milestones like IELTS preparation, essay writing, and document submission tailored to the deadline.
-  Important: The 'date' field MUST be in YYYY-MM-DD format based on the current year and scholarship deadline.
-  Return JSON object with format:
-  {
-    "steps": [
-      { "title": "string", "date": "YYYY-MM-DD", "description": "string" }
-    ]
-  }`;
+export async function generateRoadmap(userProfile: any, scholarship: any, isOverdue: boolean = false) {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const nextYear = currentYear + 1;
+  const todayString = now.toISOString().slice(0, 10); // YYYY-MM-DD
+
+  const overdueContext = isOverdue 
+    ? `PENTING: Beasiswa ini sudah melewati deadline tahun ini (${currentYear}). 
+    Namun, roadmap ini MULAI DARI HARI INI (${todayString}) untuk persiapan pendaftaran tahun depan (${nextYear}).
+    User ingin mulai persiapan sekarang, jadi timeline harus realistis dari hari ini sampai mendekati deadline tahun depan.
+    Jangan bikin tanggal yang sudah lewat - semua harus ${currentYear} atau ${nextYear} tapi logical dari sekarang.`
+    : `PENTING: User membuat roadmap hari ini (${todayString}). 
+    Timeline roadmap harus mulai dari tanggal hari ini atau beberapa hari ke depan (tahun ${currentYear}), 
+    dan berlanjut sampai sebelum deadline beasiswa.
+    Semua dates HARUS realistis - tidak boleh tanggal yang sudah lewat dari hari ini.`;
+
+  // Get scholarship deadline untuk konteks
+  let deadlineInfo = "";
+  if (scholarship.deadline) {
+    deadlineInfo = `\nDeadline beasiswa: ${scholarship.deadline}`;
+  }
+  
+  const prompt = `Buat roadmap aplikasi beasiswa yang KOMPREHENSIF, ACTIONABLE, dan DISESUAIKAN DENGAN SPESIFIK REQUIREMENTS beasiswa.
+
+PROFIL USER:
+${JSON.stringify(userProfile, null, 2)}
+
+DETAIL BEASISWA & REQUIREMENTS:
+${JSON.stringify(scholarship, null, 2)}${deadlineInfo}
+
+HARI INI (saat user membuat roadmap): ${todayString}
+
+${overdueContext}
+
+ANALISIS REQUIREMENTS:
+1. EXTRACT dari beasiswa:
+   - Test scores yang diperlukan (IELTS, TOEFL, GRE, GMAT, dll) beserta target score
+   - GPA minimum dan area study/major focus
+   - Jumlah recommendation letters dan dari siapa (academic/professional)
+   - Essay/SOP requirements - jumlah, tema, panjang
+   - Documents yang wajib (transcript, passport, CV, portfolio)
+   - Language proficiency requirements
+   - Work experience requirements (jika ada)
+   - Specific application platform atau portal
+
+2. MATCH dengan user profile:
+   - Identifikasi gap antara user current state dan beasiswa requirements
+   - Prioritas: gap terbesar harus dikerjakan dulu
+   - Kalau user sudah punya test score, focus pada improvement atau next steps
+
+PANDUAN MEMBUAT ROADMAP YANG CUSTOMIZED:
+1. STRUKTUR: 10-15 langkah konkret, disesuaikan dengan beasiswa requirements
+2. LANGKAH HARUS SPECIFIC:
+   - Instead of "Prepare test" → "Take IELTS practice test, target score 6.5 (dari requirement beasiswa)"
+   - Instead of "Get recommendation letters" → "Contact 2 academic advisors + 1 work supervisor untuk recommendation letters 300-400 kata"
+   - Instead of "Write essay" → "Draft main essay: 'Why you deserve this scholarship' (1000 kata, explain motivation & fit dengan beasiswa)"
+
+3. REQUIREMENT-DRIVEN TIMELINE:
+   - Group related tasks (e.g., all test prep before test date)
+   - For each beasiswa requirement, ada dedicated step atau sequence of steps
+   - Buffer antara preparation dan submission (e.g., test 1 bulan sebelum deadline kalau score perlu time untuk process)
+
+4. PRIORITY ORDER:
+   - Long-lead items first (test prep, work experience, GPA boost)
+   - Medium-term (document gathering, recommendation letters)
+   - Short-term (essays, application filling, final review)
+
+5. REALISM & EFFORT ESTIMATION:
+   - Setiap step mention estimated effort (e.g., "5-10 jam minggu untuk IELTS prep")
+   - Space out tasks so tidak overwhelming
+   - Consider user background dari profile
+
+6. MOTIVASI & TIPS:
+   - Dalam description, kasih concrete tips atau motivational notes
+   - Example: "Hubungi dosen favoritmu yang kenal performance akademikmu - dia paling reliable untuk surat rekomendasi berkualitas tinggi!"
+
+RESPONSE FORMAT (STRICTLY JSON):
+{
+  "steps": [
+    {
+      "title": "string (SPECIFIC ke beasiswa requirement, bukan generic)",
+      "date": "YYYY-MM-DD (deadline step ini)",
+      "description": "string (2-4 kalimat, konkriet + tips + motivasi, Bahasa Indonesia)"
+    }
+  ]
+}
+
+PENTING:
+- SETIAP STEP harus linked ke beasiswa requirement atau gap yang ada
+- SPESIFIK: mention nama test, score target, jumlah recommendation letters, essay theme, dll
+- Tidak boleh generic - customize sepenuhnya ke beasiswa ini
+- Urutan chronological dan REALISTIK dimulai dari HARI INI (${todayString})
+- 10-15 steps total (lebih detail dari sebelumnya karena requirement-driven)
+- SEMUA DATES HARUS REALISTIK DAN TIDAK BOLEH LEBIH AWAL DARI HARI INI (${todayString})
+- Mulai dari ${todayString} atau beberapa hari ke depan
+- Gunakan HANYA Bahasa Indonesia`;
 
   return generateJsonObject<{ steps: Array<{ title: string; date: string; description: string }> }>(prompt);
+}
+
+export async function rerouteRoadmap(roadmapState: any, changedTask: { id: string; newDate: string }) {
+  const prompt = `Anda adalah asisten penjadwalan yang bertugas mengoptimalisasi timeline pendaftaran beasiswa.
+  Diberikan state roadmap saat ini (array tasks dengan fields: id, title, date, description, completed) dan sebuah perubahan tanggal pada satu tugas, hitung dampak perubahan ini terhadap deadline akhir pendaftaran. Jika perubahan menyebabkan bottleneck atau tugas saling bertabrakan, usulkan jadwal ulang yang terdistribusi ulang untuk sisa tugas sehingga target akhir masih realistis.
+
+  Masukan:
+  - roadmapState: ${JSON.stringify(roadmapState)}
+  - changedTask: ${JSON.stringify(changedTask)}
+
+  Keluaran yang diharapkan (valid JSON):
+  {
+    "steps": [
+      { "id": "string", "title": "string", "date": "YYYY-MM-DD", "description": "string (optional)" }
+    ],
+    "note": "string (penjelasan singkat, Bahasa Indonesia)"
+  }
+
+  Berikan hanya JSON yang valid tanpa markdown. Semua narasi harus berbahasa Indonesia.`;
+
+  return generateJsonObject<{ steps: Array<{ id: string; title: string; date: string; description?: string }>; note?: string }>(prompt, "llama-3.3-70b-versatile");
 }
 
 export async function extractScholarshipFromText(text: string) {

@@ -104,7 +104,7 @@ export default function App() {
               }
             />
             <Route
-              path="/calendar"
+              path="/roadmap"
               element={
                 <PrivateRoute>
                   <RoadmapCalendar />

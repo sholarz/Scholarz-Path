@@ -19,9 +19,13 @@ function Calendar({
   locale,
   formatters,
   components,
+  eventsMap,
+  onDateClick,
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"]
+  eventsMap?: Record<string, Array<any>>
+  onDateClick?: (events: Array<any>) => void
 }) {
   const defaultClassNames = getDefaultClassNames()
 
@@ -160,7 +164,7 @@ function Calendar({
           )
         },
         DayButton: ({ ...props }) => (
-          <CalendarDayButton locale={locale} {...props} />
+          <CalendarDayButton locale={locale} eventsMap={eventsMap} onDateClick={onDateClick} {...props} />
         ),
         WeekNumber: ({ children, ...props }) => {
           return (
@@ -183,14 +187,26 @@ function CalendarDayButton({
   day,
   modifiers,
   locale,
+  eventsMap,
+  onDateClick,
+  children,
   ...props
-}: React.ComponentProps<typeof DayButton> & { locale?: Partial<Locale> }) {
+}: React.ComponentProps<typeof DayButton> & { locale?: Partial<Locale>; eventsMap?: Record<string, Array<any>>; onDateClick?: (events: Array<any>) => void; children?: React.ReactNode }) {
   const defaultClassNames = getDefaultClassNames()
 
   const ref = React.useRef<HTMLButtonElement>(null)
   React.useEffect(() => {
     if (modifiers.focused) ref.current?.focus()
   }, [modifiers.focused])
+  const pad = (value: number) => String(value).padStart(2, "0")
+  const iso = `${day.date.getFullYear()}-${pad(day.date.getMonth() + 1)}-${pad(day.date.getDate())}`
+  const events = eventsMap?.[iso] ?? []
+  const today = new Date()
+  const todayIso = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
+  const hasPending = events.some((e) => !e.completed)
+  const allCompleted = events.length > 0 && events.every((e) => e.completed)
+  const isOverdue = events.some((e) => !e.completed && iso < todayIso)
+  const indicatorColor = isOverdue ? "bg-red-500" : allCompleted ? "bg-green-500" : events.length > 0 ? "bg-blue-500" : ""
 
   return (
     <Button
@@ -212,7 +228,30 @@ function CalendarDayButton({
         className
       )}
       {...props}
-    />
+      title={events.length > 0 ? events.map((e) => e.title).join("\n") : undefined}
+      onClick={(e) => {
+        if (onDateClick && events.length > 0) {
+          try {
+            onDateClick(events)
+          } catch (err) {
+            // ignore
+          }
+        }
+        if (typeof props.onClick === "function") props.onClick(e as any)
+      }}
+    >
+      {children}
+      {events.length > 0 && (
+        <div className="absolute bottom-1 left-0 right-0 flex items-center justify-center gap-1">
+          {events.slice(0, 3).map((ev, i) => (
+            <span key={i} className={`w-1.5 h-1.5 rounded-full ${indicatorColor}`} />
+          ))}
+          {events.length > 3 && (
+            <span className="text-[10px] text-muted-foreground ml-1">+{events.length - 3}</span>
+          )}
+        </div>
+      )}
+    </Button>
   )
 }
 
