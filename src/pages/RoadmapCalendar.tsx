@@ -557,7 +557,9 @@ export default function RoadmapCalendar() {
                         onValueChange={(value) => value !== null && setSelectedScholarshipId(value)}
                       >
                         <SelectTrigger className="w-full border-slate-700 bg-slate-800 text-slate-200">
-                          <SelectValue placeholder="Pilih beasiswa bookmarked" />
+                          <SelectValue placeholder="Pilih beasiswa bookmarked">
+                            {selectedScholarshipId ? scholarships.find(s => s.id === selectedScholarshipId)?.title : "Pilih beasiswa bookmarked"}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           {scholarships.map((s) => (
@@ -573,11 +575,7 @@ export default function RoadmapCalendar() {
                         disabled={!selectedScholarshipId}
                         className="w-full justify-between border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 disabled:opacity-50"
                       >
-                        <span className="truncate">
-                          {selectedScholarshipId
-                            ? scholarships.find((s) => s.id === selectedScholarshipId)?.title || "Generate Roadmap"
-                            : "Generate Roadmap"}
-                        </span>
+                        <span className="truncate">Generate Roadmap</span>
                         <ChevronRight className="h-4 w-4 shrink-0" />
                       </Button>
                     </div>

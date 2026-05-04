@@ -53,7 +53,7 @@ export default function Scholarships() {
   const [showAllFilterChips, setShowAllFilterChips] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [failedImageMap, setFailedImageMap] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -110,13 +110,13 @@ export default function Scholarships() {
       result = result.filter((scholarship) => new Date(scholarship.deadline) <= new Date(endDate));
     }
 
-    result.sort((a, b) => {
+    const sortedResult = [...result].sort((a, b) => {
       const dateA = new Date(a.deadline).getTime();
       const dateB = new Date(b.deadline).getTime();
       return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
     });
 
-    setFiltered(result);
+    setFiltered(sortedResult);
   }, [search, selectedFields, selectedCountries, scholarships, startDate, endDate, sortOrder]);
 
   const countries = Array.from(new Set([...DEFAULT_COUNTRIES, ...scholarships.map((scholarship) => scholarship.country).filter(Boolean)])).sort((a, b) => a.localeCompare(b));
@@ -165,7 +165,7 @@ export default function Scholarships() {
     setCountrySearchQuery("");
     setStartDate("");
     setEndDate("");
-    setSortOrder("asc");
+    setSortOrder("desc");
     setShowAllFilterChips(false);
   };
 
@@ -384,7 +384,7 @@ export default function Scholarships() {
                       onClick={() => {
                         if (item.type === "field") toggleFieldSelection(item.value);
                         else if (item.type === "country") toggleCountrySelection(item.value);
-                        else if (item.type === "sort") setSortOrder("asc");
+                        else if (item.type === "sort") setSortOrder("desc");
                         else {
                           setStartDate("");
                           setEndDate("");
