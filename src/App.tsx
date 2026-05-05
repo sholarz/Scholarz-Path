@@ -18,6 +18,7 @@ import Profile from "./pages/Profile";
 import Premium from "./pages/Premium";
 import Bookmarks from "./pages/Bookmarks";
 import Auth from "./pages/Auth";
+import Notifications from "./pages/Notifications";
 import { Toaster } from "./components/ui/sonner";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -148,6 +149,14 @@ export default function App() {
               element={
                 <PrivateRoute>
                   <Bookmarks />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <PrivateRoute>
+                  <Notifications />
                 </PrivateRoute>
               }
             />

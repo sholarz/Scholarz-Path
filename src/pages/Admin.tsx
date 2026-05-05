@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Badge } from '../components/ui/badge';
 import { extractScholarshipFromText, searchScholarshipOnWeb, extractFromUrl } from '../services/geminiService';
 import { toast } from 'sonner';
-import { Loader2, Plus, Sparkles, Trash2, ExternalLink, Search, Globe } from 'lucide-react';
+import { Loader2, Plus, Sparkles, Trash2, ExternalLink, Search, Globe, PencilLine, X } from 'lucide-react';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Scholarship } from '../types';
 
@@ -36,6 +36,41 @@ export default function Admin() {
     benefits: '',
     selectionProcess: ''
   });
+
+  const [editingScholarshipId, setEditingScholarshipId] = useState<string | null>(null);
+
+  const resetManualForm = () => {
+    setManualData({
+      title: '',
+      description: '',
+      deadline: '',
+      eligibility: '',
+      country: 'Indonesia',
+      field: '',
+      link: '',
+      benefits: '',
+      selectionProcess: ''
+    });
+    setEditingScholarshipId(null);
+  };
+
+  const beginEditScholarship = (scholarship: Scholarship) => {
+    setManualData({
+      title: scholarship.title || '',
+      description: scholarship.description || '',
+      deadline: scholarship.deadline || '',
+      eligibility: scholarship.eligibility || '',
+      country: scholarship.country || 'Indonesia',
+      field: scholarship.field || '',
+      link: scholarship.link || '',
+      benefits: scholarship.benefits || '',
+      selectionProcess: scholarship.selectionProcess || ''
+    });
+    setEditingScholarshipId(scholarship.id);
+    setFormTab('manual');
+    setActiveTab('scholarships');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const fetchScholarships = async () => {
     setLoading(true);
@@ -69,6 +104,25 @@ export default function Admin() {
     fetchPayments();
   }, []);
 
+  const createPaymentNotification = async (
+    payment: any,
+    payload: {
+      title: string;
+      message: string;
+      type: 'info' | 'success' | 'warning' | 'match';
+    }
+  ) => {
+    await addDoc(collection(db, 'notifications'), {
+      userId: payment.userId,
+      title: payload.title,
+      message: payload.message,
+      type: payload.type,
+      read: false,
+      createdAt: serverTimestamp(),
+      link: '/profile'
+    });
+  };
+
   const handleApprovePayment = async (payment: any) => {
     try {
       // 1. Update payment status
@@ -78,13 +132,10 @@ export default function Admin() {
       await updateDoc(doc(db, 'users', payment.userId), { role: 'premium' });
 
       // 3. Create notification for user
-      await addDoc(collection(db, 'notifications'), {
-        userId: payment.userId,
-        title: 'Upgrade Premium Berhasil! ✨',
-        message: 'Selamat! Akun Anda telah diupgrade ke Premium. Nikmati akses tanpa batas ke semua fitur.',
-        type: 'success',
-        read: false,
-        createdAt: serverTimestamp()
+      await createPaymentNotification(payment, {
+        title: 'Pembayaran Diterima',
+        message: 'Selamat! Pembayaran Anda sudah diverifikasi. Akun Anda sekarang aktif sebagai Premium.',
+        type: 'success'
       });
       
       toast.success(`User ${payment.userName} berhasil diupgrade ke Premium!`);
@@ -95,9 +146,14 @@ export default function Admin() {
     }
   };
 
-  const handleRejectPayment = async (paymentId: string) => {
+  const handleRejectPayment = async (payment: any) => {
     try {
-      await updateDoc(doc(db, 'payments', paymentId), { status: 'rejected' });
+      await updateDoc(doc(db, 'payments', payment.id), { status: 'rejected' });
+      await createPaymentNotification(payment, {
+        title: 'Pembayaran Ditolak',
+        message: 'Maaf, pembayaran Anda ditolak. Silakan cek ulang bukti transfer atau hubungi admin untuk konfirmasi.',
+        type: 'warning'
+      });
       toast.info("Pembayaran ditolak");
       fetchPayments();
     } catch (error) {
@@ -120,22 +176,17 @@ export default function Admin() {
         return;
       }
     try {
-      await addDoc(collection(db, 'scholarships'), manualData);
-      toast.success('Beasiswa berhasil ditambahkan');
-      setManualData({
-        title: '',
-        description: '',
-        deadline: '',
-        eligibility: '',
-        country: 'Indonesia',
-        field: '',
-        link: '',
-        benefits: '',
-        selectionProcess: ''
-      });
+      if (editingScholarshipId) {
+        await updateDoc(doc(db, 'scholarships', editingScholarshipId), manualData);
+        toast.success('Beasiswa berhasil diperbarui');
+      } else {
+        await addDoc(collection(db, 'scholarships'), manualData);
+        toast.success('Beasiswa berhasil ditambahkan');
+      }
+      resetManualForm();
       fetchScholarships();
     } catch (error) {
-      toast.error('Gagal menambahkan beasiswa');
+      toast.error(editingScholarshipId ? 'Gagal memperbarui beasiswa' : 'Gagal menambahkan beasiswa');
     }
   };
 
@@ -195,6 +246,9 @@ export default function Admin() {
     setDeletingId(id);
     try {
       await deleteDoc(doc(db, 'scholarships', id));
+      if (editingScholarshipId === id) {
+        resetManualForm();
+      }
       setConfirmDeleteId(null);
       toast.success('Berhasil dihapus');
       fetchScholarships();
@@ -242,9 +296,22 @@ export default function Admin() {
               <div className="md:col-span-1">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Tambah Data</CardTitle>
+                    <CardTitle className="text-lg">{editingScholarshipId ? 'Edit Data' : 'Tambah Data'}</CardTitle>
+                    <CardDescription>
+                      {editingScholarshipId
+                        ? 'Ubah data beasiswa yang dipilih, lalu simpan perubahan.'
+                        : 'Tambahkan beasiswa baru atau isi form dari hasil ekstraksi.'}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
+                    {editingScholarshipId && (
+                      <div className="mb-4 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+                        <span>Sedang mengedit beasiswa yang dipilih.</span>
+                        <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-amber-800 hover:bg-amber-100" onClick={resetManualForm}>
+                          <X className="mr-1 h-3 w-3" /> Batal
+                        </Button>
+                      </div>
+                    )}
                     <Tabs value={formTab} onValueChange={setFormTab}>
                       <TabsList className="grid w-full grid-cols-3 mb-6">
                         <TabsTrigger value="manual">Manual</TabsTrigger>
@@ -354,7 +421,9 @@ export default function Admin() {
                             <Input id="link" type="url" className="h-9" value={manualData.link} onChange={e => setManualData({...manualData, link: e.target.value})} placeholder="https://..." required />
                           </div>
 
-                          <Button type="submit" className="w-full bg-slate-900 font-bold shadow-lg">Simpan ke Database</Button>
+                          <Button type="submit" className="w-full bg-slate-900 font-bold shadow-lg">
+                            {editingScholarshipId ? 'Simpan Perubahan' : 'Simpan ke Database'}
+                          </Button>
                         </form>
                       </TabsContent>
                       <TabsContent value="ai" className="space-y-4">
@@ -397,6 +466,14 @@ export default function Admin() {
                               </div>
                               
                               <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => beginEditScholarship(s)}
+                                  className="text-slate-300 hover:text-indigo-600 h-8 w-8 rounded-lg hover:bg-indigo-50"
+                                >
+                                  <PencilLine size={14} />
+                                </Button>
                                 {confirmDeleteId === s.id ? (
                                   <div className="flex items-center gap-1 animate-in slide-in-from-right-2 duration-200">
                                     <Button 
@@ -476,7 +553,7 @@ export default function Admin() {
                             {p.status === 'pending' && (
                               <>
                                 <Button 
-                                  onClick={() => handleRejectPayment(p.id)} 
+                                  onClick={() => handleRejectPayment(p)} 
                                   variant="ghost" 
                                   size="sm" 
                                   className="h-8 text-[10px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50"

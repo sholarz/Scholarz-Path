@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger
 } from './ui/dropdown-menu';
 import { Button } from './ui/button';
+import { Link } from 'react-router-dom';
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 
@@ -174,8 +175,8 @@ export function NotificationsMenu() {
         </ScrollArea>
         
         <div className="p-3 border-t border-slate-50 bg-slate-50/50 text-center">
-           <Button variant="ghost" className="w-full text-[10px] font-bold text-slate-500 hover:text-slate-900 h-8">
-             Lihat Semua Aktivitas
+           <Button asChild variant="ghost" className="w-full text-[10px] font-bold text-slate-500 hover:text-slate-900 h-8">
+             <Link to="/notifications">Lihat Semua Aktivitas</Link>
            </Button>
         </div>
       </DropdownMenuContent>

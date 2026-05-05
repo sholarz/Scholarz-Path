@@ -119,7 +119,6 @@ export default function Premium() {
                 "Automated Roadmap & Calendar Sync",
                 "Akses Simulasi Test IELTS/TOEFL Tak Terbatas",
                 "Prioritas Review Esai oleh AI",
-                "Simulasi Interview Beasiswa dengan AI",
                 "Badge Premium di Profil Forum",
               ].map((feature, i) => (
                 <div key={i} className="flex items-start gap-4">
