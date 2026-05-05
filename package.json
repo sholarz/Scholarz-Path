@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "deploy:functions": "cd functions && npm run deploy",
+    "deploy": "npm run build && npm run deploy:functions"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

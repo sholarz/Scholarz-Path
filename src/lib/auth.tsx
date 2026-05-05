@@ -14,6 +14,9 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
+// Load admin emails from environment variable
+const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').filter(Boolean);
+
 interface AuthContextType {
   user: User | null;
   profile: any | null;
@@ -38,12 +41,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUserData = async (u: User | null) => {
     if (u) {
-      const adminEmails = ['salwanettayumna@gmail.com', 'admin@scholarship.com', 'ikanbakargorengenak@gmail.com'];
       const userDocRef = doc(db, 'users', u.uid);
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
         const data = userDoc.data();
-        if (adminEmails.includes(u.email || '') && data.role !== 'admin') {
+        if (ADMIN_EMAILS.includes(u.email || '') && data.role !== 'admin') {
           await updateDoc(userDocRef, { role: 'admin' });
           setProfile({ ...data, role: 'admin' });
         } else {
@@ -54,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           uid: u.uid,
           email: u.email,
           displayName: u.displayName,
-          role: adminEmails.includes(u.email || '') ? 'admin' : 'free',
+          role: ADMIN_EMAILS.includes(u.email || '') ? 'admin' : 'free',
           matchCount: 0,
           createdAt: serverTimestamp()
         };
@@ -134,10 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signOut(auth);
   };
 
-  const isAdmin = profile?.role === 'admin' || 
-    user?.email === 'salwanettayumna@gmail.com' || 
-    user?.email === 'admin@scholarship.com' ||
-    user?.email === 'ikanbakargorengenak@gmail.com';
+  const isAdmin = profile?.role === 'admin' || ADMIN_EMAILS.includes(user?.email || '');
   const isPremium = profile?.role === 'premium' || isAdmin;
 
   return (
