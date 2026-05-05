@@ -26,7 +26,71 @@ export default function Profile() {
     country: '',
     language: ''
   });
+  const [formErrors, setFormErrors] = useState<Partial<Record<'institution' | 'gpa' | 'targetDegree' | 'field' | 'englishScore' | 'country', string>>>({});
   const [isSaving, setIsSaving] = useState(false);
+
+  const requiredTextFields = ['institution', 'targetDegree', 'field', 'englishScore', 'country'] as const;
+
+  const normalizeProfileData = (data = formData) => ({
+    ...data,
+    institution: data.institution.trim(),
+    targetDegree: data.targetDegree.trim(),
+    field: data.field.trim(),
+    englishScore: data.englishScore.trim(),
+    country: data.country.trim(),
+    gpa: String(data.gpa ?? '').trim()
+  });
+
+  const validateProfileForm = (data = formData) => {
+    const normalized = normalizeProfileData(data);
+    const errors: Partial<Record<'institution' | 'gpa' | 'targetDegree' | 'field' | 'englishScore' | 'country', string>> = {};
+
+    if (!normalized.institution) {
+      errors.institution = 'Institusi pendidikan wajib diisi';
+    }
+
+    if (!normalized.gpa) {
+      errors.gpa = 'IPK wajib diisi';
+    } else {
+      const gpaNum = Number(normalized.gpa);
+      if (Number.isNaN(gpaNum) || gpaNum < 0 || gpaNum > 4) {
+        errors.gpa = 'IPK harus berada di rentang 0.0 - 4.0';
+      }
+    }
+
+    if (!normalized.targetDegree) {
+      errors.targetDegree = 'Target jenjang wajib diisi';
+    }
+
+    if (!normalized.field) {
+      errors.field = 'Bidang studi wajib diisi';
+    }
+
+    if (!normalized.englishScore) {
+      errors.englishScore = 'Skor bahasa Inggris wajib diisi';
+    }
+
+    if (!normalized.country) {
+      errors.country = 'Negara tujuan wajib diisi';
+    }
+
+    return errors;
+  };
+
+  const updateField = (field: keyof typeof formData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (requiredTextFields.includes(field as typeof requiredTextFields[number]) || field === 'gpa') {
+      setFormErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const handleFieldBlur = (field: keyof typeof formErrors) => {
+    const nextErrors = validateProfileForm();
+    setFormErrors(prev => ({
+      ...prev,
+      [field]: nextErrors[field]
+    }));
+  };
 
   useEffect(() => {
     if (profile) {
@@ -48,27 +112,30 @@ export default function Profile() {
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    // Guard clause: validate GPA range before attempting to save
-    const gpaStr = String(formData.gpa ?? "").trim();
-    if (gpaStr) {
-      const gpaNum = parseFloat(gpaStr);
-      if (Number.isNaN(gpaNum) || gpaNum < 0 || gpaNum > 4) {
-        toast.error("IPK harus berada di rentang 0.0 - 4.0");
-        return;
-      }
+
+    const normalized = normalizeProfileData();
+    const nextErrors = validateProfileForm(normalized);
+    setFormErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      toast.error(Object.values(nextErrors)[0] || 'Lengkapi semua field wajib sebelum menyimpan');
+      return;
     }
 
     setIsSaving(true);
     try {
       const docRef = doc(db, 'users', user.uid);
       const payload: Record<string, unknown> = {
-        ...formData,
+        ...normalized,
+        institution: normalized.institution,
+        targetDegree: normalized.targetDegree,
+        field: normalized.field,
+        englishScore: normalized.englishScore,
+        country: normalized.country,
         updatedAt: new Date().toISOString()
       };
 
-      if (gpaStr) {
-        payload.gpa = parseFloat(gpaStr);
-      }
+      payload.gpa = parseFloat(normalized.gpa);
 
       await updateDoc(docRef, payload);
       toast.success("Profil berhasil diperbarui!");
@@ -112,9 +179,12 @@ export default function Profile() {
                 id="institution" 
                 placeholder="Contoh: Universitas Indonesia"
                 value={formData.institution}
-                onChange={(e) => setFormData({...formData, institution: e.target.value})}
+                onChange={(e) => updateField('institution', e.target.value)}
+                onBlur={() => handleFieldBlur('institution')}
                 className="rounded-xl border-slate-200 focus:ring-slate-900" 
+                aria-invalid={Boolean(formErrors.institution)}
               />
+              {formErrors.institution && <p className="text-xs text-red-600">{formErrors.institution}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="gpa">IPK Terakhir</Label>
@@ -124,9 +194,12 @@ export default function Profile() {
                 step="0.01" 
                 placeholder="Contoh: 3.75"
                 value={formData.gpa}
-                onChange={(e) => setFormData({...formData, gpa: e.target.value})}
+                onChange={(e) => updateField('gpa', e.target.value)}
+                onBlur={() => handleFieldBlur('gpa')}
                 className="rounded-xl border-slate-200 focus:ring-slate-900" 
+                aria-invalid={Boolean(formErrors.gpa)}
               />
+              {formErrors.gpa && <p className="text-xs text-red-600">{formErrors.gpa}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="targetDegree">Target Jenjang</Label>
@@ -134,9 +207,12 @@ export default function Profile() {
                 id="targetDegree" 
                 placeholder="Contoh: Master's Degree (S2)"
                 value={formData.targetDegree}
-                onChange={(e) => setFormData({...formData, targetDegree: e.target.value})}
+                onChange={(e) => updateField('targetDegree', e.target.value)}
+                onBlur={() => handleFieldBlur('targetDegree')}
                 className="rounded-xl border-slate-200 focus:ring-slate-900" 
+                aria-invalid={Boolean(formErrors.targetDegree)}
               />
+              {formErrors.targetDegree && <p className="text-xs text-red-600">{formErrors.targetDegree}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="field">Bidang Studi (Jurusan)</Label>
@@ -144,9 +220,12 @@ export default function Profile() {
                 id="field" 
                 placeholder="Contoh: Computer Science"
                 value={formData.field}
-                onChange={(e) => setFormData({...formData, field: e.target.value})}
+                onChange={(e) => updateField('field', e.target.value)}
+                onBlur={() => handleFieldBlur('field')}
                 className="rounded-xl border-slate-200 focus:ring-slate-900" 
+                aria-invalid={Boolean(formErrors.field)}
               />
+              {formErrors.field && <p className="text-xs text-red-600">{formErrors.field}</p>}
             </div>
           </CardContent>
         </Card>
@@ -168,9 +247,12 @@ export default function Profile() {
                 id="englishScore" 
                 placeholder="Contoh: IELTS 7.5 / TOEFL 105"
                 value={formData.englishScore}
-                onChange={(e) => setFormData({...formData, englishScore: e.target.value})}
+                onChange={(e) => updateField('englishScore', e.target.value)}
+                onBlur={() => handleFieldBlur('englishScore')}
                 className="rounded-xl border-slate-200 focus:ring-slate-900" 
+                aria-invalid={Boolean(formErrors.englishScore)}
               />
+              {formErrors.englishScore && <p className="text-xs text-red-600">{formErrors.englishScore}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="language">Bahasa Asing Lainnya</Label>
@@ -178,7 +260,7 @@ export default function Profile() {
                 id="language" 
                 placeholder="Contoh: German B1, Japanese N3"
                 value={formData.language}
-                onChange={(e) => setFormData({...formData, language: e.target.value})}
+                onChange={(e) => updateField('language', e.target.value)}
                 className="rounded-xl border-slate-200 focus:ring-slate-900" 
               />
             </div>
@@ -236,9 +318,12 @@ export default function Profile() {
                 id="country" 
                 placeholder="Contoh: United Kingdom, Germany, Singapore"
                 value={formData.country}
-                onChange={(e) => setFormData({...formData, country: e.target.value})}
+                onChange={(e) => updateField('country', e.target.value)}
+                onBlur={() => handleFieldBlur('country')}
                 className="rounded-xl border-slate-200 focus:ring-slate-900" 
+                aria-invalid={Boolean(formErrors.country)}
               />
+              {formErrors.country && <p className="text-xs text-red-600">{formErrors.country}</p>}
             </div>
           </CardContent>
         </Card>

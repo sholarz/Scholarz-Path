@@ -36,8 +36,46 @@ export default function Admin() {
     benefits: '',
     selectionProcess: ''
   });
+  const [manualErrors, setManualErrors] = useState<Partial<Record<'title' | 'deadline' | 'link', string>>>({});
 
   const [editingScholarshipId, setEditingScholarshipId] = useState<string | null>(null);
+
+  const isValidDateInput = (value: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return false;
+
+    const [year, month, day] = value.split('-').map(Number);
+    return date.getFullYear() === year && date.getMonth() + 1 === month && date.getDate() === day;
+  };
+
+  const validateManualData = (data = manualData) => {
+    const nextErrors: Partial<Record<'title' | 'deadline' | 'link', string>> = {};
+
+    if (!data.title.trim()) {
+      nextErrors.title = 'Judul beasiswa tidak boleh kosong';
+    }
+
+    if (!data.deadline) {
+      nextErrors.deadline = 'Deadline tidak boleh kosong';
+    } else if (!isValidDateInput(data.deadline)) {
+      nextErrors.deadline = 'Deadline harus berupa tanggal yang valid';
+    }
+
+    if (!data.link.trim()) {
+      nextErrors.link = 'Link tidak boleh kosong';
+    }
+
+    return nextErrors;
+  };
+
+  const updateManualField = (field: keyof typeof manualData, value: string) => {
+    setManualData(prev => ({ ...prev, [field]: value }));
+    if (field === 'title' || field === 'deadline' || field === 'link') {
+      setManualErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
 
   const resetManualForm = () => {
     setManualData({
@@ -51,6 +89,7 @@ export default function Admin() {
       benefits: '',
       selectionProcess: ''
     });
+    setManualErrors({});
     setEditingScholarshipId(null);
   };
 
@@ -66,6 +105,7 @@ export default function Admin() {
       benefits: scholarship.benefits || '',
       selectionProcess: scholarship.selectionProcess || ''
     });
+    setManualErrors({});
     setEditingScholarshipId(scholarship.id);
     setFormTab('manual');
     setActiveTab('scholarships');
@@ -163,24 +203,27 @@ export default function Admin() {
 
   const handleAddManual = async (e: React.FormEvent) => {
     e.preventDefault();
-      if (!manualData.title.trim()) {
-        toast.error('Judul beasiswa tidak boleh kosong');
-        return;
-      }
-      if (!manualData.deadline) {
-        toast.error('Deadline tidak boleh kosong');
-        return;
-      }
-      if (!manualData.link.trim()) {
-        toast.error('Link tidak boleh kosong');
-        return;
-      }
+    const nextErrors = validateManualData();
+    setManualErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      toast.error(Object.values(nextErrors)[0] || 'Lengkapi data wajib sebelum menyimpan');
+      return;
+    }
+
+    const payload = {
+      ...manualData,
+      title: manualData.title.trim(),
+      deadline: manualData.deadline.trim(),
+      link: manualData.link.trim()
+    };
+
     try {
       if (editingScholarshipId) {
-        await updateDoc(doc(db, 'scholarships', editingScholarshipId), manualData);
+        await updateDoc(doc(db, 'scholarships', editingScholarshipId), payload);
         toast.success('Beasiswa berhasil diperbarui');
       } else {
-        await addDoc(collection(db, 'scholarships'), manualData);
+        await addDoc(collection(db, 'scholarships'), payload);
         toast.success('Beasiswa berhasil ditambahkan');
       }
       resetManualForm();
@@ -257,6 +300,23 @@ export default function Admin() {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const handleManualBlur = (field: 'title' | 'deadline' | 'link') => {
+    const nextManualData =
+      field === 'title'
+        ? { ...manualData, title: manualData.title.trim() }
+        : manualData;
+
+    if (field === 'title' && nextManualData.title !== manualData.title) {
+      setManualData(prev => ({ ...prev, title: nextManualData.title }));
+    }
+
+    const fieldErrors = validateManualData(nextManualData);
+    setManualErrors(prev => ({
+      ...prev,
+      [field]: fieldErrors[field]
+    }));
   };
 
   return (
@@ -377,48 +437,79 @@ export default function Admin() {
                       <form onSubmit={handleAddManual} className="space-y-4">
                           <div className="space-y-1">
                             <Label htmlFor="title" className="text-xs">Judul Beasiswa</Label>
-                            <Input id="title" className="h-9" value={manualData.title} onChange={e => setManualData({...manualData, title: e.target.value})} placeholder="Contoh: Beasiswa LPDP 2024" required />
+                            <Input
+                              id="title"
+                              className="h-9"
+                              value={manualData.title}
+                              onChange={e => updateManualField('title', e.target.value)}
+                              onBlur={() => handleManualBlur('title')}
+                              placeholder="Contoh: Beasiswa LPDP 2024"
+                              required
+                              aria-invalid={Boolean(manualErrors.title)}
+                            />
+                            {manualErrors.title && <p className="text-xs text-red-600">{manualErrors.title}</p>}
                           </div>
                           
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                               <Label htmlFor="deadline" className="text-xs">Deadline</Label>
-                              <Input id="deadline" type="date" className="h-9" value={manualData.deadline} onChange={e => setManualData({...manualData, deadline: e.target.value})} required />
+                              <Input
+                                id="deadline"
+                                type="date"
+                                className="h-9"
+                                value={manualData.deadline}
+                                onChange={e => updateManualField('deadline', e.target.value)}
+                                onBlur={() => handleManualBlur('deadline')}
+                                required
+                                aria-invalid={Boolean(manualErrors.deadline)}
+                              />
+                              {manualErrors.deadline && <p className="text-xs text-red-600">{manualErrors.deadline}</p>}
                             </div>
                             <div className="space-y-1">
                               <Label htmlFor="country" className="text-xs">Negara Tujuan</Label>
-                              <Input id="country" className="h-9" value={manualData.country} onChange={e => setManualData({...manualData, country: e.target.value})} placeholder="Contoh: Australia" />
+                              <Input id="country" className="h-9" value={manualData.country} onChange={e => updateManualField('country', e.target.value)} placeholder="Contoh: Australia" />
                             </div>
                           </div>
 
                           <div className="space-y-1">
                             <Label htmlFor="field" className="text-xs">Bidang Studi</Label>
-                            <Input id="field" className="h-9" value={manualData.field} onChange={e => setManualData({...manualData, field: e.target.value})} placeholder="Contoh: Teknik, IT, Ekonomi" />
+                            <Input id="field" className="h-9" value={manualData.field} onChange={e => updateManualField('field', e.target.value)} placeholder="Contoh: Teknik, IT, Ekonomi" />
                           </div>
 
                           <div className="space-y-1">
                             <Label htmlFor="description" className="text-xs">Deskripsi Ringkas</Label>
-                            <Textarea id="description" className="text-xs min-h-[100px]" value={manualData.description} onChange={e => setManualData({...manualData, description: e.target.value})} placeholder="Ringkasan tentang beasiswa ini..." />
+                            <Textarea id="description" className="text-xs min-h-[100px]" value={manualData.description} onChange={e => updateManualField('description', e.target.value)} placeholder="Ringkasan tentang beasiswa ini..." />
                           </div>
 
                           <div className="space-y-1">
                             <Label htmlFor="eligibility" className="text-xs">Kriteria Kelayakan (Mendukung Markdown)</Label>
-                            <Textarea id="eligibility" className="text-xs min-h-[150px]" value={manualData.eligibility} onChange={e => setManualData({...manualData, eligibility: e.target.value})} placeholder="Syarat IPK, usia, dll..." />
+                            <Textarea id="eligibility" className="text-xs min-h-[150px]" value={manualData.eligibility} onChange={e => updateManualField('eligibility', e.target.value)} placeholder="Syarat IPK, usia, dll..." />
                           </div>
 
                           <div className="space-y-1">
                             <Label htmlFor="benefits" className="text-xs">Besaran & Benefit</Label>
-                            <Textarea id="benefits" className="text-xs min-h-[100px]" value={manualData.benefits} onChange={e => setManualData({...manualData, benefits: e.target.value})} placeholder="Cth: Biaya Semester, Uang Saku..." />
+                            <Textarea id="benefits" className="text-xs min-h-[100px]" value={manualData.benefits} onChange={e => updateManualField('benefits', e.target.value)} placeholder="Cth: Biaya Semester, Uang Saku..." />
                           </div>
 
                           <div className="space-y-1">
                             <Label htmlFor="selectionProcess" className="text-xs">Proses Seleksi</Label>
-                            <Textarea id="selectionProcess" className="text-xs min-h-[100px]" value={manualData.selectionProcess} onChange={e => setManualData({...manualData, selectionProcess: e.target.value})} placeholder="Langkah-langkah pendaftaran..." />
+                            <Textarea id="selectionProcess" className="text-xs min-h-[100px]" value={manualData.selectionProcess} onChange={e => updateManualField('selectionProcess', e.target.value)} placeholder="Langkah-langkah pendaftaran..." />
                           </div>
 
                           <div className="space-y-1">
                             <Label htmlFor="link" className="text-xs">Link Pendaftaran (Asli)</Label>
-                            <Input id="link" type="url" className="h-9" value={manualData.link} onChange={e => setManualData({...manualData, link: e.target.value})} placeholder="https://..." required />
+                            <Input
+                              id="link"
+                              type="url"
+                              className="h-9"
+                              value={manualData.link}
+                              onChange={e => updateManualField('link', e.target.value)}
+                              onBlur={() => handleManualBlur('link')}
+                              placeholder="https://..."
+                              required
+                              aria-invalid={Boolean(manualErrors.link)}
+                            />
+                            {manualErrors.link && <p className="text-xs text-red-600">{manualErrors.link}</p>}
                           </div>
 
                           <Button type="submit" className="w-full bg-slate-900 font-bold shadow-lg">
